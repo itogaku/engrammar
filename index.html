@@ -166,9 +166,27 @@
   .done-actions { display: flex; flex-direction: column; gap: 10px; margin-top: 20px; }
 
   /* --- print (worksheet) screen --- */
-  .print-options { margin-bottom: 16px; }
+  .print-options { margin-bottom: 16px; padding: 0; overflow: hidden; }
+  .opt-sec { padding: 16px 22px; border-bottom: 1px solid var(--line); }
+  .opt-sec-head { font-size: 14px; font-weight: 800; color: var(--ink); margin-bottom: 10px; display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+  .opt-sec-head span { font-size: 12px; font-weight: 600; color: var(--ink-soft); }
+  .opt-sec .mode-switch { margin-bottom: 0; }
+  .opt-note { font-size: 12px; color: var(--ink-soft); line-height: 1.6; margin-top: 8px; }
+  .round-flow { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; margin-top: 10px; font-size: 12px; color: var(--ink-soft); }
+  .round-flow .rf { padding: 3px 8px; border-radius: 6px; font-weight: 700; white-space: nowrap; }
+  .round-flow .rf.q { background: var(--teal-tint); color: var(--teal-dark); }
+  .round-flow .rf.a { background: var(--amber-tint); color: var(--amber); }
+  .chip-switch { flex: 1; display: flex; flex-wrap: wrap; gap: 6px; min-width: 0; }
+  .chip-switch button { border: 1.5px solid var(--line); background: var(--panel); color: var(--ink-soft); padding: 6px 12px; border-radius: 999px; font-size: 12.5px; font-weight: 600; cursor: pointer; font-family: inherit; }
+  .chip-switch button.active { background: var(--teal); border-color: var(--teal); color: #fff; }
+  .opt-more { margin-top: 4px; }
+  .opt-more summary { font-size: 12.5px; font-weight: 700; color: var(--teal-dark); cursor: pointer; padding: 4px 0; }
+  .opt-more[open] summary { margin-bottom: 8px; }
+  .opt-checks { display: flex; flex-wrap: wrap; gap: 8px 20px; }
+  .print-options .print-actions { padding: 14px 22px; margin: 0; background: var(--paper); }
+  .print-options .print-source-note { margin-bottom: 10px; }
   .opt-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
-  .opt-row .opt-label { font-size: 12px; font-weight: 700; color: var(--ink-soft); width: 72px; flex-shrink: 0; }
+  .opt-row .opt-label { font-size: 12px; font-weight: 700; color: var(--ink-soft); width: 84px; flex-shrink: 0; }
   .opt-row .mode-switch { flex: 1; margin-bottom: 0; min-width: 0; }
   .opt-row .mode-switch button { padding: 8px 6px; font-size: 12.5px; }
   .opt-check { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--ink-soft); cursor: pointer; }
@@ -399,8 +417,10 @@
     .round-tabs { display: none !important; }
   }
   #roundsPrint { display: none; }
-  .round-tabs { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0 0 10px; }
-  .round-tabs .opt-label { margin-right: 4px; }
+  .round-tabs { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 0 0 10px; }
+  .round-tabs .rt-label { font-size: 12px; font-weight: 700; color: var(--ink-soft); }
+  .round-tabs .mode-switch { margin-bottom: 0; flex: 1; max-width: 520px; }
+  .round-tabs .mode-switch button { padding: 7px 6px; font-size: 12.5px; }
 </style>
 </head>
 <body>
@@ -510,30 +530,39 @@
     <button class="back-link" id="backToProgramFromPrint">&larr; Program選択に戻る</button>
 
     <div class="card print-options no-print">
-      <div class="print-source-note" id="printSourceNote" style="display:none;"></div>
-      <div class="opt-row" id="printCountRow"><span class="opt-label">問題数</span><div class="mode-switch" id="printCountSwitch"></div></div>
-      <div id="printGuideRow" style="display:none;">
-        <div class="opt-hint">1つの単元を「説明と確認の問題 → くわしい解説と解答 → 練習問題 → 解答」の4ページで学びます。両面印刷（長辺とじ）にすると、問題の裏が解答になります。</div>
-      </div>
-      <div class="opt-row" id="printTypeRow"><span class="opt-label">文法問題</span><div class="mode-switch multi" id="printTypeSwitch"></div></div>
-      <div id="printReorderBox">
-      <div class="opt-hint">並べ替えの設定</div>
-      <div class="opt-row"><span class="opt-label">まとまり</span><div class="mode-switch" id="printChunkSwitch"></div></div>
-      <div class="opt-row" id="printGlossRow"><span class="opt-label">ヒント</span><div class="mode-switch" id="printGlossSwitch"></div></div>
-      </div>
-      <div id="printRoundRow">
-        <div class="opt-row"><span class="opt-label">くり返し</span><div class="mode-switch" id="printRoundSwitch"></div></div>
-        <div class="opt-hint">「解く → 丸付け → 類題を解く」をくり返せるように、問題と解答を1回分ずつ続けて印刷します（第1回の問題 → 第1回の解答 → 第2回の問題 → …）。2回目からは同じ形式・同じ範囲の別の問題です。</div>
-      </div>
-      <div class="opt-row">
-        <label class="opt-check"><input type="checkbox" id="printIncludeAnswers" checked> 解答ページも印刷する</label>
-      </div>
-      <div class="opt-row">
-        <label class="opt-check" id="printPointsLabel"><input type="checkbox" id="printPointsCheck" checked> 配点を入れる（100点満点）</label>
-        <label class="opt-check"><input type="checkbox" id="printTeacherCheck"> 先生用（答えを赤字で書き入れる）</label>
-      </div>
+      <section class="opt-sec" id="printRoundRow">
+        <div class="opt-sec-head">くり返し<span>問題と解答のセットを何周するか</span></div>
+        <div class="mode-switch" id="printRoundSwitch"></div>
+        <div class="round-flow" id="roundFlow"></div>
+        <div class="opt-note">1周 = 問題 → 解答。解いて丸付けしたら、次の周の類題（同じ形式・同じ範囲の別の問題）を解きます。</div>
+      </section>
+
+      <section class="opt-sec">
+        <div class="opt-sec-head" id="printQHead">問題</div>
+        <div class="print-source-note" id="printSourceNote" style="display:none;"></div>
+        <div id="printGuideRow" style="display:none;">
+          <div class="opt-note">1つの単元を「説明と確認の問題 → くわしい解説と解答 → 練習問題 → 解答」の4ページで学びます。両面印刷（長辺とじ）にすると、問題の裏が解答になります。</div>
+        </div>
+        <div class="opt-row" id="printCountRow"><span class="opt-label">1周の問題数</span><div class="mode-switch" id="printCountSwitch"></div></div>
+        <div class="opt-row" id="printTypeRow"><span class="opt-label">問題の種類</span><div class="chip-switch" id="printTypeSwitch"></div></div>
+        <details class="opt-more" id="printReorderBox">
+          <summary>並べ替えの設定</summary>
+          <div class="opt-row"><span class="opt-label">まとまり</span><div class="mode-switch" id="printChunkSwitch"></div></div>
+          <div class="opt-row" id="printGlossRow"><span class="opt-label">ヒント</span><div class="mode-switch" id="printGlossSwitch"></div></div>
+        </details>
+      </section>
+
+      <section class="opt-sec">
+        <div class="opt-sec-head">印刷</div>
+        <div class="opt-checks">
+          <label class="opt-check"><input type="checkbox" id="printIncludeAnswers" checked> 解答ページを入れる</label>
+          <label class="opt-check" id="printPointsLabel"><input type="checkbox" id="printPointsCheck" checked> 配点（100点満点）</label>
+          <label class="opt-check"><input type="checkbox" id="printTeacherCheck"> 先生用（答えを赤字で記入）</label>
+        </div>
+      </section>
+
       <div class="print-actions">
-        <button class="btn btn-ghost" id="printRegenBtn">類題を作る（同じ設定で別の問題）</button>
+        <button class="btn btn-ghost" id="printRegenBtn">問題を作り直す</button>
         <button class="btn btn-primary" id="printPrintBtn">印刷する</button>
       </div>
     </div>
@@ -5330,17 +5359,20 @@ function renderPrintOptions() {
   printGuideRow.style.display = isGuide ? 'block' : 'none';
   printPointsLabel.style.display = isTest ? '' : 'none';
   printRoundRow.style.display = isGuide ? 'none' : '';
-  renderOptionSwitch(printRoundSwitch, [1, 2, 3, 4].map(n => [n, n === 1 ? '1回分' : `${n}回分`]), printRounds, v => {
+  renderOptionSwitch(printRoundSwitch, [1, 2, 3, 4, 5, 6].map(n => [n, `${n}周`]), printRounds, v => {
     printRounds = v; generateWorksheet(printSeed);
   });
+  roundFlow.innerHTML = Array.from({ length: printRounds }, (_, i) =>
+    `<span class="rf q">問題${'①②③④⑤⑥'[i]}</span>${printIncludeAnswers.checked ? `→<span class="rf a">解答${'①②③④⑤⑥'[i]}</span>` : ''}`).join('→');
+  printQHead.textContent = isTest ? '問題（テスト範囲の画面で設定した内容）' : '問題';
   document.getElementById('printGlossRow').style.display = isGuide ? 'none' : 'flex';
   printCheckBtn.parentElement.style.display = isGuide ? 'none' : '';
   printSourceNote.style.display = isTest ? 'block' : 'none';
-  printSourceNote.textContent = isTest ? `${printSource.summary}（${countQuestions()}問）` : '';
+  printSourceNote.textContent = isTest ? `${printSource.summary}（1周 ${countQuestions()}問）` : '';
   backToProgramFromPrint.innerHTML = isTest ? '&larr; テスト範囲の設定に戻る' : '&larr; 単元選択に戻る';
   // テスト範囲のプリントでは、問題の種類と数は前の画面で決める
   printTypeRow.style.display = isTest || isGuide ? 'none' : 'flex';
-  printReorderBox.style.display = printItems.some(it => it.type === 'reorder') ? 'block' : 'none';
+  printReorderBox.style.display = !isGuide && printItems.some(it => it.type === 'reorder') ? 'block' : 'none';
 
   renderOptionSwitch(printCountSwitch, PRINT_COUNTS.map(n => [n, `${n}問`]), printCount, v => {
     printCount = v; generateWorksheet();
@@ -5469,13 +5501,13 @@ function renderRoundTabs() {
   roundTabs.innerHTML = '';
   if (n > 1) {
     const label = document.createElement('span');
-    label.className = 'opt-label';
-    label.textContent = '解く回';
+    label.className = 'rt-label';
+    label.textContent = '画面で解く';
     roundTabs.appendChild(label);
     const sw = document.createElement('div');
     sw.className = 'mode-switch';
     roundTabs.appendChild(sw);
-    renderOptionSwitch(sw, roundSets.map((_, i) => [i, `第${i + 1}回`]), activeRound, v => { useRound(v); renderWorksheet(); window.scrollTo(0, sheet.offsetTop - 60); });
+    renderOptionSwitch(sw, roundSets.map((_, i) => [i, `${i + 1}周目`]), activeRound, v => { useRound(v); renderWorksheet(); window.scrollTo(0, sheet.offsetTop - 60); });
   }
   printNextRoundBtn.style.display = 'none';
 }
@@ -5979,7 +6011,7 @@ function renderWorksheet() {
   sheetNo.textContent = `No.${printSeed}`;
   if (printSource.kind === 'guide') { allWorksheetItems().forEach(it => { delete it.points; }); renderGuideWorksheet(); return; }
   renderRoundTabs();
-  const roundLabel = roundCount() > 1 ? `（第${activeRound + 1}回）` : '';
+  const roundLabel = roundCount() > 1 ? `（${activeRound + 1}周目）` : '';
   if (printSource.kind === 'stage') {
     const s = currentStage();
     const gradeName = (grades.find(g => g.id === s.grade) || {}).name || '';
@@ -6077,7 +6109,7 @@ function checkWorksheet() {
   // 答え合わせのあとは、次の回(類題)へ進める
   if (printSource.kind !== 'guide') {
     printNextRoundBtn.style.display = '';
-    printNextRoundBtn.textContent = activeRound < roundCount() - 1 ? `第${activeRound + 2}回（類題）を解く` : '新しい類題でもう1回';
+    printNextRoundBtn.textContent = activeRound < roundCount() - 1 ? `${activeRound + 2}周目（類題）を解く` : '新しい類題でもう1周';
   }
 }
 function checkWorksheetScore() {
@@ -6183,6 +6215,7 @@ function renderPrintHistory() {
 printCheckBtn.addEventListener('click', checkWorksheet);
 printResetBtn.addEventListener('click', resetWorksheetAnswers);
 printIncludeAnswers.addEventListener('change', () => {
+  renderPrintOptions();
   if (printSource.kind === 'guide') { renderWorksheet(); return; }
   answerSheet.classList.toggle('include', printIncludeAnswers.checked);
 });
