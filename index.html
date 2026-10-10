@@ -290,7 +290,7 @@
     <button class="test-entry" id="openTestBtn">
       <div>
         <div class="g-name">テスト範囲から出題</div>
-        <div class="g-sub">複数の単元を選んで、並べ替え・適語選択・語形変化・和文英訳のプリントを作る</div>
+        <div class="g-sub">複数の単元を選んで、並べ替え・適語選択・語形変化・和文英訳・書きかえのプリントを作る</div>
       </div>
       <div class="g-arrow">&rarr;</div>
     </button>
@@ -334,7 +334,7 @@
       <input type="text" class="type-input" id="testNameInput" placeholder="範囲の名前（例：2学期中間テスト）">
       <button class="btn btn-primary" id="testSaveConfirmBtn">保存</button>
     </div>
-    <p class="test-note">問題の種類（並べ替え・適語選択・語形変化・和文英訳）は、次の画面で選べます。</p>
+    <p class="test-note">問題の種類（並べ替え・適語選択・語形変化・和文英訳・書きかえ）は、次の画面で選べます。</p>
   </div>
 
   <!-- Screen 2: program select -->
@@ -1745,10 +1745,12 @@ function piecesForCurrentMode(q) {
   return expandPieces(pieceList(q), chunkLevel);
 }
 
-// pieces内にbe動詞(訳が「は」/「は?」)があるかを調べ、その直後を副詞の挿入位置にする。
+// pieces内にbe動詞・助動詞だけのピース(訳が「は」/「は?」、または am / can などの1語)があれば、
+// その直後を副詞の挿入位置にする(I am always ~ / I can usually ~)。
 // なければ(一般動詞など)動詞の前、つまり主語の直後(index 1)に挿入する。
+const ADVERB_AFTER_WORDS = new Set(['am', 'is', 'are', 'was', 'were', 'can', 'will', 'must', 'should', 'could', 'would', 'may']);
 function adverbInsertIndex(pieces) {
-  const beIdx = pieces.findIndex(p => p.jp === 'は' || p.jp === 'は?');
+  const beIdx = pieces.findIndex((p, i) => p.jp === 'は' || p.jp === 'は?' || (i > 0 && ADVERB_AFTER_WORDS.has(p.en.toLowerCase())));
   return beIdx >= 0 ? beIdx + 1 : Math.min(1, pieces.length);
 }
 
@@ -1762,7 +1764,16 @@ function applyModifiers(basePieces, mods) {
   const jpTags = [];
   mods.forEach(mod => {
     if (mod.type === 'adverb') {
-      pieces.splice(adverbInsertIndex(pieces), 0, { en: mod.en, jp: mod.jp });
+      const idx = adverbInsertIndex(pieces);
+      const target = pieces[idx];
+      const words = target ? target.en.split(' ') : [];
+      if (words.length > 1 && ADVERB_AFTER_WORDS.has(words[0].toLowerCase())) {
+        // 「am happy」「will help」のようにbe動詞・助動詞で始まるピースは分けて、その間に入れる
+        // (I usually am happy → I am usually happy)
+        pieces.splice(idx, 1, { en: words[0], jp: '' }, { en: mod.en, jp: mod.jp }, { en: words.slice(1).join(' '), jp: target.jp });
+      } else {
+        pieces.splice(idx, 0, { en: mod.en, jp: mod.jp });
+      }
     } else {
       pieces.push({ en: mod.en, jp: mod.jp });
     }
@@ -2067,12 +2078,115 @@ function findBlank(stage, tokens, needHint) {
   return null;
 }
 
+// ---------- 書きかえ(肯定文 → 否定文・疑問文) ----------
+// 肯定文の述語(be動詞・助動詞・現在完了のhave・一般動詞)を見つけて、not を入れたり
+// 文頭に出したりする。関係代名詞や接続詞を含む複雑な文は対象外(別の形式で出題)。
+const REWRITE_MODALS = ['can', 'will', 'must', 'should', 'could', 'would', 'may'];
+const MID_ADVERBS = new Set(['always', 'usually', 'sometimes', 'often', 'really', 'also']);
+const SUBJECT_PRONOUNS = new Set(['i', 'he', 'she', 'we', 'they', 'you', 'it']);
+const LOWERCASE_SUBJECT_HEADS = new Set(['he', 'she', 'it', 'we', 'they', 'you', 'this', 'that', 'these', 'those',
+  'the', 'my', 'your', 'his', 'her', 'our', 'their', 'there', 'a', 'an', 'some', 'its']);
+const REWRITE_SKIP_WORDS = new Set(['not', 'never', 'cannot', 'who', 'which', 'whose', 'when', 'if', 'because',
+  'yet', 'ever', 'already', 'just', 'since']);
+// 短縮形も正解にする
+const CONTRACTIONS = [
+  ['do not', "don't"], ['does not', "doesn't"], ['did not', "didn't"], ['is not', "isn't"], ['are not', "aren't"],
+  ['was not', "wasn't"], ['were not', "weren't"], ['cannot', "can't"], ['cannot', 'can not'], ['will not', "won't"],
+  ['have not', "haven't"], ['has not', "hasn't"], ['must not', "mustn't"], ['should not', "shouldn't"],
+];
+
+function lowerSubjectHead(t) {
+  const l = t.toLowerCase();
+  if (l === 'i') return 'I';
+  return LOWERCASE_SUBJECT_HEADS.has(l) || /ing$/.test(l) ? l : t;
+}
+function isPerfectParticiple(w) {
+  const base = VERB_BASE_OF[w];
+  return w === 'been' || (!!base && w !== base && verbPastParticiple(base) === w);
+}
+function rewriteVariants(text) {
+  let variants = [text];
+  CONTRACTIONS.forEach(([full, short]) => {
+    const re = new RegExp(`\\b${full}\\b`, 'i');
+    variants.forEach(v => { if (re.test(v)) variants.push(v.replace(re, m => (m[0] === m[0].toUpperCase() ? capitalize(short) : short))); });
+  });
+  return [...new Set(variants)];
+}
+
+// kind: 'neg'(否定文) / 'q'(疑問文)。作れないときは null
+function rewriteSentence(tokens, jp, kind) {
+  const lower = tokens.map(t => t.toLowerCase());
+  if (sentenceEnd(jp) !== '.') return null;
+  if (lower.some(t => REWRITE_SKIP_WORDS.has(t) || /n't$/.test(t))) return null;
+  if (["let's", 'please'].includes(lower[0])) return null;
+  // 関係代名詞の that(that の後ろに主語や動詞が続く)は対象外
+  if (lower.some((t, i) => t === 'that' && i > 0 && (SUBJECT_PRONOUNS.has(lower[i + 1]) || VERB_BASE_OF[lower[i + 1]]))) return null;
+
+  let k = -1, pred = null;
+  for (let i = 0; i < tokens.length && k < 0; i++) {
+    const w = lower[i];
+    if (['am', 'is', 'are', 'was', 'were'].includes(w)) { k = i; pred = 'aux'; }
+    else if (REWRITE_MODALS.includes(w)) { k = i; pred = 'aux'; }
+    else if (['have', 'has', 'had'].includes(w) && isPerfectParticiple(lower[i + 1] || '')) { k = i; pred = 'aux'; }
+    else if (['have', 'has', 'had', 'do', 'does', 'did'].includes(w)) { k = i; pred = 'verb'; }
+    else if (VERB_BASE_OF[w] && !(i > 0 && DETERMINERS.has(lower[i - 1]))) { k = i; pred = 'verb'; }
+  }
+  if (k < 1) return null; // 命令文など、主語がない文
+  // 「I do not sometimes ~」は不自然なので、sometimes を含む文は否定文にしない
+  if (kind === 'neg' && lower.includes('sometimes')) return null;
+
+  let j = k;
+  while (j > 0 && MID_ADVERBS.has(lower[j - 1])) j--;
+  const subj = tokens.slice(0, j);
+  const adv = tokens.slice(j, k);
+  if (!subj.length) return null;
+  // 「The teacher I respect」のような関係代名詞の省略は主語が分からないので対象外
+  if (subj.slice(1).some(t => SUBJECT_PRONOUNS.has(t.toLowerCase()))) return null;
+  const rest = tokens.slice(k + 1).map(t => (t === 'some' ? 'any' : t === 'something' ? 'anything' : t));
+  const subjQ = [lowerSubjectHead(subj[0]), ...subj.slice(1)];
+
+  let words;
+  if (pred === 'aux') {
+    const aux = lower[k];
+    // 「I usually can ~」のように副詞が前にあっても、not の後ろに置く(I cannot usually ~)
+    if (kind === 'neg') words = [...subj, ...(aux === 'can' ? ['cannot'] : [aux, 'not']), ...adv, ...rest];
+    else words = [capitalize(aux), ...subjQ, ...adv, ...rest];
+  } else {
+    const w = lower[k];
+    const base = { has: 'have', had: 'have', does: 'do', did: 'do' }[w] || VERB_BASE_OF[w] || w;
+    const past = base === 'have' ? 'had' : base === 'do' ? 'did' : verbPast(base);
+    const third = base === 'have' ? 'has' : base === 'do' ? 'does' : verbThirdPerson(base);
+    if (w !== base && w !== past && w !== third) return null; // ing形・過去分詞で始まる文(後置修飾など)
+    let doAux;
+    if (w === third && w !== base) doAux = 'does';
+    else if (w === past && w !== base) doAux = 'did';
+    else if (base === past) {
+      // read / let など原形と過去形が同じ動詞は、主語と日本語の時制で判断する
+      const thirdSingular = ['he', 'she', 'it', 'this', 'that'].includes(subj[0].toLowerCase()) && subj.length === 1
+        || (subj.length > 1 && DETERMINERS.has(subj[0].toLowerCase()) && !/s$/.test(subj[subj.length - 1]));
+      doAux = thirdSingular || /(ました|でした|った|た)。$/.test(jp) ? 'did' : 'do';
+    } else doAux = 'do';
+    if (kind === 'neg') words = [...subj, doAux, 'not', ...adv, base, ...rest];
+    else words = [capitalize(doAux), ...subjQ, ...adv, base, ...rest];
+  }
+  const text = endWith(words.join(' '), kind === 'neg' ? '.' : '?');
+  // 主語が I の疑問文は「Do you ~?」にするのが一般的なので、you の形を模範解答にし、I のままも正解にする
+  if (kind === 'q' && subj.length === 1 && subj[0] === 'I') {
+    const toYou = { I: 'you', my: 'your', me: 'you', mine: 'yours' };
+    const head = { Am: 'Are', Was: 'Were' }[words[0]] || words[0];
+    const you = endWith([head, ...words.slice(1).map(t => toYou[t] || t)].join(' '), '?');
+    return { text: you, variants: [...rewriteVariants(you), ...rewriteVariants(text)] };
+  }
+  return { text, variants: rewriteVariants(text) };
+}
+
 const CHOICE_LABELS = ['ア', 'イ', 'ウ', 'エ'];
 const QUESTION_TYPES = {
   reorder:   { label: '並べ替え', instr: '日本語に合うように、下の語句を並べ替えて英文を書きなさい。' },
   choice:    { label: '適語選択', instr: '日本語に合うように、（　）に入る最も適切な語を選びなさい。' },
   form:      { label: '語形変化', instr: '日本語に合うように、[　]の語を適切な形にして（　）に書きなさい。' },
   translate: { label: '和文英訳', instr: '日本語を英語にしなさい。' },
+  rewrite:   { label: '書きかえ', instr: '（　）内の指示にしたがって、英文を書きかえなさい。' },
 };
 
 // 1問ぶんの出題データを作る。空所が作れないときは別の形式に切り替える。
@@ -2081,6 +2195,14 @@ function buildQuestion(stage, q, type) {
   const tokens = sentenceTokens(q.pieces);
   item.tokens = tokens;
   if (type === 'translate') { item.type = 'translate'; return item; }
+  if (type === 'rewrite') {
+    // 否定文・疑問文のどちらかをランダムに。どちらも作れない文(疑問文・否定文・命令文など)は適語選択にする
+    for (const kind of shuffle(['neg', 'q'])) {
+      const r = rewriteSentence(tokens, q.jp, kind);
+      if (r) return { ...item, type: 'rewrite', rewriteKind: kind, answerSentence: r.text, answers: r.variants };
+    }
+    return buildQuestion(stage, q, 'choice');
+  }
   if (type === 'choice' || type === 'form') {
     const blank = findBlank(stage, tokens, type === 'form');
     // 語形変化にできる語がない文(原形だけの文など)は、適語選択→並べ替えの順に切り替える
@@ -2113,8 +2235,9 @@ function blankedSentence(item) {
 function fullSentence(item) {
   return endWith(item.tokens.join(' '), item.end);
 }
-// 「the U.S.」のように . で終わる文には . を重ねない
+// 「the U.S.」のように . で終わる文には . を重ねない(? は付ける)
 function endWith(text, end) {
+  if (end === '?') return /\?$/.test(text) ? text : text + '?';
   return /[.?]$/.test(text) ? text : text + end;
 }
 
@@ -2322,12 +2445,14 @@ function shuffledPieces(item) {
 function answerText(item) {
   if (item.type === 'choice') return `${CHOICE_LABELS[item.options.indexOf(item.answer)]} ${item.answer}`;
   if (item.type === 'form') return item.answer;
+  if (item.type === 'rewrite') return item.answerSentence;
   return fullSentence(item);
 }
 
 function isCorrect(item) {
   const answer = item.userAnswer || '';
   if (item.type === 'choice') return answer === item.answer;
+  if (item.type === 'rewrite') return normalize(answer) !== '' && item.answers.some(a => normalize(a) === normalize(answer));
   const target = item.type === 'form' ? item.answer : fullSentence(item);
   return normalize(answer) !== '' && normalize(answer) === normalize(target);
 }
@@ -2349,6 +2474,10 @@ function itemBodyHtml(item) {
   if (item.type === 'form') {
     return `<div class="ws-sentence">${blankedSentence(item)}<span class="ws-hint">[${item.hint}]</span></div>
       ${answerLineHtml('（　）に入る語', 'short')}`;
+  }
+  if (item.type === 'rewrite') {
+    return `<div class="ws-sentence">${fullSentence(item)}<span class="ws-hint">（${item.rewriteKind === 'neg' ? '否定文に' : '疑問文に'}）</span></div>
+      ${answerLineHtml('書きかえた英文を書こう')}`;
   }
   return `<div class="ws-sentence ws-wordcount">（${item.tokens.length}語）</div>${answerLineHtml('ここに英文を書こう')}`;
 }
