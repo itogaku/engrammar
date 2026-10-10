@@ -309,6 +309,26 @@
   .ws-hintline { font-size: 12.5px; color: var(--ink-soft); margin-top: 6px; }
   .ws-explain { font-size: 13px; margin-top: 4px; line-height: 1.7; color: var(--ink); font-weight: 400; background: var(--amber-tint); border-radius: 8px; padding: 6px 10px; }
   .answer-explain { font-size: 12.5px; line-height: 1.6; margin-bottom: 4px; }
+  .ws-step-check { margin: 14px 0 6px; text-align: center; }
+  .ws-ans-page { display: none; border: 2px dashed var(--amber); border-radius: 12px; padding: 14px 16px; margin: 8px 0 18px; background: var(--amber-tint); }
+  .ws-ans-page.revealed { display: block; }
+  .ws-ans-head { font-size: 16px; font-weight: 800; border-bottom: 2px solid var(--ink); padding-bottom: 4px; margin-bottom: 10px; }
+  .ws-ans-head span { font-size: 13px; font-weight: 700; margin-left: 10px; color: var(--ink-soft); }
+  .ws-ans-rule { font-size: 13px; line-height: 1.7; border: 1.5px solid var(--ink); border-radius: 8px; padding: 8px 12px; margin-bottom: 10px; background: var(--panel); }
+  .ws-ans-rule b { display: inline-block; font-size: 12px; margin-right: 8px; }
+  .ws-ans-form { font-weight: 700; margin-top: 2px; }
+  .ws-ans-step { font-size: 13.5px; font-weight: 800; margin: 12px 0 2px; }
+  .ws-ans-item { padding: 8px 0; border-bottom: 1px dashed var(--line); break-inside: avoid; page-break-inside: avoid; }
+  .ws-ans-top { display: flex; align-items: baseline; gap: 8px; }
+  .ws-ans-en { flex: 1; font-size: 15px; font-family: 'Georgia', serif; }
+  .ws-ans-check { font-size: 11px; color: var(--ink-soft); border: 1px solid var(--ink-soft); border-radius: 6px; padding: 2px 8px; min-width: 44px; text-align: center; }
+  .ws-ans-key { font-size: 13px; font-weight: 700; margin: 2px 0 0 36px; }
+  .ws-ans-why { font-size: 13px; line-height: 1.7; margin: 2px 0 0 36px; }
+  .ws-ans-foot { font-size: 12.5px; margin-top: 10px; color: var(--ink-soft); }
+  .ws-ans-head .ws-ans-note { float: right; font-size: 11.5px; font-weight: 600; }
+  .ws-rewrite { margin-top: 12px; }
+  .ws-rewrite-label { font-size: 12.5px; font-weight: 800; }
+  .ws-rewrite-line { border-bottom: 1px solid var(--ink-soft); height: 30px; }
 
   @media print {
     @page { size: A4; margin: 14mm 14mm; }
@@ -321,6 +341,20 @@
     .ws-mark, .ws-correct, .score-banner { display: none !important; }
     .ws-opt { border: none; padding: 2px 10px 2px 0; background: transparent !important; font-weight: 400 !important; }
     .answer-sheet.include { display: block; break-before: page; page-break-before: always; margin-top: 0; }
+    /* 解説つきプリント: 答え合わせは必ず新しいページから(問題と同じページに解説がのらないように)。
+       STEPごとのときは、問題のページも新しいページから始める */
+    .ws-ans-page { display: none !important; }
+    .ws-ans-page.include { display: block !important; break-before: page; page-break-before: always; border: none; background: none; padding: 0; margin: 0; }
+    .guide-by-step .ws-qpage + .ws-step-check + .ws-ans-page + .ws-qpage { break-before: page; page-break-before: always; }
+    .ws-guide { margin-bottom: 8px; padding: 10px 14px; }
+    .ws-guide-point { margin-bottom: 6px; line-height: 1.6; }
+    .ws-examples, .ws-tips { line-height: 1.5; }
+    .ws-qpage .ws-item { padding: 8px 0 7px; }
+    .ws-qpage .ws-section { margin-top: 10px; }
+    /* 選択問題は、英文と選択肢を1行に */
+    .ws-qpage .t-choice .ws-body { display: flex; flex-wrap: wrap; align-items: baseline; column-gap: 24px; }
+    .ws-qpage .t-choice .ws-body .ws-sentence { margin-bottom: 0; }
+    .ws-qpage .t-choice .ws-hintline { flex-basis: 100%; margin-top: 2px; }
   }
 </style>
 </head>
@@ -430,6 +464,8 @@
       <div class="opt-row" id="printCountRow"><span class="opt-label">問題数</span><div class="mode-switch" id="printCountSwitch"></div></div>
       <div id="printGuideRow" style="display:none;">
         <div class="opt-row"><span class="opt-label">問題数</span><div class="mode-switch" id="printGuideCountSwitch"></div></div>
+        <div class="opt-row"><span class="opt-label">答え合わせ</span><div class="mode-switch" id="printGuideCheckSwitch"></div></div>
+        <div class="opt-hint" id="printGuideCheckNote"></div>
         <div class="opt-row"><label class="opt-check"><input type="checkbox" id="printGuideHintCheck" checked> 問題ごとにヒントを表示する</label></div>
       </div>
       <div class="opt-row" id="printTypeRow"><span class="opt-label">文法問題</span><div class="mode-switch multi" id="printTypeSwitch"></div></div>
@@ -1708,6 +1744,8 @@ const guideEntryGrades = document.getElementById('guideEntryGrades');
 const printGuideRow = document.getElementById('printGuideRow');
 const printGuideCountSwitch = document.getElementById('printGuideCountSwitch');
 const printGuideHintCheck = document.getElementById('printGuideHintCheck');
+const printGuideCheckSwitch = document.getElementById('printGuideCheckSwitch');
+const printGuideCheckNote = document.getElementById('printGuideCheckNote');
 const backToProgramFromPrint = document.getElementById('backToProgramFromPrint');
 const printCountSwitch = document.getElementById('printCountSwitch');
 const printChunkSwitch = document.getElementById('printChunkSwitch');
@@ -2756,6 +2794,7 @@ function generateReadingItems(stageList, cfg) {
 const GUIDE_COUNTS = { 2: '少なめ', 3: 'ふつう', 4: '多め' }; // 1つのSTEPの問題数
 let guideCount = 3;
 let guideShowHints = true;
+let guideCheckMode = 'step'; // 'step'(STEPごとに答え合わせ) / 'end'(最後にまとめて)
 let guideSteps = [];
 const GUIDE_STEPS = [
   { type: 'choice', title: 'STEP 1　えらんでみよう', instr: '日本語に合うように、（　）に入る語を選びましょう。' },
@@ -3126,6 +3165,13 @@ function renderPrintOptions() {
     guideCount = v; generateWorksheet();
   });
   printGuideHintCheck.checked = guideShowHints;
+  renderOptionSwitch(printGuideCheckSwitch, [['step', 'STEPごと'], ['end', '最後にまとめて']], guideCheckMode, v => {
+    guideCheckMode = v; renderPrintOptions(); renderWorksheet();
+  });
+  printGuideCheckNote.textContent = guideCheckMode === 'step'
+    ? '問題のページの次に、そのSTEPの答え合わせのページが入ります。両面印刷（長辺とじ）にすると、問題の裏が答え合わせになります。'
+    : '問題をすべて解いてから、最後のページでまとめて答え合わせをします。';
+  printCheckBtn.parentElement.style.display = isGuide ? 'none' : '';
   printSourceNote.style.display = isTest ? 'block' : 'none';
   printSourceNote.textContent = isTest ? `${printSource.summary}（${countQuestions()}問）` : '';
   backToProgramFromPrint.innerHTML = isTest ? '&larr; テスト範囲の設定に戻る' : '&larr; 単元選択に戻る';
@@ -3350,7 +3396,7 @@ function itemBodyHtml(item) {
 
 function makeItemEl(item, num, typeLine) {
   const el = document.createElement('div');
-  el.className = 'ws-item';
+  el.className = `ws-item t-${item.type}`;
   el._item = item;
   el.innerHTML = `
     ${typeLine || ''}
@@ -3417,6 +3463,30 @@ function groupByType(items, typeDefs) {
 
 const SECTION_NUMERALS = ['Ⅰ', 'Ⅱ', 'Ⅲ', 'Ⅳ'];
 
+// 答え合わせのページ: 答えを入れた英文・正解・解説・○×欄。最初にルールを確認してから1問ずつ見る。
+function guideAnswerSentence(item) {
+  if (item.blankIndex == null) return fullSentence(item);
+  return endWith(item.tokens.map((t, i) => (i === item.blankIndex ? `<b class="ws-hl">${t}</b>` : t)).join(' '), item.end);
+}
+function guideAnswerHtml(stage, steps) {
+  const g = STAGE_GUIDES[stage.key] || {};
+  const rows = steps.map(step => `
+    <div class="ws-ans-step">${step.title.replace(/\s+/, ' ')}</div>
+    ${step.items.map((item, i) => `
+      <div class="ws-ans-item">
+        <div class="ws-ans-top"><span class="ws-num">(${i + 1})</span>
+          <span class="ws-ans-en">${guideAnswerSentence(item)}</span>
+          <span class="ws-ans-check">○×</span></div>
+        ${item.type === 'choice' ? `<div class="ws-ans-key">正解：${answerText(item)}</div>` : ''}
+        <div class="ws-ans-why">${item.guide.why}</div>
+      </div>`).join('')}`).join('');
+  return `<div class="ws-ans-head">答え合わせ<span class="ws-ans-note">問題を解き終わってから見よう</span><span>${steps.map(st => st.title.split(/\s+/).slice(0, 2).join(' ')).join('・')}</span></div>
+    <div class="ws-ans-rule"><b>ルールの確認</b>${g.point || ''}${g.form ? `<div class="ws-ans-form">${g.form}</div>` : ''}</div>
+    ${rows}
+    <div class="ws-ans-foot">まちがえた問題は、どのルールに合っていなかったかを解説で確かめてから、正しい英文を書き直そう。${steps[steps.length - 1] === guideSteps[guideSteps.length - 1] ? '' : 'わかったら次の STEP へ進もう。'}</div>
+    <div class="ws-rewrite"><div class="ws-rewrite-label">書き直し欄</div>${'<div class="ws-rewrite-line"></div>'.repeat(Math.min(6, steps.reduce((a, st) => a + st.items.length, 0)))}</div>`;
+}
+
 function renderGuideWorksheet() {
   const s = currentStage();
   const gradeName = (grades.find(g => g.id === s.grade) || {}).name || '';
@@ -3426,21 +3496,53 @@ function renderGuideWorksheet() {
   sheetScore.textContent = '';
   printScoreBanner.style.display = 'none';
   sheetInstr.style.display = 'none';
-  sheetItems.innerHTML = guideBoxHtml(s);
-  guideSteps.forEach(step => {
-    sheetItems.appendChild(sectionHead('', step.title, step.instr));
-    step.items.forEach((item, i) => {
-      const el = makeItemEl(item, i + 1);
-      if (guideShowHints && item.guide.hint) {
-        el.querySelector('.ws-body').insertAdjacentHTML('beforeend', `<div class="ws-hintline">ヒント：${item.guide.hint}</div>`);
-      }
-      sheetItems.appendChild(el);
+  sheetItems.innerHTML = '';
+  answerSheet.classList.remove('include');
+  answerList.innerHTML = '';
+  // STEPごと: 問題(表) → 答え合わせ(裏) をくり返す。最後にまとめて: 問題をすべて → 答え合わせ
+  const groups = guideCheckMode === 'step' ? guideSteps.map(st => [st]) : [guideSteps];
+  sheetItems.classList.toggle('guide-by-step', guideCheckMode === 'step');
+  groups.forEach((steps, gi) => {
+    const page = document.createElement('div');
+    page.className = 'ws-qpage';
+    if (gi === 0) page.innerHTML = guideBoxHtml(s);
+    steps.forEach(step => {
+      page.appendChild(sectionHead('', step.title, step.instr));
+      step.items.forEach((item, i) => {
+        const el = makeItemEl(item, i + 1);
+        if (guideShowHints && item.guide.hint) {
+          el.querySelector('.ws-body').insertAdjacentHTML('beforeend', `<div class="ws-hintline">ヒント：${item.guide.hint}</div>`);
+        }
+        page.appendChild(el);
+      });
     });
+    sheetItems.appendChild(page);
+    // 画面では、このまとまりの答え合わせボタン → 答え合わせのページを表示
+    const btn = document.createElement('div');
+    btn.className = 'ws-step-check no-print';
+    btn.innerHTML = `<button class="btn btn-primary">${guideCheckMode === 'step' ? `${steps[0].title.split(/\s+/)[0]} ${steps[0].title.split(/\s+/)[1]}` : 'すべて'}の答え合わせをする</button>`;
+    sheetItems.appendChild(btn);
+    const ans = document.createElement('div');
+    ans.className = 'ws-ans-page' + (printIncludeAnswers.checked ? ' include' : '');
+    ans.innerHTML = guideAnswerHtml(s, steps);
+    sheetItems.appendChild(ans);
+    btn.querySelector('button').onclick = () => {
+      page.querySelectorAll('.ws-item').forEach(markItemRow);
+      ans.classList.add('revealed');
+      page.dataset.checked = '1';
+      // これまでに答え合わせしたまとまりの合計
+      let score = 0, total = 0;
+      sheetItems.querySelectorAll('.ws-qpage[data-checked] .ws-item').forEach(row => {
+        const ok = isCorrect(row._item);
+        if (ok === null) return;
+        total++;
+        if (ok) score++;
+      });
+      const done = sheetItems.querySelectorAll('.ws-qpage[data-checked]').length;
+      showScore(score, total, done < groups.length ? `（${done}/${groups.length} まで）` : '');
+      ans.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    };
   });
-  answerSheetTitle.textContent = `解答と解説 ${s.label}`;
-  answerList.innerHTML = guideSteps.map(step => `<h3>${step.title}</h3><ol>${step.items.map(item =>
-    `<li><b>${answerText(item)}</b><div class="answer-explain">${item.guide.why}</div></li>`).join('')}</ol>`).join('');
-  answerSheet.classList.toggle('include', printIncludeAnswers.checked);
 }
 
 function renderWorksheet() {
@@ -3502,37 +3604,45 @@ function renderWorksheet() {
   answerSheet.classList.toggle('include', printIncludeAnswers.checked);
 }
 
-function checkWorksheet() {
-  let score = 0, total = 0;
-  sheetItems.querySelectorAll('.ws-item').forEach(row => {
-    const item = row._item;
-    const ok = isCorrect(item);
-    const mark = row.querySelector('.ws-mark');
-    const correct = row.querySelector('.ws-correct');
-    if (ok === null) {
-      // 日本語で答える問題は模範解答を見て自分で採点する
-      mark.textContent = '';
-      correct.style.display = 'block';
-      correct.className = 'ws-correct self';
-      correct.textContent = `模範解答: ${item.answer}（自分で答え合わせしよう）`;
-      return;
-    }
-    total++;
-    if (ok) score++;
-    mark.textContent = ok ? '○' : '×';
-    mark.className = 'ws-mark ' + (ok ? 'ok' : 'ng');
-    // 解説つきプリントは、正解しても解説を見せる
-    const why = item.guide && item.guide.why;
-    correct.className = 'ws-correct';
-    correct.style.display = ok && !why ? 'none' : 'block';
-    correct.textContent = ok ? '' : `正解: ${answerText(item)}`;
-    if (why) correct.insertAdjacentHTML('beforeend', `<div class="ws-explain">解説：${why}</div>`);
-  });
+// 1問に○×をつける(自己採点の問題は null)
+function markItemRow(row) {
+  const item = row._item;
+  const ok = isCorrect(item);
+  const mark = row.querySelector('.ws-mark');
+  const correct = row.querySelector('.ws-correct');
+  if (ok === null) {
+    // 日本語で答える問題は模範解答を見て自分で採点する
+    mark.textContent = '';
+    correct.style.display = 'block';
+    correct.className = 'ws-correct self';
+    correct.textContent = `模範解答: ${item.answer}（自分で答え合わせしよう）`;
+    return null;
+  }
+  mark.textContent = ok ? '○' : '×';
+  mark.className = 'ws-mark ' + (ok ? 'ok' : 'ng');
+  correct.className = 'ws-correct';
+  correct.style.display = ok ? 'none' : 'block';
+  correct.textContent = ok ? '' : `正解: ${answerText(item)}`;
+  return ok;
+}
+
+function showScore(score, total, suffix = '') {
   sheetScore.textContent = score;
   printScoreBanner.style.display = 'block';
   printScoreBanner.textContent = score === total
-    ? `全問正解! ${score} / ${total}`
-    : `${score} / ${total} 問正解 ― まちがえた問題をもう一度解いてみよう`;
+    ? `全問正解! ${score} / ${total}${suffix}`
+    : `${score} / ${total} 問正解${suffix} ― まちがえた問題をもう一度解いてみよう`;
+}
+
+function checkWorksheet() {
+  let score = 0, total = 0;
+  sheetItems.querySelectorAll('.ws-item').forEach(row => {
+    const ok = markItemRow(row);
+    if (ok === null) return;
+    total++;
+    if (ok) score++;
+  });
+  showScore(score, total);
 }
 
 function resetWorksheetAnswers() {
@@ -3562,6 +3672,7 @@ printPrintBtn.addEventListener('click', () => window.print());
 printCheckBtn.addEventListener('click', checkWorksheet);
 printResetBtn.addEventListener('click', resetWorksheetAnswers);
 printIncludeAnswers.addEventListener('change', () => {
+  if (printSource.kind === 'guide') { renderWorksheet(); return; }
   answerSheet.classList.toggle('include', printIncludeAnswers.checked);
 });
 
