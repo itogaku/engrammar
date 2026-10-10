@@ -164,6 +164,61 @@
   .done-card { text-align: center; padding: 48px 24px; }
   .done-card .big { font-size: 40px; font-weight: 800; color: var(--teal); margin-bottom: 8px; }
   .done-actions { display: flex; flex-direction: column; gap: 10px; margin-top: 20px; }
+
+  /* --- print (worksheet) screen --- */
+  .print-options { margin-bottom: 16px; }
+  .opt-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
+  .opt-row .opt-label { font-size: 12px; font-weight: 700; color: var(--ink-soft); width: 72px; flex-shrink: 0; }
+  .opt-row .mode-switch { flex: 1; margin-bottom: 0; min-width: 0; }
+  .opt-row .mode-switch button { padding: 8px 6px; font-size: 12.5px; }
+  .opt-check { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--ink-soft); cursor: pointer; }
+  .print-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 4px; }
+  .print-actions .btn { flex: 1; min-width: 120px; font-size: 14px; padding: 11px 12px; }
+
+  .sheet { background: #fff; border: 1px solid var(--line); border-radius: 16px; padding: 28px 26px; }
+  .sheet-head { border-bottom: 2px solid var(--ink); padding-bottom: 10px; margin-bottom: 6px; }
+  .sheet-title { font-family: 'Georgia', serif; font-size: 20px; font-weight: 800; margin: 0 0 2px; }
+  .sheet-sub { font-size: 12px; color: var(--ink-soft); }
+  .sheet-fields { display: flex; gap: 18px; flex-wrap: wrap; font-size: 13px; margin: 12px 0 4px; }
+  .sheet-fields span { display: inline-flex; align-items: flex-end; gap: 4px; }
+  .sheet-fields .blank { display: inline-block; border-bottom: 1px solid var(--ink); min-width: 80px; height: 18px; text-align: center; font-weight: 800; }
+  .sheet-fields .blank.wide { min-width: 140px; }
+  .sheet-instr { font-size: 13px; color: var(--ink-soft); margin: 10px 0 4px; line-height: 1.6; }
+
+  .ws-item { padding: 14px 0 12px; border-bottom: 1px dashed var(--line); break-inside: avoid; page-break-inside: avoid; }
+  .ws-item:last-child { border-bottom: none; }
+  .ws-top { display: flex; gap: 10px; align-items: baseline; }
+  .ws-num { font-weight: 800; font-size: 15px; min-width: 26px; }
+  .ws-jp { font-size: 15.5px; font-weight: 700; line-height: 1.5; }
+  .ws-jp .ws-tag { font-size: 12px; font-weight: 600; color: var(--ink-soft); margin-left: 6px; }
+  .ws-pieces { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 8px 36px; }
+  .ws-piece { border: 1.2px solid var(--ink-soft); border-radius: 6px; padding: 3px 9px; font-size: 14.5px; line-height: 1.3; display: inline-flex; flex-direction: column; align-items: center; }
+  .ws-piece .wp-jp { font-size: 10.5px; color: var(--ink-soft); }
+  .ws-answer { margin-left: 36px; display: flex; align-items: center; gap: 8px; }
+  .ws-input { flex: 1; font-size: 15px; font-family: inherit; border: none; border-bottom: 1.5px solid var(--ink); background: transparent; padding: 6px 2px; border-radius: 0; min-width: 0; }
+  .ws-input:focus { outline: none; border-bottom-color: var(--teal); background: var(--teal-tint); }
+  .ws-mark { width: 26px; font-size: 20px; font-weight: 800; text-align: center; flex-shrink: 0; }
+  .ws-mark.ok { color: var(--green); }
+  .ws-mark.ng { color: var(--rose); }
+  .ws-correct { margin: 6px 0 0 36px; font-size: 13.5px; color: var(--rose); font-weight: 700; }
+
+  .score-banner { margin: 16px 0 0; padding: 14px 18px; border-radius: 12px; background: var(--teal-tint); color: var(--teal-dark); font-weight: 800; font-size: 16px; text-align: center; }
+
+  .answer-sheet { display: none; margin-top: 18px; }
+  .answer-sheet h2 { font-size: 16px; margin: 0 0 8px; border-bottom: 2px solid var(--ink); padding-bottom: 6px; }
+  .answer-sheet ol { margin: 0; padding-left: 26px; font-size: 14.5px; line-height: 1.9; }
+
+  @media print {
+    @page { size: A4; margin: 14mm 14mm; }
+    body { background: #fff; padding: 0; display: block; }
+    .app { max-width: none; }
+    header, .no-print, .back-link { display: none !important; }
+    .sheet { border: none; border-radius: 0; padding: 0; }
+    .ws-input { border-bottom: 1px solid #000; background: transparent !important; }
+    .ws-input::placeholder { color: transparent; }
+    .ws-mark, .ws-correct, .score-banner { display: none !important; }
+    .answer-sheet.include { display: block; break-before: page; page-break-before: always; margin-top: 0; }
+  }
 </style>
 </head>
 <body>
@@ -181,7 +236,52 @@
   <!-- Screen 2: program select -->
   <div id="screenProgram" style="display:none;">
     <button class="back-link" id="backToGrade">&larr; 学年選択に戻る</button>
+    <div class="mode-switch" id="programModeSwitch">
+      <button id="programModePractice" class="active">画面で練習する</button>
+      <button id="programModePrint">プリントを作る</button>
+    </div>
     <div class="program-list" id="programList"></div>
+  </div>
+
+  <!-- Screen 4: print (worksheet) -->
+  <div id="screenPrint" style="display:none;">
+    <button class="back-link" id="backToProgramFromPrint">&larr; Program選択に戻る</button>
+
+    <div class="card print-options no-print">
+      <div class="opt-row"><span class="opt-label">問題数</span><div class="mode-switch" id="printCountSwitch"></div></div>
+      <div class="opt-row"><span class="opt-label">まとまり</span><div class="mode-switch" id="printChunkSwitch"></div></div>
+      <div class="opt-row"><span class="opt-label">ヒント</span><div class="mode-switch" id="printGlossSwitch"></div></div>
+      <div class="opt-row">
+        <label class="opt-check"><input type="checkbox" id="printIncludeAnswers" checked> 解答ページも印刷する</label>
+      </div>
+      <div class="print-actions">
+        <button class="btn btn-ghost" id="printRegenBtn">別の問題で作り直す</button>
+        <button class="btn btn-primary" id="printPrintBtn">印刷する</button>
+      </div>
+    </div>
+
+    <div class="sheet" id="sheet">
+      <div class="sheet-head">
+        <div class="sheet-title" id="sheetTitle"></div>
+        <div class="sheet-sub" id="sheetSub"></div>
+        <div class="sheet-fields">
+          <span>日付 <span class="blank"></span></span>
+          <span>名前 <span class="blank wide"></span></span>
+          <span>得点 <span class="blank" id="sheetScore"></span> / <span id="sheetTotal"></span></span>
+        </div>
+      </div>
+      <p class="sheet-instr">日本語の意味に合うように、下の語句をすべて使って正しい順番に並べ替え、英文を書きなさい。</p>
+      <div id="sheetItems"></div>
+      <div class="score-banner" id="printScoreBanner" style="display:none;"></div>
+      <div class="controls no-print" style="margin-top:16px;">
+        <button class="btn btn-primary" id="printCheckBtn">画面でこたえ合わせ</button>
+        <button class="btn btn-ghost" id="printResetBtn">解答を消す</button>
+      </div>
+      <div class="answer-sheet" id="answerSheet">
+        <h2 id="answerSheetTitle"></h2>
+        <ol id="answerList"></ol>
+      </div>
+    </div>
   </div>
 
   <!-- Screen 3: practice -->
@@ -1337,6 +1437,11 @@ let chunkLevel = 1;           // 1=大きいまとまり / 2=ふつう / 3=小�
 let placedPieces = [];
 let poolPieces = [];
 let answered = false;
+let programMode = "practice"; // 'practice' | 'print'  (Program選択後に開く画面)
+let printCount = 10;
+let printChunkLevel = 1;
+let printGlossMode = "glossed";
+let printItems = [];          // 今のプリントの問題(ベース文+修飾語を合成したもの)
 const clearedStages = new Set();
 
 const EXERCISE_MODE_LABELS = {
@@ -1370,6 +1475,7 @@ const CHUNK_LEVEL_LABELS = {
   3: "小さいまとまり",
 };
 const CHUNK_LEVEL_MAX_WORDS = { 1: 99, 2: 2, 3: 1 };
+const PRINT_COUNTS = [5, 10, 15, 20];
 
 const screenGrade = document.getElementById('screenGrade');
 const screenProgram = document.getElementById('screenProgram');
@@ -1378,6 +1484,27 @@ const gradeList = document.getElementById('gradeList');
 const programList = document.getElementById('programList');
 const backToGrade = document.getElementById('backToGrade');
 const backToProgram = document.getElementById('backToProgram');
+const screenPrint = document.getElementById('screenPrint');
+const programModePractice = document.getElementById('programModePractice');
+const programModePrint = document.getElementById('programModePrint');
+const backToProgramFromPrint = document.getElementById('backToProgramFromPrint');
+const printCountSwitch = document.getElementById('printCountSwitch');
+const printChunkSwitch = document.getElementById('printChunkSwitch');
+const printGlossSwitch = document.getElementById('printGlossSwitch');
+const printIncludeAnswers = document.getElementById('printIncludeAnswers');
+const printRegenBtn = document.getElementById('printRegenBtn');
+const printPrintBtn = document.getElementById('printPrintBtn');
+const printCheckBtn = document.getElementById('printCheckBtn');
+const printResetBtn = document.getElementById('printResetBtn');
+const sheetTitle = document.getElementById('sheetTitle');
+const sheetSub = document.getElementById('sheetSub');
+const sheetScore = document.getElementById('sheetScore');
+const sheetTotal = document.getElementById('sheetTotal');
+const sheetItems = document.getElementById('sheetItems');
+const printScoreBanner = document.getElementById('printScoreBanner');
+const answerSheet = document.getElementById('answerSheet');
+const answerSheetTitle = document.getElementById('answerSheetTitle');
+const answerList = document.getElementById('answerList');
 
 const stageEyebrow = document.getElementById('stageEyebrow');
 const stageDesc = document.getElementById('stageDesc');
@@ -1544,8 +1671,8 @@ function pickTwoTimePlace() {
 // coreSlotが設定されている問題は、tierに関係なく中身の単語もランダムに入れ替える。
 // s.noAdverbが立っている単元(命令文・Let's文・if節・I wishなど、副詞を文中に挟むと
 // 不自然になるもの)は、副詞を使わず時・場所の句だけで修飾する。
-function getSessionQuestion(s, n) {
-  const idx = sessionOrder[n % sessionOrder.length];
+function getSessionQuestion(s, n, order = sessionOrder) {
+  const idx = order[n % order.length];
   const base = s.questions[idx];
   const { pieces: corePieces, jp: coreJp } = applyCoreSlot(base, pieceList(base));
   const tier = n < 3 ? 1 : n < 6 ? 2 : 3;
@@ -1636,6 +1763,11 @@ function renderProgramList() {
     `;
     card.onclick = () => {
       stageIndex = globalIdx;
+      if (programMode === 'print') {
+        showScreen('print');
+        generateWorksheet();
+        return;
+      }
       showScreen('practice');
       loadStageMeta();
       loadQuestion();
@@ -1649,6 +1781,7 @@ function showScreen(name) {
   screenGrade.style.display = name === 'grade' ? 'block' : 'none';
   screenProgram.style.display = name === 'program' ? 'block' : 'none';
   screenPractice.style.display = name === 'practice' ? 'block' : 'none';
+  screenPrint.style.display = name === 'print' ? 'block' : 'none';
   if (name === 'grade') renderGradeList();
   if (name === 'program') renderProgramList();
   if (name === 'practice') { mainCard.style.display = 'block'; doneCard.style.display = 'none'; }
@@ -1656,6 +1789,157 @@ function showScreen(name) {
 
 backToGrade.addEventListener('click', () => showScreen('grade'));
 backToProgram.addEventListener('click', () => showScreen('program'));
+
+// ---------- Screen 4: print (worksheet) ----------
+// 選んだ項目からプリント1枚ぶんの問題をまとめて作る。紙に印刷して解くことも、
+// 画面上の解答欄に書き込んでまとめてこたえ合わせすることもできる。
+function setProgramMode(mode) {
+  programMode = mode;
+  programModePractice.classList.toggle('active', mode === 'practice');
+  programModePrint.classList.toggle('active', mode === 'print');
+}
+
+function renderOptionSwitch(container, options, current, onPick) {
+  container.innerHTML = '';
+  options.forEach(([value, label]) => {
+    const btn = document.createElement('button');
+    btn.textContent = label;
+    btn.className = value === current ? 'active' : '';
+    btn.onclick = () => onPick(value);
+    container.appendChild(btn);
+  });
+}
+
+function renderPrintOptions() {
+  renderOptionSwitch(printCountSwitch, PRINT_COUNTS.map(n => [n, `${n}問`]), printCount, v => {
+    printCount = v; renderPrintOptions(); generateWorksheet();
+  });
+  renderOptionSwitch(printChunkSwitch, [1, 2, 3].map(l => [l, CHUNK_LEVEL_LABELS[l]]), printChunkLevel, v => {
+    printChunkLevel = v; renderPrintOptions(); renderWorksheet();
+  });
+  renderOptionSwitch(printGlossSwitch, Object.entries(EXERCISE_MODE_LABELS), printGlossMode, v => {
+    printGlossMode = v; renderPrintOptions(); renderWorksheet();
+  });
+}
+
+// 問題の中身(文・修飾語)を作る。まとまりの大きさやヒントの切り替えでは作り直さず、
+// 表示だけ変える(同じプリントのまま難易度を調整できるように)。
+// 練習画面と同じく、前半は基本文→修飾語つき→複合修飾の順に難しくなる。
+function generateWorksheet() {
+  const s = currentStage();
+  const order = shuffle(s.questions.map((_, i) => i));
+  printItems = [];
+  for (let n = 0; n < printCount; n++) {
+    const q = getSessionQuestion(s, n, order);
+    printItems.push({ ...q });
+  }
+  renderPrintOptions();
+  renderWorksheet();
+}
+
+function worksheetPieces(item) {
+  return expandPieces(item.pieces, printChunkLevel);
+}
+
+// シャッフル結果をまとまりの大きさごとに固定する(再描画のたびに並びが変わらないように)
+function shuffledPieces(item) {
+  item.shuffled = item.shuffled || {};
+  if (!item.shuffled[printChunkLevel]) {
+    const pieces = worksheetPieces(item);
+    let order = shuffle(pieces);
+    // たまたま正解と同じ並びになったら、もう一度シャッフルする
+    for (let tries = 0; tries < 5 && pieces.length > 1 && order.every((p, i) => p === pieces[i]); tries++) {
+      order = shuffle(pieces);
+    }
+    item.shuffled[printChunkLevel] = order;
+  }
+  return item.shuffled[printChunkLevel];
+}
+
+function correctSentence(item) {
+  return worksheetPieces(item).map(p => p.en).join(' ');
+}
+
+function renderWorksheet() {
+  const s = currentStage();
+  const gradeName = (grades.find(g => g.id === s.grade) || {}).name || '';
+  sheetTitle.textContent = `並び替えプリント ${s.label}`;
+  sheetSub.innerHTML = `${gradeName} &middot; ${s.eyebrow}`;
+  sheetTotal.textContent = printItems.length;
+  sheetScore.textContent = '';
+  printScoreBanner.style.display = 'none';
+
+  sheetItems.innerHTML = '';
+  printItems.forEach((item, i) => {
+    const el = document.createElement('div');
+    el.className = 'ws-item';
+    const tags = item.jpTags.map(t => `<span class="ws-tag">＋${t}</span>`).join('');
+    const pieces = shuffledPieces(item).map(p => {
+      const jp = printGlossMode === 'glossed' && p.jp ? `<span class="wp-jp">${p.jp}</span>` : '';
+      return `<span class="ws-piece"><span>${p.en}</span>${jp}</span>`;
+    }).join('');
+    el.innerHTML = `
+      <div class="ws-top"><span class="ws-num">(${i + 1})</span><span class="ws-jp">${item.jp}${tags}</span></div>
+      <div class="ws-pieces">${pieces}</div>
+      <div class="ws-answer">
+        <input type="text" class="ws-input" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="ここに英文を書こう">
+        <span class="ws-mark"></span>
+      </div>
+      <div class="ws-correct" style="display:none;"></div>
+    `;
+    const input = el.querySelector('.ws-input');
+    input.value = item.userAnswer || '';
+    input.addEventListener('input', () => { item.userAnswer = input.value; });
+    input.addEventListener('keydown', (e) => {
+      if (e.key !== 'Enter') return;
+      const next = sheetItems.querySelectorAll('.ws-input')[i + 1];
+      if (next) next.focus(); else checkWorksheet();
+    });
+    sheetItems.appendChild(el);
+  });
+
+  answerSheetTitle.textContent = `解答 ${s.label}`;
+  answerList.innerHTML = printItems.map(item => `<li>${correctSentence(item)}</li>`).join('');
+  answerSheet.classList.toggle('include', printIncludeAnswers.checked);
+}
+
+function checkWorksheet() {
+  let score = 0;
+  const rows = sheetItems.querySelectorAll('.ws-item');
+  printItems.forEach((item, i) => {
+    const row = rows[i];
+    const answer = row.querySelector('.ws-input').value;
+    const ok = normalize(answer) !== '' && normalize(answer) === normalize(correctSentence(item));
+    if (ok) score++;
+    const mark = row.querySelector('.ws-mark');
+    mark.textContent = ok ? '○' : '×';
+    mark.className = 'ws-mark ' + (ok ? 'ok' : 'ng');
+    const correct = row.querySelector('.ws-correct');
+    correct.style.display = ok ? 'none' : 'block';
+    correct.textContent = ok ? '' : `正解: ${correctSentence(item)}`;
+  });
+  sheetScore.textContent = score;
+  printScoreBanner.style.display = 'block';
+  printScoreBanner.textContent = score === printItems.length
+    ? `全問正解! ${score} / ${printItems.length}`
+    : `${score} / ${printItems.length} 問正解 ― まちがえた問題をもう一度書いてみよう`;
+}
+
+function resetWorksheetAnswers() {
+  printItems.forEach(item => { item.userAnswer = ''; });
+  renderWorksheet();
+}
+
+programModePractice.addEventListener('click', () => setProgramMode('practice'));
+programModePrint.addEventListener('click', () => setProgramMode('print'));
+backToProgramFromPrint.addEventListener('click', () => showScreen('program'));
+printRegenBtn.addEventListener('click', generateWorksheet);
+printPrintBtn.addEventListener('click', () => window.print());
+printCheckBtn.addEventListener('click', checkWorksheet);
+printResetBtn.addEventListener('click', resetWorksheetAnswers);
+printIncludeAnswers.addEventListener('change', () => {
+  answerSheet.classList.toggle('include', printIncludeAnswers.checked);
+});
 
 // ---------- practice screen logic ----------
 function renderExerciseSwitch(s) {
