@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>並び替えマスター</title>
+<title>英語テストメーカー</title>
 <style>
   :root {
     --paper: #FAFAF7;
@@ -262,6 +262,22 @@
   .test-saved-name { flex: 1; min-width: 0; font-size: 14px; font-weight: 700; }
   .test-saved-name span { font-size: 12px; font-weight: 500; color: var(--ink-soft); margin-left: 8px; }
   .test-note { font-size: 12.5px; color: var(--ink-soft); margin-top: 12px; }
+  .test-avail { font-size: 12.5px; color: var(--ink-soft); }
+  .test-entry { margin-top: 0; margin-bottom: 18px; }
+  .grade-heading { font-size: 12px; font-weight: 800; color: var(--ink-soft); margin: 0 0 8px 2px; }
+
+  .ws-section { margin: 22px 0 4px; break-after: avoid; page-break-after: avoid; }
+  .ws-section:first-child { margin-top: 10px; }
+  .ws-section-title { font-size: 16px; font-weight: 800; border-left: 4px solid var(--ink); padding-left: 8px; }
+  .ws-section-instr { font-size: 13px; color: var(--ink-soft); margin: 6px 0 0 12px; }
+  .ws-word { font-size: 18px; font-weight: 800; font-family: 'Georgia', serif; }
+  .ws-passage { border: 1px solid var(--line); border-radius: 10px; padding: 12px 16px; margin: 10px 0 4px; font-size: 15px; line-height: 1.85; break-inside: avoid; page-break-inside: avoid; }
+  .ws-passage p { margin: 0 0 6px; text-indent: 1em; }
+  .ws-passage-title { font-weight: 800; font-size: 13.5px; margin-bottom: 6px; color: var(--ink-soft); }
+  .ws-correct.self { color: var(--teal-dark); }
+  .ws-type-group { margin: 14px 0 0; font-size: 13px; color: var(--ink); }
+  .answer-sheet h3 { font-size: 14px; margin: 12px 0 4px; }
+  .answer-sub { font-size: 13px; font-weight: 700; margin-top: 6px; }
 
   @media print {
     @page { size: A4; margin: 14mm 14mm; }
@@ -280,27 +296,28 @@
 <body>
 <div class="app">
   <header>
-    <h1>並び替えマスター</h1>
-    <p class="app-desc" id="headerDesc">中学英語の並べ替え・文法問題を、教科書の学習順に極めよう。</p>
+    <h1>英語テストメーカー</h1>
+    <p class="app-desc" id="headerDesc">単語・文法・長文の定期テスト対策プリントを、教科書の学習順に作ろう。</p>
   </header>
 
   <!-- Screen 1: grade select -->
   <div id="screenGrade">
-    <div class="grade-list" id="gradeList"></div>
     <button class="test-entry" id="openTestBtn">
       <div>
-        <div class="g-name">テスト範囲から出題</div>
-        <div class="g-sub">複数の単元を選んで、並べ替え・適語選択・語形変化・和文英訳・書きかえのプリントを作る</div>
+        <div class="g-name">定期テストを作る</div>
+        <div class="g-sub">テスト範囲の単元を選んで、単語・文法・長文の問題をまとめたプリントを作ります</div>
       </div>
       <div class="g-arrow">&rarr;</div>
     </button>
+    <div class="grade-heading">単元ごとにプリントを作る</div>
+    <div class="grade-list" id="gradeList"></div>
   </div>
 
   <!-- Screen 5: test range -->
   <div id="screenTest" style="display:none;">
     <button class="back-link" id="backToGradeFromTest">&larr; 学年選択に戻る</button>
-    <h2 class="section-title">テスト範囲を選ぶ</h2>
-    <p class="app-desc">出題する単元を選んでください。学年をまたいで選ぶこともできます。</p>
+    <h2 class="section-title">定期テストを作る</h2>
+    <p class="app-desc">テスト範囲の単元を選んでください。学年をまたいで選ぶこともできます。</p>
 
     <div class="card test-card" id="testSavedCard">
       <div class="test-label">保存した範囲</div>
@@ -317,13 +334,31 @@
     </div>
 
     <div class="card test-card">
-      <div class="test-label">出題数の決め方</div>
+      <div class="test-label">Ⅰ 単語問題</div>
+      <div class="test-random-box" style="display:flex;">
+        範囲の単語から <input type="number" id="testVocabInput" min="0" max="40"> 問
+        <span class="test-avail" id="testVocabNote"></span>
+      </div>
+      <label class="opt-check test-shuffle"><input type="checkbox" id="testVocabImportant"> 重要語（教科書の太字）だけから出す</label>
+    </div>
+
+    <div class="card test-card">
+      <div class="test-label">Ⅱ 文法問題 ― 出題数の決め方</div>
       <div class="mode-switch" id="testModeSwitch"></div>
       <div class="test-random-box" id="testRandomBox">
-        範囲全体から <input type="number" id="testTotalInput" min="1" max="60"> 問をランダムに出題
+        範囲全体から <input type="number" id="testTotalInput" min="0" max="60"> 問をランダムに出題
       </div>
       <div id="testPerUnitBox"><div id="testPerUnitList"></div></div>
       <label class="opt-check test-shuffle"><input type="checkbox" id="testShuffleCheck" checked> 問題の順番をランダムにする（オフにすると単元順）</label>
+    </div>
+
+    <div class="card test-card">
+      <div class="test-label">Ⅲ 長文問題</div>
+      <div class="test-random-box" style="display:flex;">
+        範囲の長文から <input type="number" id="testReadingInput" min="0" max="5"> 題
+        <span class="test-avail" id="testReadingNote"></span>
+      </div>
+      <div class="test-empty">長文は各 Program の文法・単語だけで書いたオリジナルの文章です（1題に4〜5問）。</div>
     </div>
 
     <div class="test-actions">
@@ -334,15 +369,15 @@
       <input type="text" class="type-input" id="testNameInput" placeholder="範囲の名前（例：2学期中間テスト）">
       <button class="btn btn-primary" id="testSaveConfirmBtn">保存</button>
     </div>
-    <p class="test-note">問題の種類（並べ替え・適語選択・語形変化・和文英訳・書きかえ）は、次の画面で選べます。</p>
+    <p class="test-note">文法問題の種類（並べ替え・適語選択・語形変化・和文英訳・書きかえ）と単語問題の種類は、次の画面で選べます。0問にした大問はプリントに入りません。</p>
   </div>
 
   <!-- Screen 2: program select -->
   <div id="screenProgram" style="display:none;">
     <button class="back-link" id="backToGrade">&larr; 学年選択に戻る</button>
     <div class="mode-switch" id="programModeSwitch">
-      <button id="programModePractice" class="active">画面で練習する</button>
-      <button id="programModePrint">プリントを作る</button>
+      <button id="programModePrint" class="active">プリントを作る</button>
+      <button id="programModePractice">画面で練習する（並べ替え）</button>
     </div>
     <div class="program-list" id="programList"></div>
   </div>
@@ -354,10 +389,13 @@
     <div class="card print-options no-print">
       <div class="print-source-note" id="printSourceNote" style="display:none;"></div>
       <div class="opt-row" id="printCountRow"><span class="opt-label">問題数</span><div class="mode-switch" id="printCountSwitch"></div></div>
-      <div class="opt-row"><span class="opt-label">問題の種類</span><div class="mode-switch multi" id="printTypeSwitch"></div></div>
+      <div class="opt-row" id="printTypeRow"><span class="opt-label">文法問題</span><div class="mode-switch multi" id="printTypeSwitch"></div></div>
+      <div class="opt-row" id="printVocabTypeRow"><span class="opt-label">単語問題</span><div class="mode-switch multi" id="printVocabTypeSwitch"></div></div>
+      <div id="printReorderBox">
       <div class="opt-hint">並べ替えの設定</div>
       <div class="opt-row"><span class="opt-label">まとまり</span><div class="mode-switch" id="printChunkSwitch"></div></div>
       <div class="opt-row"><span class="opt-label">ヒント</span><div class="mode-switch" id="printGlossSwitch"></div></div>
+      </div>
       <div class="opt-row">
         <label class="opt-check"><input type="checkbox" id="printIncludeAnswers" checked> 解答ページも印刷する</label>
       </div>
@@ -386,7 +424,7 @@
       </div>
       <div class="answer-sheet" id="answerSheet">
         <h2 id="answerSheetTitle"></h2>
-        <ol id="answerList"></ol>
+        <div id="answerList"></div>
       </div>
     </div>
   </div>
@@ -451,6 +489,8 @@
   </div>
 </div>
 
+<script src="vocab.js"></script>
+<script src="reading.js"></script>
 <script>
 // STAGE type "chunk": 日本語チャンクを英語と同じ語順に並べ替える(単語を知らなくても語順感覚を養う)
 // STAGE type "word": 実際の英単語タイルを並べ替える
@@ -1544,15 +1584,21 @@ let chunkLevel = 1;           // 1=大きいまとまり / 2=ふつう / 3=小�
 let placedPieces = [];
 let poolPieces = [];
 let answered = false;
-let programMode = "practice"; // 'practice' | 'print'  (Program選択後に開く画面)
+let programMode = "print";    // 'print' | 'practice'  (単元選択後に開く画面。プリント作りが中心)
 let printCount = 10;
 let printChunkLevel = 1;
 let printGlossMode = "glossed";
 let printItems = [];          // 今のプリントの問題(ベース文+修飾語を合成したもの)
 let printTypes = new Set(['reorder']); // プリントに出す問題の種類(QUESTION_TYPESのkey)
+let printVocabTypes = new Set(['vmeaning', 'vword', 'vblank']); // 単語問題の種類(VOCAB_TYPESのkey)
+let vocabItems = [];          // 単語問題(テスト範囲のプリントのみ)
+let readingItems = [];        // 長文問題(テスト範囲のプリントのみ)
 let printSource = { kind: 'stage' };  // 出題元: 1つの単元(stage) / テスト範囲(test)
 // テスト範囲画面の状態
-const testState = { grade: 1, keys: new Set(), mode: 'random', total: 20, perUnit: {}, shuffle: true, name: '' };
+const testState = {
+  grade: 1, keys: new Set(), mode: 'random', total: 15, perUnit: {}, shuffle: true, name: '',
+  vocabCount: 10, vocabImportant: false, readingCount: 1,
+};
 // クリアした単元はブラウザに保存して、次に開いたときも✓を表示する
 const CLEARED_STORAGE_KEY = 'engrammar_cleared_stages';
 const clearedStages = new Set((() => {
@@ -1628,6 +1674,15 @@ const answerSheetTitle = document.getElementById('answerSheetTitle');
 const answerList = document.getElementById('answerList');
 const printCountRow = document.getElementById('printCountRow');
 const printTypeSwitch = document.getElementById('printTypeSwitch');
+const printTypeRow = document.getElementById('printTypeRow');
+const printVocabTypeRow = document.getElementById('printVocabTypeRow');
+const printVocabTypeSwitch = document.getElementById('printVocabTypeSwitch');
+const printReorderBox = document.getElementById('printReorderBox');
+const testVocabInput = document.getElementById('testVocabInput');
+const testVocabImportant = document.getElementById('testVocabImportant');
+const testReadingInput = document.getElementById('testReadingInput');
+const testVocabNote = document.getElementById('testVocabNote');
+const testReadingNote = document.getElementById('testReadingNote');
 const printSourceNote = document.getElementById('printSourceNote');
 const sheetInstr = document.getElementById('sheetInstr');
 const screenTest = document.getElementById('screenTest');
@@ -2414,9 +2469,121 @@ function showScreen(name) {
 backToGrade.addEventListener('click', () => showScreen('grade'));
 backToProgram.addEventListener('click', () => showScreen('program'));
 
+// ---------- 単語問題・長文問題 ----------
+// 単語問題は vocab.js(PROGRAM_VOCAB)、長文問題は reading.js(READING_PASSAGES)から作る。
+// どちらも、テスト範囲に含まれる単元の Program(学年・Program番号)のものだけを使う。
+
+// 単元 → 教科書の学年・Program番号(単語データ・長文と対応させるため)
+function stageProgram(s) {
+  if (s.key === 'getready') return { grade: 1, program: 0 };
+  // 中1 P9 の be動詞の過去形・過去進行形は、教科書では Program 10 にあたる
+  if (s.key === 'g1program9-be' || s.key === 'g1program9-whprog') return { grade: 1, program: 10 };
+  const pu = s.label.match(/PU(\d)/);
+  if (pu) return { grade: s.grade, program: { 1: 3.5, 2: 5.5, 3: 7.5 }[pu[1]] };
+  const m = s.label.match(/P(?:rogram )?(\d+)/);
+  return { grade: s.grade, program: m ? Number(m[1]) : 0 };
+}
+function programKeySet(stageList) {
+  return new Set(stageList.map(s => { const p = stageProgram(s); return `${p.grade}|${p.program}`; }));
+}
+
+const VOCAB_TYPES = {
+  vmeaning: { label: '意味を選ぶ', instr: '次の英語の意味として最も適切なものを選びなさい。' },
+  vword:    { label: '英語を書く', instr: '日本語に合う英語を書きなさい。（　）内は最初の文字と文字数です。' },
+  vblank:   { label: '例文の穴埋め', instr: '日本語に合うように、（　）に入る英語を書きなさい。最初の文字が示してあります。' },
+};
+// 人名・架空の名前・地名などは単語問題に出さない
+const VOCAB_EXCLUDE_MEANING = /(男子の名|女子の名|（姓）|人名|架空|登場人物|都市|の州|タイトル|チーム|施設|マンガ|映画)/;
+
+function vocabPool(stageList, importantOnly) {
+  const keys = programKeySet(stageList);
+  const seen = new Set();
+  return PROGRAM_VOCAB.filter(v => {
+    if (!keys.has(`${v.grade}|${v.program}`) || (importantOnly && !v.important)) return false;
+    if (VOCAB_EXCLUDE_MEANING.test(v.meaning) || seen.has(v.word)) return false;
+    seen.add(v.word);
+    return true;
+  });
+}
+
+// 「s____（6文字）」のようなつづりのヒント
+function spellingHint(word) {
+  return word.split(' ').map(w => w[0] + '_'.repeat(Math.max(0, w.length - 1))).join(' ');
+}
+
+// 例文の中から見出し語(またはその変化形)を探す
+function findWordInExample(example, word) {
+  const core = word.replace(/～|\.\.\.|…/g, ' ').replace(/[,.?!]/g, ' ').replace(/\s+/g, ' ').trim();
+  if (!core || /\s/.test(core) && core.split(' ').length > 3) return null;
+  const lower = example.toLowerCase();
+  const tokens = core.split(' ');
+  const firstForms = [tokens[0]];
+  const base = VERB_BASE_OF[tokens[0].toLowerCase()];
+  if (base) firstForms.push(...verbForms(base));
+  if (NOUN_BASE_OF[tokens[0].toLowerCase()]) firstForms.push(pluralOf(NOUN_BASE_OF[tokens[0].toLowerCase()]));
+  for (const f of firstForms) {
+    const cand = [f, ...tokens.slice(1)].join(' ').toLowerCase();
+    const re = new RegExp(`\\b${cand.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`);
+    const m = lower.match(re);
+    if (m) return { index: m.index, text: example.slice(m.index, m.index + cand.length) };
+  }
+  return null;
+}
+
+function buildVocabQuestion(v, type, pool) {
+  const item = { section: 'vocab', type: 'vmeaning', word: v.word, meaning: v.meaning };
+  if (type === 'vblank' && v.example_en) {
+    const found = findWordInExample(v.example_en, v.word);
+    if (found) {
+      const hint = found.text[0];
+      return {
+        ...item, type: 'vblank', exampleJa: v.example_ja, answer: found.text,
+        sentenceHtml: `${v.example_en.slice(0, found.index)}<span class="ws-blank">（${hint}　　　　）</span>${v.example_en.slice(found.index + found.text.length)}`,
+      };
+    }
+  }
+  if ((type === 'vword' || type === 'vblank') && !/～|\.\.\.|…|[,.?!]/.test(v.word)) {
+    const letters = v.word.replace(/[^A-Za-z]/g, '').length;
+    return { ...item, type: 'vword', answer: v.word, hint: `${spellingHint(v.word)}（${letters}文字）` };
+  }
+  // 意味を選ぶ: 範囲内の別の語の意味をまぎらわしい選択肢にする(足りなければ同じ学年から)
+  const others = shuffle(pool.filter(o => o.meaning !== v.meaning));
+  const extra = shuffle(PROGRAM_VOCAB.filter(o => o.grade === v.grade && o.meaning !== v.meaning && !VOCAB_EXCLUDE_MEANING.test(o.meaning)));
+  const distractors = [...new Set([...others, ...extra].map(o => o.meaning))].slice(0, 3);
+  return { ...item, type: 'vmeaning', options: shuffle([v.meaning, ...distractors]), answer: v.meaning };
+}
+
+function generateVocabItems(stageList, cfg, types) {
+  const pool = vocabPool(stageList, cfg.vocabImportant);
+  const picked = shuffle(pool).slice(0, cfg.vocabCount);
+  return picked.map(v => buildVocabQuestion(v, pickRandom(types), pool));
+}
+
+function readingPassagesFor(stageList) {
+  const keys = programKeySet(stageList);
+  return READING_PASSAGES.filter(p => keys.has(`${p.grade}|${p.program}`));
+}
+
+function generateReadingItems(stageList, cfg) {
+  const passages = readingPassagesFor(stageList);
+  const picked = shuffle(passages).slice(0, cfg.readingCount)
+    .sort((a, b) => a.grade - b.grade || a.program - b.program);
+  return picked.map(p => ({
+    section: 'reading', passage: p,
+    subs: p.questions.map(q => {
+      const base = { section: 'reading', q: q.q };
+      if (q.type === 'choice') return { ...base, type: 'rchoice', options: q.options, answer: q.options[q.answer] };
+      if (q.type === 'tf') return { ...base, type: 'rtf', options: ['○', '×'], answer: q.answer ? '○' : '×' };
+      if (q.type === 'fill') return { ...base, type: 'rfill', answer: q.answer };
+      return { ...base, type: 'rja', answer: q.answer };
+    }),
+  }));
+}
+
 // ---------- Screen 4: print (worksheet) ----------
 // 問題をまとめて1枚のプリントにする。紙に印刷して解くことも、画面上で解いて
 // まとめてこたえ合わせすることもできる。出題元は「1つの単元」か「テスト範囲(複数単元)」。
+// テスト範囲のプリントは、定期テストのように Ⅰ単語 → Ⅱ文法 → Ⅲ長文 の大問に分ける。
 function setProgramMode(mode) {
   programMode = mode;
   programModePractice.classList.toggle('active', mode === 'practice');
@@ -2434,29 +2601,44 @@ function renderOptionSwitch(container, options, current, onPick) {
   });
 }
 
+// 複数選べるボタン(最低1つは残す)
+function renderMultiSwitch(container, entries, selected) {
+  container.innerHTML = '';
+  entries.forEach(([key, t]) => {
+    const btn = document.createElement('button');
+    btn.textContent = t.label;
+    btn.className = selected.has(key) ? 'active' : '';
+    btn.onclick = () => {
+      if (selected.has(key) && selected.size === 1) return;
+      if (selected.has(key)) selected.delete(key); else selected.add(key);
+      generateWorksheet();
+    };
+    container.appendChild(btn);
+  });
+}
+
+function countQuestions() {
+  return allWorksheetItems().filter(it => it.type !== 'rja').length;
+}
+
 function renderPrintOptions() {
   const isTest = printSource.kind === 'test';
   printCountRow.style.display = isTest ? 'none' : 'flex';
   printSourceNote.style.display = isTest ? 'block' : 'none';
-  printSourceNote.textContent = isTest ? `${printSource.summary}（${printItems.length}問）` : '';
-  backToProgramFromPrint.innerHTML = isTest ? '&larr; テスト範囲の設定に戻る' : '&larr; Program選択に戻る';
+  printSourceNote.textContent = isTest ? `${printSource.summary}（${countQuestions()}問）` : '';
+  backToProgramFromPrint.innerHTML = isTest ? '&larr; テスト範囲の設定に戻る' : '&larr; 単元選択に戻る';
+  const hasGrammar = printItems.length > 0;
+  const hasVocab = vocabItems.length > 0;
+  printTypeRow.style.display = hasGrammar ? 'flex' : 'none';
+  printReorderBox.style.display = hasGrammar && printItems.some(it => it.type === 'reorder') ? 'block' : 'none';
+  printVocabTypeRow.style.display = hasVocab ? 'flex' : 'none';
 
   renderOptionSwitch(printCountSwitch, PRINT_COUNTS.map(n => [n, `${n}問`]), printCount, v => {
     printCount = v; generateWorksheet();
   });
   // 問題の種類は複数選べる(選んだ種類の中から1問ずつランダムに決める)
-  printTypeSwitch.innerHTML = '';
-  Object.entries(QUESTION_TYPES).forEach(([type, t]) => {
-    const btn = document.createElement('button');
-    btn.textContent = t.label;
-    btn.className = printTypes.has(type) ? 'active' : '';
-    btn.onclick = () => {
-      if (printTypes.has(type) && printTypes.size === 1) return;
-      if (printTypes.has(type)) printTypes.delete(type); else printTypes.add(type);
-      generateWorksheet();
-    };
-    printTypeSwitch.appendChild(btn);
-  });
+  renderMultiSwitch(printTypeSwitch, Object.entries(QUESTION_TYPES), printTypes);
+  renderMultiSwitch(printVocabTypeSwitch, Object.entries(VOCAB_TYPES), printVocabTypes);
   renderOptionSwitch(printChunkSwitch, [1, 2, 3].map(l => [l, CHUNK_LEVEL_LABELS[l]]), printChunkLevel, v => {
     printChunkLevel = v; renderPrintOptions(); renderWorksheet();
   });
@@ -2478,10 +2660,15 @@ function distributeRandom(stageList, total) {
   return [...counts].map(([stage, count]) => ({ stage, count })).filter(u => u.count > 0);
 }
 
+function sourceStages() {
+  if (printSource.kind === 'stage') return [currentStage()];
+  return stages.filter(s => printSource.config.keys.includes(s.key));
+}
+
 function worksheetUnits() {
   if (printSource.kind === 'stage') return [{ stage: currentStage(), count: printCount }];
   const cfg = printSource.config;
-  const stageList = stages.filter(s => cfg.keys.includes(s.key));
+  const stageList = sourceStages();
   if (cfg.mode === 'random') return distributeRandom(stageList, cfg.total);
   return stageList.map(stage => ({ stage, count: cfg.perUnit[stage.key] || 0 })).filter(u => u.count > 0);
 }
@@ -2498,9 +2685,22 @@ function generateWorksheet() {
       printItems.push(buildQuestion(stage, getSessionQuestion(stage, n, order), pickRandom(types)));
     }
   });
-  if (printSource.kind === 'test' && printSource.config.shuffle) printItems = shuffle(printItems);
+  vocabItems = [];
+  readingItems = [];
+  if (printSource.kind === 'test') {
+    const cfg = printSource.config;
+    if (cfg.shuffle) printItems = shuffle(printItems);
+    vocabItems = groupByType(generateVocabItems(sourceStages(), cfg, [...printVocabTypes]), VOCAB_TYPES);
+    readingItems = generateReadingItems(sourceStages(), cfg);
+  }
+  printItems = groupByType(printItems, QUESTION_TYPES);
   renderPrintOptions();
   renderWorksheet();
+}
+
+// プリント上のすべての設問(長文の小問も含む)
+function allWorksheetItems() {
+  return [...vocabItems, ...printItems, ...readingItems.flatMap(r => r.subs)];
 }
 
 function worksheetPieces(item) {
@@ -2522,44 +2722,25 @@ function shuffledPieces(item) {
   return item.shuffled[printChunkLevel];
 }
 
+const SELECT_TYPES = new Set(['choice', 'vmeaning', 'rchoice', 'rtf']);
+
 function answerText(item) {
-  if (item.type === 'choice') return `${CHOICE_LABELS[item.options.indexOf(item.answer)]} ${item.answer}`;
-  if (item.type === 'form') return item.answer;
+  if (SELECT_TYPES.has(item.type)) {
+    return item.type === 'rtf' ? item.answer : `${CHOICE_LABELS[item.options.indexOf(item.answer)]} ${item.answer}`;
+  }
+  if (['form', 'vword', 'vblank', 'rfill', 'rja'].includes(item.type)) return item.answer;
   if (item.type === 'rewrite') return item.answerSentence;
   return fullSentence(item);
 }
 
+// 正誤(和訳は自己採点なので null)
 function isCorrect(item) {
   const answer = item.userAnswer || '';
-  if (item.type === 'choice') return answer === item.answer;
+  if (item.type === 'rja') return null;
+  if (SELECT_TYPES.has(item.type)) return answer === item.answer;
   if (item.type === 'rewrite') return normalize(answer) !== '' && item.answers.some(a => normalize(a) === normalize(answer));
-  const target = item.type === 'form' ? item.answer : fullSentence(item);
+  const target = ['form', 'vword', 'vblank', 'rfill'].includes(item.type) ? item.answer : fullSentence(item);
   return normalize(answer) !== '' && normalize(answer) === normalize(target);
-}
-
-function itemBodyHtml(item) {
-  if (item.type === 'reorder') {
-    const pieces = shuffledPieces(item).map(p => {
-      const jp = printGlossMode === 'glossed' && p.jp ? `<span class="wp-jp">${p.jp}</span>` : '';
-      return `<span class="ws-piece"><span>${p.en}</span>${jp}</span>`;
-    }).join('');
-    return `<div class="ws-pieces">${pieces}</div>${answerLineHtml('ここに英文を書こう')}`;
-  }
-  if (item.type === 'choice') {
-    const opts = item.options.map((o, k) =>
-      `<button class="ws-opt" data-opt="${k}"><span class="ws-opt-label">${CHOICE_LABELS[k]}</span>${o}</button>`).join('');
-    return `<div class="ws-sentence">${blankedSentence(item)}</div>
-      <div class="ws-answer ws-options">${opts}<span class="ws-mark"></span></div>`;
-  }
-  if (item.type === 'form') {
-    return `<div class="ws-sentence">${blankedSentence(item)}<span class="ws-hint">[${item.hint}]</span></div>
-      ${answerLineHtml('（　）に入る語', 'short')}`;
-  }
-  if (item.type === 'rewrite') {
-    return `<div class="ws-sentence">${fullSentence(item)}<span class="ws-hint">（${item.rewriteKind === 'neg' ? '否定文に' : '疑問文に'}）</span></div>
-      ${answerLineHtml('書きかえた英文を書こう')}`;
-  }
-  return `<div class="ws-sentence ws-wordcount">（${item.tokens.length}語）</div>${answerLineHtml('ここに英文を書こう')}`;
 }
 
 function answerLineHtml(placeholder, size) {
@@ -2569,6 +2750,129 @@ function answerLineHtml(placeholder, size) {
     </div>`;
 }
 
+function optionsHtml(item) {
+  const opts = item.options.map((o, k) => {
+    const label = item.type === 'rtf' ? '' : `<span class="ws-opt-label">${CHOICE_LABELS[k]}</span>`;
+    return `<button class="ws-opt" data-opt="${k}">${label}${o}</button>`;
+  }).join('');
+  return `<div class="ws-answer ws-options">${opts}<span class="ws-mark"></span></div>`;
+}
+
+// 問題番号の横に出す文(日本語の意味・英単語・設問文)
+function itemPromptHtml(item) {
+  if (item.section === 'vocab') {
+    if (item.type === 'vmeaning') return `<span class="ws-word">${item.word}</span>`;
+    if (item.type === 'vword') return item.meaning;
+    return item.exampleJa;
+  }
+  if (item.section === 'reading') return item.q;
+  const tags = item.jpTags.map(t => `<span class="ws-tag">＋${t}</span>`).join('');
+  return `${item.jp}${tags}`;
+}
+
+function itemBodyHtml(item) {
+  switch (item.type) {
+    case 'reorder': {
+      const pieces = shuffledPieces(item).map(p => {
+        const jp = printGlossMode === 'glossed' && p.jp ? `<span class="wp-jp">${p.jp}</span>` : '';
+        return `<span class="ws-piece"><span>${p.en}</span>${jp}</span>`;
+      }).join('');
+      return `<div class="ws-pieces">${pieces}</div>${answerLineHtml('ここに英文を書こう')}`;
+    }
+    case 'choice':
+      return `<div class="ws-sentence">${blankedSentence(item)}</div>${optionsHtml(item)}`;
+    case 'form':
+      return `<div class="ws-sentence">${blankedSentence(item)}<span class="ws-hint">[${item.hint}]</span></div>
+        ${answerLineHtml('（　）に入る語', 'short')}`;
+    case 'rewrite':
+      return `<div class="ws-sentence">${fullSentence(item)}<span class="ws-hint">（${item.rewriteKind === 'neg' ? '否定文に' : '疑問文に'}）</span></div>
+        ${answerLineHtml('書きかえた英文を書こう')}`;
+    case 'translate':
+      return `<div class="ws-sentence ws-wordcount">（${item.tokens.length}語）</div>${answerLineHtml('ここに英文を書こう')}`;
+    case 'vmeaning': case 'rchoice': case 'rtf':
+      return optionsHtml(item);
+    case 'vword':
+      return `<div class="ws-sentence ws-wordcount">（${item.hint}）</div>${answerLineHtml('英語を書こう', 'short')}`;
+    case 'vblank':
+      return `<div class="ws-sentence">${item.sentenceHtml}</div>${answerLineHtml('（　）に入る英語', 'short')}`;
+    case 'rfill':
+      return answerLineHtml('本文中の英語で答えよう', 'short');
+    case 'rja':
+      return answerLineHtml('日本語で書こう');
+    default:
+      return '';
+  }
+}
+
+function makeItemEl(item, num, typeLine) {
+  const el = document.createElement('div');
+  el.className = 'ws-item';
+  el._item = item;
+  el.innerHTML = `
+    ${typeLine || ''}
+    <div class="ws-top"><span class="ws-num">(${num})</span><span class="ws-jp">${itemPromptHtml(item)}</span></div>
+    <div class="ws-body">${itemBodyHtml(item)}</div>
+    <div class="ws-correct" style="display:none;"></div>
+  `;
+  const input = el.querySelector('.ws-input');
+  if (input) {
+    input.value = item.userAnswer || '';
+    input.addEventListener('input', () => { item.userAnswer = input.value; });
+    input.addEventListener('keydown', (e) => {
+      if (e.key !== 'Enter') return;
+      const inputs = [...sheetItems.querySelectorAll('.ws-input')];
+      const next = inputs[inputs.indexOf(input) + 1];
+      if (next) next.focus(); else checkWorksheet();
+    });
+  }
+  el.querySelectorAll('.ws-opt').forEach(btn => {
+    const opt = item.options[Number(btn.dataset.opt)];
+    btn.classList.toggle('selected', item.userAnswer === opt);
+    btn.onclick = () => {
+      item.userAnswer = opt;
+      el.querySelectorAll('.ws-opt').forEach(b => b.classList.toggle('selected', b === btn));
+    };
+  });
+  return el;
+}
+
+function sectionHead(numeral, title, instr) {
+  const el = document.createElement('div');
+  el.className = 'ws-section';
+  el.innerHTML = `<div class="ws-section-title">${numeral} ${title}</div>${instr ? `<div class="ws-section-instr">${instr}</div>` : ''}`;
+  return el;
+}
+
+// 形式ごとにまとめて(定期テストの「問1・問2」のように)、指示はまとまりの先頭に1回だけ出す。
+// 形式が1つだけなら指示は大問の見出しに入れる。番号は大問の中で通し番号。
+function appendItemGroup(items, typeDefs, numeral, title) {
+  const usedTypes = [...new Set(items.map(it => it.type))];
+  const mixed = usedTypes.length > 1;
+  if (numeral) sheetItems.appendChild(sectionHead(numeral, title, mixed ? '' : typeDefs[usedTypes[0]].instr));
+  let lastType = null;
+  items.forEach((item, i) => {
+    if (mixed && item.type !== lastType) {
+      const head = document.createElement('div');
+      head.className = 'ws-type ws-type-group';
+      head.innerHTML = `<span class="ws-type-badge">問${usedTypes.indexOf(item.type) + 1}</span>${typeDefs[item.type].instr}`;
+      sheetItems.appendChild(head);
+      lastType = item.type;
+    }
+    sheetItems.appendChild(makeItemEl(item, i + 1));
+  });
+  return mixed ? null : typeDefs[usedTypes[0]].instr;
+}
+
+// 形式の並び順でまとめる(同じ形式の中では元の順番のまま)
+function groupByType(items, typeDefs) {
+  const order = Object.keys(typeDefs);
+  return items.map((it, i) => [it, i])
+    .sort((a, b) => order.indexOf(a[0].type) - order.indexOf(b[0].type) || a[1] - b[1])
+    .map(([it]) => it);
+}
+
+const SECTION_NUMERALS = ['Ⅰ', 'Ⅱ', 'Ⅲ', 'Ⅳ'];
+
 function renderWorksheet() {
   if (printSource.kind === 'stage') {
     const s = currentStage();
@@ -2576,80 +2880,87 @@ function renderWorksheet() {
     sheetTitle.textContent = `英語プリント ${s.label}`;
     sheetSub.innerHTML = `${gradeName} &middot; ${s.eyebrow}`;
   } else {
-    sheetTitle.textContent = `英語プリント ${printSource.config.name || 'テスト範囲'}`;
+    sheetTitle.textContent = `英語テスト ${printSource.config.name || ''}`.trim();
     sheetSub.textContent = printSource.summary;
   }
-  sheetTotal.textContent = printItems.length;
+  sheetTotal.textContent = countQuestions();
   sheetScore.textContent = '';
   printScoreBanner.style.display = 'none';
-
-  // 形式が1種類だけなら指示は上にまとめ、混ざっているときは問題ごとに表示する
-  const usedTypes = [...new Set(printItems.map(it => it.type))];
-  const mixed = usedTypes.length > 1;
-  sheetInstr.textContent = mixed ? '各問題の指示にしたがって答えなさい。' : (QUESTION_TYPES[usedTypes[0]] || QUESTION_TYPES.reorder).instr;
-
   sheetItems.innerHTML = '';
-  printItems.forEach((item, i) => {
-    const el = document.createElement('div');
-    el.className = 'ws-item';
-    const tags = item.jpTags.map(t => `<span class="ws-tag">＋${t}</span>`).join('');
-    const typeLine = mixed
-      ? `<div class="ws-type"><span class="ws-type-badge">${QUESTION_TYPES[item.type].label}</span>${QUESTION_TYPES[item.type].instr}</div>` : '';
-    el.innerHTML = `
-      ${typeLine}
-      <div class="ws-top"><span class="ws-num">(${i + 1})</span><span class="ws-jp">${item.jp}${tags}</span></div>
-      <div class="ws-body">${itemBodyHtml(item)}</div>
-      <div class="ws-correct" style="display:none;"></div>
-    `;
-    const input = el.querySelector('.ws-input');
-    if (input) {
-      input.value = item.userAnswer || '';
-      input.addEventListener('input', () => { item.userAnswer = input.value; });
-      input.addEventListener('keydown', (e) => {
-        if (e.key !== 'Enter') return;
-        const next = sheetItems.querySelectorAll('.ws-input')[[...sheetItems.querySelectorAll('.ws-input')].indexOf(input) + 1];
-        if (next) next.focus(); else checkWorksheet();
+
+  const sections = [];
+  if (vocabItems.length) sections.push('vocab');
+  if (printItems.length) sections.push('grammar');
+  if (readingItems.length) sections.push('reading');
+  const numbered = sections.length > 1;
+  let instr = '';
+  sections.forEach((sec, si) => {
+    const numeral = numbered ? SECTION_NUMERALS[si] : '';
+    if (sec === 'vocab') instr = appendItemGroup(vocabItems, VOCAB_TYPES, numeral, '単語');
+    if (sec === 'grammar') instr = appendItemGroup(printItems, QUESTION_TYPES, numeral, '文法');
+    if (sec === 'reading') {
+      sheetItems.appendChild(sectionHead(numeral || '', '長文', '次の英文を読んで、あとの問いに答えなさい。'));
+      readingItems.forEach((r, ri) => {
+        const box = document.createElement('div');
+        box.className = 'ws-passage';
+        const paragraphs = r.passage.text.split('\n').map(p => `<p>${p}</p>`).join('');
+        box.innerHTML = `<div class="ws-passage-title">${readingItems.length > 1 ? `[${ri + 1}] ` : ''}${r.passage.title}</div>${paragraphs}`;
+        sheetItems.appendChild(box);
+        r.subs.forEach((sub, i) => sheetItems.appendChild(makeItemEl(sub, i + 1)));
       });
     }
-    el.querySelectorAll('.ws-opt').forEach(btn => {
-      const opt = item.options[Number(btn.dataset.opt)];
-      btn.classList.toggle('selected', item.userAnswer === opt);
-      btn.onclick = () => {
-        item.userAnswer = opt;
-        el.querySelectorAll('.ws-opt').forEach(b => b.classList.toggle('selected', b === btn));
-      };
-    });
-    sheetItems.appendChild(el);
   });
+  // 大問が1つだけなら、指示はタイトルの下にまとめる
+  sheetInstr.textContent = numbered ? '' : (instr || (sections[0] === 'reading' ? '' : '各問題の指示にしたがって答えなさい。'));
+  sheetInstr.style.display = sheetInstr.textContent ? 'block' : 'none';
 
-  answerSheetTitle.textContent = `解答 ${sheetTitle.textContent.replace(/^英語プリント /, '')}`;
-  answerList.innerHTML = printItems.map(item => `<li>${answerText(item)}</li>`).join('');
+  answerSheetTitle.textContent = `解答 ${sheetTitle.textContent.replace(/^英語(プリント|テスト) ?/, '')}`;
+  const listHtml = items => `<ol>${items.map(item => `<li>${answerText(item)}</li>`).join('')}</ol>`;
+  let answersHtml = '';
+  sections.forEach((sec, si) => {
+    const head = numbered ? `<h3>${SECTION_NUMERALS[si]} ${{ vocab: '単語', grammar: '文法', reading: '長文' }[sec]}</h3>` : '';
+    if (sec === 'vocab') answersHtml += head + listHtml(vocabItems);
+    if (sec === 'grammar') answersHtml += head + listHtml(printItems);
+    if (sec === 'reading') {
+      answersHtml += head + readingItems.map((r, ri) =>
+        `${readingItems.length > 1 ? `<div class="answer-sub">[${ri + 1}] ${r.passage.title}</div>` : ''}${listHtml(r.subs)}`).join('');
+    }
+  });
+  answerList.innerHTML = answersHtml;
   answerSheet.classList.toggle('include', printIncludeAnswers.checked);
 }
 
 function checkWorksheet() {
-  let score = 0;
-  const rows = sheetItems.querySelectorAll('.ws-item');
-  printItems.forEach((item, i) => {
-    const row = rows[i];
+  let score = 0, total = 0;
+  sheetItems.querySelectorAll('.ws-item').forEach(row => {
+    const item = row._item;
     const ok = isCorrect(item);
-    if (ok) score++;
     const mark = row.querySelector('.ws-mark');
+    const correct = row.querySelector('.ws-correct');
+    if (ok === null) {
+      // 和訳は模範解答を見て自分で採点する
+      mark.textContent = '';
+      correct.style.display = 'block';
+      correct.className = 'ws-correct self';
+      correct.textContent = `模範解答: ${item.answer}（自分で答え合わせしよう）`;
+      return;
+    }
+    total++;
+    if (ok) score++;
     mark.textContent = ok ? '○' : '×';
     mark.className = 'ws-mark ' + (ok ? 'ok' : 'ng');
-    const correct = row.querySelector('.ws-correct');
     correct.style.display = ok ? 'none' : 'block';
     correct.textContent = ok ? '' : `正解: ${answerText(item)}`;
   });
   sheetScore.textContent = score;
   printScoreBanner.style.display = 'block';
-  printScoreBanner.textContent = score === printItems.length
-    ? `全問正解! ${score} / ${printItems.length}`
-    : `${score} / ${printItems.length} 問正解 ― まちがえた問題をもう一度解いてみよう`;
+  printScoreBanner.textContent = score === total
+    ? `全問正解! ${score} / ${total}`
+    : `${score} / ${total} 問正解 ― まちがえた問題をもう一度解いてみよう`;
 }
 
 function resetWorksheetAnswers() {
-  printItems.forEach(item => { item.userAnswer = ''; });
+  allWorksheetItems().forEach(item => { item.userAnswer = ''; });
   renderWorksheet();
 }
 
@@ -2711,6 +3022,9 @@ function renderTestScreen() {
       testState.total = r.total || 20;
       testState.perUnit = r.perUnit || {};
       testState.shuffle = r.shuffle !== false;
+      testState.vocabCount = r.vocabCount ?? 10;
+      testState.vocabImportant = !!r.vocabImportant;
+      testState.readingCount = r.readingCount ?? 1;
       testState.name = r.name;
       const first = selectedTestStages()[0];
       if (first) testState.grade = first.grade;
@@ -2791,15 +3105,33 @@ function renderTestScreen() {
     });
   }
   testShuffleCheck.checked = testState.shuffle;
+  testVocabInput.value = testState.vocabCount;
+  testVocabImportant.checked = testState.vocabImportant;
+  testReadingInput.value = testState.readingCount;
   testSaveForm.style.display = 'none';
   updateTestMakeButton();
 }
 
+// 単語・文法の問題数と長文の題数(範囲内にある数を上限にする)
+function testCounts() {
+  const selected = selectedTestStages();
+  return {
+    questions: testTotalCount() + Math.min(testState.vocabCount, vocabPool(selected, testState.vocabImportant).length),
+    passages: Math.min(testState.readingCount, readingPassagesFor(selected).length),
+  };
+}
+
 function updateTestMakeButton() {
-  const total = testTotalCount();
-  const ok = testState.keys.size > 0 && total > 0;
+  const selected = selectedTestStages();
+  const vocabAvail = vocabPool(selected, testState.vocabImportant).length;
+  const readingAvail = readingPassagesFor(selected).length;
+  testVocabNote.textContent = selected.length ? `（範囲内 ${vocabAvail}語）` : '';
+  testReadingNote.textContent = selected.length ? `（範囲内 ${readingAvail}題）` : '';
+  const { questions, passages } = testCounts();
+  const ok = testState.keys.size > 0 && questions + passages > 0;
   testMakeBtn.disabled = !ok;
-  testMakeBtn.textContent = ok ? `${total}問のプリントを作る` : 'プリントを作る';
+  const label = [questions ? `${questions}問` : '', passages ? `長文${passages}題` : ''].filter(Boolean).join('＋');
+  testMakeBtn.textContent = ok ? `${label}のプリントを作る` : 'プリントを作る';
   testSaveBtn.disabled = testState.keys.size === 0;
 }
 
@@ -2811,7 +3143,16 @@ function rangeSummary(selected) {
 }
 
 testTotalInput.addEventListener('input', () => {
-  testState.total = Math.max(1, Math.min(60, Number(testTotalInput.value) || 1));
+  testState.total = Math.max(0, Math.min(60, Number(testTotalInput.value) || 0));
+  updateTestMakeButton();
+});
+testVocabInput.addEventListener('input', () => {
+  testState.vocabCount = Math.max(0, Math.min(40, Number(testVocabInput.value) || 0));
+  updateTestMakeButton();
+});
+testVocabImportant.addEventListener('change', () => { testState.vocabImportant = testVocabImportant.checked; updateTestMakeButton(); });
+testReadingInput.addEventListener('input', () => {
+  testState.readingCount = Math.max(0, Math.min(5, Number(testReadingInput.value) || 0));
   updateTestMakeButton();
 });
 testShuffleCheck.addEventListener('change', () => { testState.shuffle = testShuffleCheck.checked; });
@@ -2828,6 +3169,7 @@ testSaveConfirmBtn.addEventListener('click', () => {
   list.push({
     name, keys: [...testState.keys], mode: testState.mode, total: testState.total,
     perUnit: testState.perUnit, shuffle: testState.shuffle,
+    vocabCount: testState.vocabCount, vocabImportant: testState.vocabImportant, readingCount: testState.readingCount,
   });
   saveTestRanges(list);
   testState.name = name;
@@ -2842,6 +3184,7 @@ testMakeBtn.addEventListener('click', () => {
     config: {
       name: testState.name, keys: selected.map(s => s.key), mode: testState.mode, total: testState.total,
       perUnit: { ...testState.perUnit }, shuffle: testState.shuffle,
+      vocabCount: testState.vocabCount, vocabImportant: testState.vocabImportant, readingCount: testState.readingCount,
     },
   };
   selected.forEach(s => { if (printSource.config.perUnit[s.key] == null) printSource.config.perUnit[s.key] = 2; });
