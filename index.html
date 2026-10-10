@@ -1127,7 +1127,6 @@ const stages = [
       { jp: "私は毎日彼と一緒に学校に行きます。", pieces: [{en:"I go to school", jp:"私は学校に行く"}, {en:"with him", jp:"彼と一緒に"}, {en:"every day", jp:"毎日"}] },
       { jp: "あなたは彼女が好きですか。", pieces: [{en:"Do", jp:"～か"}, {en:"you", jp:"あなたは"}, {en:"like", jp:"好き"}, {en:"her", jp:"彼女が"}] },
       { jp: "私はよく彼らと話します。", pieces: [{en:"I", jp:"私は"}, {en:"often talk", jp:"よく話す"}, {en:"with them", jp:"彼らと"}] },
-      { jp: "私たちと一緒にサッカーをしましょう。", pieces: [{en:"Let's play soccer", jp:"サッカーをしましょう"}, {en:"with us", jp:"私たちと一緒に"}] },
       { jp: "私は彼らのために夕食を作ります。", pieces: [{en:"I", jp:"私は"}, {en:"make dinner", jp:"夕食を作る"}, {en:"for them", jp:"彼らのために"}] },
     ],
   },
@@ -2819,6 +2818,7 @@ function timeFits(words) {
   if (words.includes('worry') || (words.includes('have') && words.some(w => ["don't", "doesn't", 'not'].includes(w)))) return false;
   // 否定文に every day などを付けると「毎日〜するわけではない」(部分否定)になる。目的の不定詞(to win ~)のあとにも付けない
   if (words.some(w => ['not', 'cannot', 'never'].includes(w) || /n't$/.test(w))) return false;
+  if (words.some(w => ['often', 'usually', 'always', 'sometimes'].includes(w))) return false; // often ~ every day のような矛盾
   if (words.some((w, k) => w === 'to' && VERB_BASE_OF[words[k + 1]] === words[k + 1])) return false;
   return !words.some(w => ['before', 'after', 'when', 'and', 'until', 'since'].includes(w));
 }
@@ -2988,6 +2988,13 @@ const WORD_FAMILIES = {
     return { options: verbForms(base), hint: base };
   },
   // 名詞の単数・複数は、数を表す語(a / two / some など)のすぐあとのときだけ空所にする(in my bag などは手がかりがない)
+  // 動詞のあとの目的格の代名詞(give him ~ / help me)
+  objPronoun: (w, i, tokens) => {
+    const set = PRONOUN_SET_OF[w];
+    if (!set || i === 0 || !['me', 'him', 'her', 'us', 'them'].includes(w)) return null;
+    const prev = tokens[i - 1].toLowerCase();
+    return VERB_BASE_OF[prev] || ['with', 'for', 'to', 'about'].includes(prev) ? { options: [...new Set(set)], hint: set[0] } : null;
+  },
   // to のあとの動詞の原形(不定詞)
   toVerb: (w, i, tokens) => (i > 0 && tokens[i - 1].toLowerCase() === 'to' && VERB_BASE_OF[w] === w
     ? { options: verbForms(w), hint: w } : null),
@@ -3031,7 +3038,7 @@ const WORD_FAMILIES = {
   },
   // make / let / help + 人 + 動詞の原形
   bareVerb: (w, i, tokens) => (i > 1 && VERB_BASE_OF[w] === w
-    && ['make', 'makes', 'made', 'let', 'lets', 'help', 'helps', 'helped'].includes(tokens[i - 2].toLowerCase())
+    && tokens.slice(Math.max(0, i - 4), i - 1).some(t => ['make', 'makes', 'made', 'let', 'lets', 'help', 'helps', 'helped'].includes(t.toLowerCase()))
     ? { options: verbForms(w), hint: w } : null),
   // 目的格の関係代名詞 that(the book that I bought)
   relThat: (w, i, tokens) => {
@@ -3082,7 +3089,7 @@ const STAGE_FOCUS = {
   'g2program2-that': ['conj'], 'g2program2-when': ['conj'], 'g2program2-if': ['conj'],
   'g2program3-noun': ['toVerb'], 'g2program3-adverb': ['toVerb'], 'g2program3-adj': ['toVerb'], 'g2program3-itisto': ['toVerb'],
   'g2program4-emotion': ['toVerb'], 'g2program4-must': ['modal'], 'g2program4-haveto': ['have', 'toVerb'],
-  'g2program5-whto': ['wh'], 'g2program5-svc': ['verb'], 'g2program5-svoo': ['pronoun', 'verb'],
+  'g2program5-whto': ['wh'], 'g2program5-svc': ['verb'], 'g2program5-svoo': ['objPronoun'],
   'g2program6-comp': ['compare'], 'g2program6-sup': ['compare'], 'g2program6-asas': ['compare'],
   'g2program7-better': ['compare'], 'g2program7-best': ['compare'], 'g2program7-howto': ['wh'],
   'g2program8-withby': ['ppForm', 'be'], 'g2program8-withoutby': ['ppForm', 'be'],
@@ -3091,7 +3098,7 @@ const STAGE_FOCUS = {
   'g3program2-completion': ['ppForm', 'have'], 'g3program2-continuation': ['ppForm', 'have'],
   'g3program2-progressive': ['ingForm', 'have'],
   'g3program3-tellshow': ['conj'], 'g3program3-svoc': ['verb'],
-  'g3program3-makeletlelp': ['bareVerb', 'verb'],
+  'g3program3-makeletlelp': ['bareVerb'],
   'g3program4-presentp': ['postPart'], 'g3program4-pastp': ['postPart'], 'g3program4-indirect': ['wh'],
   'g3program5-who': ['relative'], 'g3program5-which': ['relative'],
   'g3program6-withpronoun': ['relative', 'relThat'], 'g3program6-omitted': ['verb'],
@@ -3197,12 +3204,13 @@ function rewriteSentence(tokens, jp, kind) {
   if (["let's", 'please'].includes(lower[0])) return null;
   // 「A and B」のように動詞が2つある文は対象外。once / twice をふくむ文(経験)は疑問文にすると不自然
   if (lower.includes('and')) return null;
-  if (lower.some(t => ['once', 'twice', 'times'].includes(t))) return null;
-  if (kind === 'q' && lower.includes('must')) return null;
+  if (lower.some(t => ['once', 'twice', 'times', 'wish', 'must'].includes(t))) return null; // must not は禁止、I wish は否定・疑問にしない
+  // always / usually / often を否定すると「いつも〜するわけではない」(部分否定)になるので否定文にしない
+  if (kind === 'neg' && lower.some(t => ['always', 'usually', 'often', 'every'].includes(t))) return null;
   // 比較級・最上級の文の否定(not more difficult / not the most ~)は不自然なので作らない
   if (kind === 'neg' && (lower.includes('than') || lower.some((t, k) => t === 'the' && /^(most|best|\w+est)$/.test(lower[k + 1] || '')))) return null;
   // I と you の両方がある文は、疑問文で I を you にすると「Will you call you?」のようになるので作らない
-  if (kind === 'q' && lower.some(t => ['i', 'my', 'me', 'mine'].includes(t)) && lower.some(t => ['you', 'your', 'yours'].includes(t))) return null;
+  if (kind === 'q' && lower.some(t => ['i', 'my', 'me', 'mine', 'we', 'our', 'us'].includes(t)) && lower.some(t => ['you', 'your', 'yours'].includes(t))) return null;
   // 関係代名詞の that(that の後ろに主語や動詞が続く)は対象外
   if (lower.some((t, i) => t === 'that' && i > 0 && (SUBJECT_PRONOUNS.has(lower[i + 1]) || VERB_BASE_OF[lower[i + 1]]))) return null;
 
@@ -3211,7 +3219,9 @@ function rewriteSentence(tokens, jp, kind) {
     const w = lower[i];
     if (['am', 'is', 'are', 'was', 'were'].includes(w)) { k = i; pred = 'aux'; }
     else if (REWRITE_MODALS.includes(w)) { k = i; pred = 'aux'; }
-    else if (['have', 'has', 'had'].includes(w) && isPerfectParticiple(lower[i + 1] || '')) { k = i; pred = 'aux'; }
+    else if (['have', 'has', 'had'].includes(w) && (isPerfectParticiple(lower[i + 1] || '')
+      || (VERB_BASE_OF[lower[i + 1]] && verbPastParticiple(VERB_BASE_OF[lower[i + 1]]) === lower[i + 1])
+      || (['never', 'just', 'already', 'ever'].includes(lower[i + 1])))) { k = i; pred = 'aux'; } // He has read ~(read は原形と同じ形)
     else if (['have', 'has', 'had', 'do', 'does', 'did'].includes(w)) { k = i; pred = 'verb'; }
     else if (VERB_BASE_OF[w] && !(i > 0 && DETERMINERS.has(lower[i - 1]))) {
       // The long walk made ~ のように、すぐあとに動詞が続く語は主語の名詞
@@ -3263,6 +3273,8 @@ function rewriteSentence(tokens, jp, kind) {
   const text = endWith(words.join(' '), kind === 'neg' ? '.' : '?');
   // 疑問文では I・my・me を you・your・you にする(指示文にも書いてある)。I のままも正解にする
   const toYou = { I: 'you', my: 'your', me: 'you', mine: 'yours', My: 'Your', myself: 'yourself' };
+  // 主語が we の疑問文も、相手にたずねる形(we → you)にする
+  if (kind === 'q' && subj.length === 1 && subj[0].toLowerCase() === 'we') Object.assign(toYou, { we: 'you', our: 'your', us: 'you', ours: 'yours' });
   if (kind === 'q' && words.some(t => toYou[t])) {
     const head = subj.length === 1 && subj[0] === 'I' ? ({ Am: 'Are', Was: 'Were' }[words[0]] || words[0]) : words[0];
     const you = endWith([head, ...words.slice(1).map(t => toYou[t] || t)].join(' '), '?');
@@ -3332,10 +3344,20 @@ function buildQuestion(stage, q, type) {
     item.type = type;
     item.blankIndex = blank.index;
     item.blankFamily = blank.family;
+    // 関係代名詞は、that ⇔ who / which のように、ほかにも正しい語がある
+    if (['relative', 'relThat'].includes(blank.family)) {
+      const ante = (tokens[blank.index - 1] || '').toLowerCase();
+      const person = ['boy', 'girl', 'man', 'woman', 'friend', 'teacher', 'player', 'person', 'people', 'uncle', 'aunt', 'student', 'students', 'doctor', 'singer', 'brother', 'sister', 'children'].includes(ante);
+      const a = answer.toLowerCase();
+      item.altAnswers = a === 'that' ? (person ? ['who', 'whom'] : ['which']) : ['who', 'which'].includes(a) ? ['that'] : [];
+    }
     item.answer = answer;
     if (type === 'choice') {
       // 仮定法の were は was でも口語では通じるので、選択肢に was を入れない
       const avoid = stage.key.startsWith('g3program7') && answer.toLowerCase() === 'were' ? ['was'] : [];
+      // What sport ~? は Which sport ~? でも意味が通るので、which を選択肢に入れない(逆も同じ)
+      const nextTok = (tokens[blank.index + 1] || '').toLowerCase();
+      if (blank.family === 'wh' && ['what', 'which'].includes(answer.toLowerCase()) && !['do', 'does', 'did', 'is', 'are', 'was', 'were', 'can', 'will', 'to'].includes(nextTok)) avoid.push('what', 'which');
       // must not(〜してはいけない)は may not / can not でも意味が通るので、選択肢に入れない
       if (blank.family === 'modal' && (tokens[blank.index + 1] || '').toLowerCase() === 'not') avoid.push('may', 'can', 'should');
       const others = shuffle(blank.options.filter(o => o.toLowerCase() !== answer.toLowerCase() && !avoid.includes(o)))
@@ -3525,8 +3547,8 @@ function wrongFormFor(tokens, blank, strict) {
 function makeUnitQuestion(stage, type, st, maxTier = 3) {
   let item;
   for (let tries = 0; tries < 6; tries++) {
-    // 並べ替えは修飾語を1つまでにする(2つあると語順が2通りになることがあるため)
-    const tier = type === 'entoja' ? 1 : ['reorder', 'extra'].includes(type) ? Math.min(2, maxTier) : maxTier;
+    // 並べ替えは修飾語を足さない(場所と時の語句の順番が2通りになることがあるため)
+    const tier = ['entoja', 'reorder', 'extra'].includes(type) ? 1 : maxTier;
     const q = getSessionQuestion(stage, st.n++, st.order, tier);
     item = buildQuestion(stage, q, type);
     if (item.type === type) return item;
@@ -3928,7 +3950,11 @@ function phraseAfter(tokens, start) {
   const lw = guideClean(tokens[start] || '').toLowerCase();
   const next = guideClean(tokens[start + 1] || '').toLowerCase();
   // this your pen のように、次も限定詞なら this だけが主語
-  const end = (DETERMINERS.has(lw) || GUIDE_NUMBERS.has(lw)) && next && !DETERMINERS.has(next) && !GUIDE_BE.has(next) ? start + 1 : start;
+  if (!((DETERMINERS.has(lw) || GUIDE_NUMBERS.has(lw)) && next && !DETERMINERS.has(next) && !GUIDE_BE.has(next))) return guideClean(tokens[start] || '');
+  // a convenience store のような2語の名詞もまとめる(前置詞・動詞・疑問の語の手前まで、最大3語)
+  let end = start + 1;
+  const stop = t => !t || ['in', 'on', 'at', 'near', 'under', 'by', 'from', 'for', 'with', 'to', 'now', 'here', 'there', 'of'].includes(t) || GUIDE_BE.has(t) || VERB_BASE_OF[t] || /ing$/.test(t);
+  while (end + 1 < tokens.length && end - start < 3 && !stop(guideClean(tokens[end + 1]).toLowerCase())) end++;
   return tokens.slice(start, end + 1).map(guideClean).join(' ');
 }
 // 空所の語の主語。疑問文の形(文頭・疑問詞のあと)なら空所のうしろ、There is ならうしろのもの、それ以外は前
@@ -3985,7 +4011,7 @@ function explainBe(item, a, idx) {
   let lead = '';
   const going = after.indexOf('going');
   if (going >= 0 && after[going + 1] === 'to') lead = '「〜するつもり」は be going to ＋ 動詞の原形。be動詞は主語に合わせる。';
-  else if (after.some(isIngWord)) lead = '「〜している」は be動詞 ＋ ing形。';
+  else if (after.some(isIngWord)) lead = past ? '「〜していた」は was / were ＋ ing形。' : '「〜している」は be動詞 ＋ ing形。';
   else if (after.some(t => isPerfectParticiple(t) && VERB_BASE_OF[t] !== t) && /(され|られ|れ)/.test(item.jp)) lead = '「〜される」は be動詞 ＋ 過去分詞。';
   const rule = past ? 'I・3人称単数 → was／you・複数 → were' : 'I → am／you・複数 → are／3人称単数 → is';
   return {
@@ -4033,7 +4059,8 @@ function explainVerb(item, a, idx) {
   }
   if (a !== base && a === verbIng(base)) {
     if (GUIDE_BE.has(prev) || prev === 'not' && GUIDE_BE.has(prev2) || item.end === '?' && lw.slice(0, idx).some(t => GUIDE_BE.has(t))) {
-      return { hint: 'be動詞がある。', why: `「〜している」は be動詞 ＋ ing形 なので ${a}。` };
+      const pastProg = lw.slice(0, idx).some(t => t === 'was' || t === 'were');
+      return { hint: 'be動詞がある。', why: pastProg ? `「〜していた」は was / were ＋ ing形 なので ${a}。` : `「〜している」は be動詞 ＋ ing形 なので ${a}。` };
     }
     if (prev === 'been') return { hint: '前の「been」に注目。', why: `have / has been ＋ ing形 で「ずっと〜している」なので ${a}。` };
     if (GUIDE_GERUND_VERBS.has(prev)) return { hint: `前の「${prev}」に注目。`, why: `${prev} のあとの「〜すること」は ing形（動名詞）なので ${a}。` };
@@ -4056,7 +4083,10 @@ function explainVerb(item, a, idx) {
     // (文の最初の名詞のすぐあとなら「The news made me sad」のような過去形の文とみなす)
     const nounStart = DETERMINERS.has(prev2) ? idx - 2 : idx - 1;
     // The woman that I met ~ の met は、関係代名詞の中の過去形(主語 I のすぐあと)
-    if (a !== base && nounBefore && nounStart >= 1 && !SUBJECT_PRONOUNS.has(prev)) {
+    // the bag my mother made の made は、「名詞 ＋ 主語 ＋ 動詞」(関係代名詞の省略)の過去形
+    const beforeNP = lw[nounStart - 1] || '';
+    const relClause = beforeNP && !GUIDE_BE.has(beforeNP) && !VERB_BASE_OF[beforeNP] && !['have', 'has', 'had', 'in', 'on', 'at', 'by', 'to', 'for', 'with', 'of', 'from', 'about'].includes(beforeNP);
+    if (a !== base && nounBefore && nounStart >= 1 && !SUBJECT_PRONOUNS.has(prev) && !relClause) {
       return { hint: '前の名詞を説明している。', why: `名詞をうしろから「〜された（もの）」と説明するときは過去分詞なので ${a}${forms}。` };
     }
   }
@@ -4116,8 +4146,8 @@ function explainHave(item, a, idx) {
   const s = guideSubject(item, idx);
   const which = a === 'had' ? '過去なので had' : a === 'has' ? '3人称単数なので has' : 'have';
   if (lw[idx + 1] === 'to') return { hint: `主語は「${s.text}」。`, why: `「〜しなければならない」は have to ＋ 動詞の原形。主語が「${s.text}」で、${which}。` };
-  if (lw.slice(idx + 1).some(t => isPerfectParticiple(t))) return { hint: `主語は「${s.text}」。`, why: `現在完了は have / has ＋ 過去分詞。主語が「${s.text}」なので ${which === 'have' ? 'have' : which}。` };
-  return { hint: `主語は「${s.text}」。`, why: `主語が「${s.text}」なので ${which}。` };
+  if (lw.slice(idx + 1).some(t => isPerfectParticiple(t))) return { hint: `主語は「${s.text}」。`, why: `現在完了は have / has ＋ 過去分詞。主語が「${s.text}」で、${which}。` };
+  return { hint: `主語は「${s.text}」。`, why: `主語が「${s.text}」で、${which}。` };
 }
 
 // 1問ぶんのヒントと解説
@@ -4158,6 +4188,7 @@ function explainItem(stage, item) {
       const meaning = howWord ? `how ${lw[idx + 1]}：${howWord}` : `${a}：${GUIDE_WH_MEANING[a]}`;
       const where = idx === 0 ? '疑問詞は文のいちばん前に置く。'
         : lw[idx + 1] === 'to' ? `${a} to 〜 で「${GUIDE_WHTO_MEANING[a] || GUIDE_WH_MEANING[a]}〜すべきか」${a === 'how' ? '（〜の仕方）' : ''}。`
+        : lw[idx + 2] === 'to' ? `${a} ＋ 名詞 ＋ to 〜 で「${a === 'which' ? 'どの' : a === 'what' ? 'どんな' : GUIDE_WH_MEANING[a]}（名詞）を〜すべきか」。`
         : `文の中に入れる疑問詞は「${a} ＋ 主語 ＋ 動詞」の順。`;
       r = { hint: '日本語の「何・どこ・いつ・だれ」などに注目。', why: `日本語に合う疑問詞は ${a}（${meaning}）。${where}` };
       break;
@@ -4168,7 +4199,7 @@ function explainItem(stage, item) {
       break;
     }
     case 'conj': r = { hint: '日本語の「〜と（思う）」「〜とき」「もし〜なら」に注目。', why: `「${GUIDE_CONJ_MEANING[a] || ''}」は ${a}。うしろに 主語 ＋ 動詞 の文が続く。` }; break;
-    case 'pronoun': r = explainPronoun(item, a, idx); break;
+    case 'pronoun': case 'objPronoun': r = explainPronoun(item, a, idx); break;
     case 'verb': case 'toVerb': case 'gerund': case 'ingForm': case 'ppForm': case 'postPart': case 'bareVerb':
       r = explainVerb(item, a, idx); break;
     case 'relThat': r = { hint: '前の名詞を、うしろの「主語 ＋ 動詞」が説明している。', why: '「…が〜する（名詞）」と名詞をうしろから説明する目的格の関係代名詞は that（もの・人どちらにも使える）。' }; break;
@@ -4440,6 +4471,7 @@ function answerText(item) {
   if (SELECT_TYPES.has(item.type)) {
     return item.type === 'rtf' ? item.answer : `${CHOICE_LABELS[item.options.indexOf(item.answer)]} ${item.answer}`;
   }
+  if (item.type === 'fillin' && (item.altAnswers || []).length) return `${item.answer}（${item.altAnswers.join(' / ')} も可）`;
   if (['form', 'fillin', 'vword', 'vblank', 'vidiom', 'vjp', 'entoja', 'rfill', 'rja'].includes(item.type)) return item.answer;
   if (item.type === 'rewrite') return item.answerSentence;
   if (item.type === 'error') return `${item.wrongWord} → ${item.answer}`;
@@ -4462,6 +4494,7 @@ function isCorrect(item) {
     return words.length > 0 && words[words.length - 1] === want && (words.length === 1 || (words.length === 2 && words[0] === item.wrongWord.toLowerCase()));
   }
   if (item.type === 'vidiom') return normalize(answer.replace(/[／/・]/g, ' ')) === normalize(item.answers.join(' '));
+  if (item.type === 'fillin' && (item.altAnswers || []).some(a => normalize(a) === normalize(answer))) return true;
   const target = ['form', 'fillin', 'vword', 'vblank', 'rfill'].includes(item.type) ? item.answer : fullSentence(item);
   return normalize(answer) !== '' && normalize(answer) === normalize(target);
 }
