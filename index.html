@@ -263,6 +263,13 @@
   .test-saved-name span { font-size: 12px; font-weight: 500; color: var(--ink-soft); margin-left: 8px; }
   .test-note { font-size: 12.5px; color: var(--ink-soft); margin-top: 12px; }
   .test-avail { font-size: 12.5px; color: var(--ink-soft); }
+  .test-type-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 0 18px; margin-bottom: 6px; }
+  .test-type-row { display: flex; align-items: center; gap: 8px; font-size: 14px; padding: 5px 0; border-bottom: 1px dashed var(--line); }
+  .test-type-row .test-type-name { flex: 1; min-width: 0; }
+  .test-type-row input { width: 58px; font-size: 15px; padding: 5px 8px; border-radius: 8px; border: 1.5px solid var(--line); font-family: inherit; }
+  .test-type-row.zero .test-type-name { color: var(--ink-soft); }
+  .test-type-total { font-size: 13.5px; font-weight: 700; text-align: right; margin: 4px 0 10px; }
+  .test-sublabel { font-size: 13px; font-weight: 700; margin: 6px 0; }
   .test-entry { margin-top: 0; margin-bottom: 18px; }
   .grade-heading { font-size: 12px; font-weight: 800; color: var(--ink-soft); margin: 0 0 8px 2px; }
 
@@ -271,6 +278,7 @@
   .ws-section-title { font-size: 16px; font-weight: 800; border-left: 4px solid var(--ink); padding-left: 8px; }
   .ws-section-instr { font-size: 13px; color: var(--ink-soft); margin: 6px 0 0 12px; }
   .ws-word { font-size: 18px; font-weight: 800; font-family: 'Georgia', serif; }
+  .ws-en { font-size: 16px; font-family: 'Georgia', serif; }
   .ws-passage { border: 1px solid var(--line); border-radius: 10px; padding: 12px 16px; margin: 10px 0 4px; font-size: 15px; line-height: 1.85; break-inside: avoid; page-break-inside: avoid; }
   .ws-passage p { margin: 0 0 6px; text-indent: 1em; }
   .ws-passage-title { font-weight: 800; font-size: 13.5px; margin-bottom: 6px; color: var(--ink-soft); }
@@ -336,20 +344,19 @@
     </div>
 
     <div class="card test-card">
-      <div class="test-label">Ⅰ 単語問題</div>
-      <div class="test-random-box" style="display:flex;">
-        範囲の単語から <input type="number" id="testVocabInput" min="0" max="40"> 問
-        <span class="test-avail" id="testVocabNote"></span>
-      </div>
-      <label class="opt-check test-shuffle"><input type="checkbox" id="testVocabImportant"> 重要語（教科書の太字）だけから出す</label>
+      <div class="test-label">Ⅰ 単語問題 <span class="test-avail" id="testVocabNote"></span></div>
+      <div class="test-type-grid" id="testVocabTypes"></div>
+      <div class="test-type-total" id="testVocabTotal"></div>
+      <label class="opt-check test-shuffle"><input type="checkbox" id="testVocabImportant"> 重要語（教科書の太字）だけから出す（熟語・前置詞は範囲内のすべてから）</label>
     </div>
 
     <div class="card test-card">
-      <div class="test-label">Ⅱ 文法問題 ― 出題数の決め方</div>
+      <div class="test-label">Ⅱ 文法問題</div>
+      <div class="test-type-grid" id="testGrammarTypes"></div>
+      <div class="test-type-total" id="testGrammarTotal"></div>
+      <div class="test-sublabel">単元への割り振り</div>
       <div class="mode-switch" id="testModeSwitch"></div>
-      <div class="test-random-box" id="testRandomBox">
-        範囲全体から <input type="number" id="testTotalInput" min="0" max="60"> 問をランダムに出題
-      </div>
+      <div class="test-empty" id="testModeNote"></div>
       <div id="testPerUnitBox"><div id="testPerUnitList"></div></div>
       <label class="opt-check test-shuffle"><input type="checkbox" id="testShuffleCheck" checked> 問題の順番をランダムにする（オフにすると単元順）</label>
     </div>
@@ -372,7 +379,7 @@
       <input type="text" class="type-input" id="testNameInput" placeholder="範囲の名前（例：2学期中間テスト）">
       <button class="btn btn-primary" id="testSaveConfirmBtn">保存</button>
     </div>
-    <p class="test-note">文法問題の種類（並べ替え・適語選択・語形変化・和文英訳・書きかえ）と単語問題の種類は、次の画面で選べます。0問にした大問はプリントに入りません。</p>
+    <p class="test-note">問題の種類ごとに数を決められます（0問の種類は出ません。すべて0問の大問はプリントに入りません）。和訳・意味を書く問題は、模範解答を見て自己採点します。</p>
   </div>
 
   <!-- Screen 2: program select -->
@@ -393,7 +400,6 @@
       <div class="print-source-note" id="printSourceNote" style="display:none;"></div>
       <div class="opt-row" id="printCountRow"><span class="opt-label">問題数</span><div class="mode-switch" id="printCountSwitch"></div></div>
       <div class="opt-row" id="printTypeRow"><span class="opt-label">文法問題</span><div class="mode-switch multi" id="printTypeSwitch"></div></div>
-      <div class="opt-row" id="printVocabTypeRow"><span class="opt-label">単語問題</span><div class="mode-switch multi" id="printVocabTypeSwitch"></div></div>
       <div id="printReorderBox">
       <div class="opt-hint">並べ替えの設定</div>
       <div class="opt-row"><span class="opt-label">まとまり</span><div class="mode-switch" id="printChunkSwitch"></div></div>
@@ -1597,14 +1603,16 @@ let printChunkLevel = 1;
 let printGlossMode = "glossed";
 let printItems = [];          // 今のプリントの問題(ベース文+修飾語を合成したもの)
 let printTypes = new Set(['reorder']); // プリントに出す問題の種類(QUESTION_TYPESのkey)
-let printVocabTypes = new Set(['vmeaning', 'vword', 'vblank']); // 単語問題の種類(VOCAB_TYPESのkey)
 let vocabItems = [];          // 単語問題(テスト範囲のプリントのみ)
 let readingItems = [];        // 長文問題(テスト範囲のプリントのみ)
 let printSource = { kind: 'stage' };  // 出題元: 1つの単元(stage) / テスト範囲(test)
 // テスト範囲画面の状態
+// mode: 'byType'(種類ごとの数を範囲全体からバランスよく) / 'perUnit'(単元ごとに数を指定)
 const testState = {
-  grade: 1, keys: new Set(), mode: 'random', total: 15, perUnit: {}, shuffle: true, name: '',
-  vocabCount: 10, vocabImportant: false, readingCount: 1, readingLevel: 'both',
+  grade: 1, keys: new Set(), mode: 'byType', perUnit: {}, shuffle: true, name: '',
+  grammarCounts: { reorder: 4, choice: 3, fillin: 0, form: 3, rewrite: 2, translate: 2, entoja: 0 },
+  vocabCounts: { vmeaning: 4, vjp: 0, vword: 3, vblank: 3, vidiom: 0 },
+  vocabImportant: false, readingCount: 1, readingLevel: 'both',
 };
 // クリアした単元はブラウザに保存して、次に開いたときも✓を表示する
 const CLEARED_STORAGE_KEY = 'engrammar_cleared_stages';
@@ -1682,10 +1690,9 @@ const answerList = document.getElementById('answerList');
 const printCountRow = document.getElementById('printCountRow');
 const printTypeSwitch = document.getElementById('printTypeSwitch');
 const printTypeRow = document.getElementById('printTypeRow');
-const printVocabTypeRow = document.getElementById('printVocabTypeRow');
-const printVocabTypeSwitch = document.getElementById('printVocabTypeSwitch');
 const printReorderBox = document.getElementById('printReorderBox');
-const testVocabInput = document.getElementById('testVocabInput');
+const testVocabTypes = document.getElementById('testVocabTypes');
+const testVocabTotal = document.getElementById('testVocabTotal');
 const testVocabImportant = document.getElementById('testVocabImportant');
 const testReadingInput = document.getElementById('testReadingInput');
 const testVocabNote = document.getElementById('testVocabNote');
@@ -1703,8 +1710,9 @@ const testUnitList = document.getElementById('testUnitList');
 const testSelectedSummary = document.getElementById('testSelectedSummary');
 const testClearBtn = document.getElementById('testClearBtn');
 const testModeSwitch = document.getElementById('testModeSwitch');
-const testRandomBox = document.getElementById('testRandomBox');
-const testTotalInput = document.getElementById('testTotalInput');
+const testGrammarTypes = document.getElementById('testGrammarTypes');
+const testGrammarTotal = document.getElementById('testGrammarTotal');
+const testModeNote = document.getElementById('testModeNote');
 const testPerUnitBox = document.getElementById('testPerUnitBox');
 const testPerUnitList = document.getElementById('testPerUnitList');
 const testShuffleCheck = document.getElementById('testShuffleCheck');
@@ -1895,8 +1903,8 @@ function modifiersForStage(pool, s) {
 // coreSlotが設定されている問題は、tierに関係なく中身の単語もランダムに入れ替える。
 // s.noAdverbが立っている単元(命令文・Let's文・if節・I wishなど、副詞を文中に挟むと
 // 不自然になるもの)は、副詞を使わず時・場所の句だけで修飾する。
-function getSessionQuestion(s, n, order = sessionOrder) {
-  const wantTier = n < 3 ? 1 : n < 6 ? 2 : 3;
+function getSessionQuestion(s, n, order = sessionOrder, maxTier = 3) {
+  const wantTier = Math.min(maxTier, n < 3 ? 1 : n < 6 ? 2 : 3);
   // 修飾語が合わない文(be動詞+名詞の文など)もあるので、ねらいの数の修飾語を付けられる例文を
   // 出題順にさがす。見つからなければ修飾語の数を減らす。
   for (let want = wantTier - 1; want >= 0; want--) {
@@ -2327,9 +2335,11 @@ const CHOICE_LABELS = ['ア', 'イ', 'ウ', 'エ'];
 const QUESTION_TYPES = {
   reorder:   { label: '並べ替え', instr: '日本語に合うように、下の語句を並べ替えて英文を書きなさい。' },
   choice:    { label: '適語選択', instr: '日本語に合うように、（　）に入る最も適切な語を選びなさい。' },
+  fillin:    { label: '適語補充', instr: '日本語に合うように、（　）に入る適切な英語を1語書きなさい。' },
   form:      { label: '語形変化', instr: '日本語に合うように、[　]の語を適切な形にして（　）に書きなさい。' },
-  translate: { label: '和文英訳', instr: '日本語を英語にしなさい。' },
   rewrite:   { label: '書きかえ', instr: '（　）内の指示にしたがって、英文を書きかえなさい。' },
+  translate: { label: '和文英訳', instr: '日本語を英語にしなさい。' },
+  entoja:    { label: '英文和訳', instr: '次の英文を日本語にしなさい。' },
 };
 
 // 1問ぶんの出題データを作る。空所が作れないときは別の形式に切り替える。
@@ -2338,6 +2348,8 @@ function buildQuestion(stage, q, type) {
   const tokens = sentenceTokens(q.pieces);
   item.tokens = tokens;
   if (type === 'translate') { item.type = 'translate'; return item; }
+  // 英文和訳は修飾語なしの文で出す(模範解答の日本語が文と一致するように)
+  if (type === 'entoja') return { ...item, type: 'entoja', answer: q.jp };
   if (type === 'rewrite') {
     // 否定文・疑問文のどちらかをランダムに。どちらも作れない文(疑問文・否定文・命令文など)は適語選択にする
     for (const kind of shuffle(['neg', 'q'])) {
@@ -2346,10 +2358,10 @@ function buildQuestion(stage, q, type) {
     }
     return buildQuestion(stage, q, 'choice');
   }
-  if (type === 'choice' || type === 'form') {
+  if (type === 'choice' || type === 'form' || type === 'fillin') {
     const blank = findBlank(stage, tokens, type === 'form');
     // 語形変化にできる語がない文(原形だけの文など)は、適語選択→並べ替えの順に切り替える
-    if (!blank) return type === 'form' ? buildQuestion(stage, q, 'choice') : item;
+    if (!blank) return type === 'choice' ? item : buildQuestion(stage, q, 'choice');
     const answer = tokens[blank.index];
     const capital = blank.index === 0;
     item.type = type;
@@ -2365,9 +2377,21 @@ function buildQuestion(stage, q, type) {
       const fmt = o => (capital || o.toLowerCase() === 'i' ? capitalize(o.toLowerCase()) : o.toLowerCase());
       item.options = shuffle([answer, ...others]).map(fmt);
       item.answer = fmt(answer);
-    } else {
+    } else if (type === 'form') {
       item.hint = blank.hint;
     }
+  }
+  return item;
+}
+
+// 1つの単元から、指定した形式の問題を1問作る。その形式にできない文だったら別の例文で試す。
+// st は単元ごとの出題順と出題数({ order, n })。作れなければ別の形式になった問題を返す。
+function makeUnitQuestion(stage, type, st) {
+  let item;
+  for (let tries = 0; tries < 6; tries++) {
+    const q = getSessionQuestion(stage, st.n++, st.order, type === 'entoja' ? 1 : 3);
+    item = buildQuestion(stage, q, type);
+    if (item.type === type) return item;
   }
   return item;
 }
@@ -2497,8 +2521,10 @@ function programKeySet(stageList) {
 
 const VOCAB_TYPES = {
   vmeaning: { label: '意味を選ぶ', instr: '次の英語の意味として最も適切なものを選びなさい。' },
+  vjp:      { label: '意味を書く', instr: '次の英語の意味を日本語で書きなさい。' },
   vword:    { label: '英語を書く', instr: '日本語に合う英語を書きなさい。（　）内は最初の文字と文字数です。' },
   vblank:   { label: '例文の穴埋め', instr: '日本語に合うように、（　）に入る英語を書きなさい。最初の文字が示してあります。' },
+  vidiom:   { label: '熟語・前置詞', instr: '日本語に合うように、（　）に入る適切な英語を書きなさい。（　）が2つあるときは順に書くこと。' },
 };
 // 人名・架空の名前・地名などは単語問題に出さない
 const VOCAB_EXCLUDE_MEANING = /(男子の名|女子の名|（姓）|人名|架空|登場人物|都市|の州|タイトル|チーム|施設|マンガ|映画)/;
@@ -2508,8 +2534,10 @@ function vocabPool(stageList, importantOnly) {
   const seen = new Set();
   return PROGRAM_VOCAB.filter(v => {
     if (!keys.has(`${v.grade}|${v.program}`) || (importantOnly && !v.important)) return false;
-    if (VOCAB_EXCLUDE_MEANING.test(v.meaning) || seen.has(v.word)) return false;
-    seen.add(v.word);
+    // 「look at ~」と「look at ～」のような表記ちがいも同じ語として扱う
+    const key = v.word.replace(/~/g, '～');
+    if (VOCAB_EXCLUDE_MEANING.test(v.meaning) || seen.has(key)) return false;
+    seen.add(key);
     return true;
   });
 }
@@ -2538,22 +2566,84 @@ function findWordInExample(example, word) {
   return null;
 }
 
-function buildVocabQuestion(v, type, pool) {
-  const item = { section: 'vocab', type: 'vmeaning', word: v.word, meaning: v.meaning };
-  if (type === 'vblank' && v.example_en) {
-    const found = findWordInExample(v.example_en, v.word);
-    if (found) {
-      const hint = found.text[0];
-      return {
-        ...item, type: 'vblank', exampleJa: v.example_ja, answer: found.text,
-        sentenceHtml: `${v.example_en.slice(0, found.index)}<span class="ws-blank">（${hint}　　　　）</span>${v.example_en.slice(found.index + found.text.length)}`,
-      };
+// 熟語の空所: 熟語(get on ～ / be famous for ～ など)を例文の中から探し、前置詞・副詞の部分を空所にする。
+// ～ は例文の1〜4語、be は am / is / was など、動詞は活用形、oneself は herself などに対応させる。
+const IDIOM_PARTICLES = new Set(['at', 'in', 'on', 'for', 'to', 'of', 'with', 'from', 'by', 'about', 'up', 'down', 'out',
+  'off', 'after', 'into', 'over', 'around', 'as', 'than', 'across', 'along', 'behind', 'beside', 'between', 'under',
+  'until', 'through', 'without', 'near', 'away', 'back']);
+// この後の to は不定詞(want to visit など)なので空所にしない
+const INFINITIVE_LEADS = new Set(['want', 'wants', 'wanted', 'like', 'would', 'need', 'needs', 'have', 'has', 'had', 'try',
+  'tried', 'hope', 'decide', 'decided', 'nice', 'going', 'how', 'what', 'where', 'begin', 'began', 'start', 'started',
+  'plan', 'wish', 'learn', 'learned', 'used', 'able', 'enough', 'glad', 'happy', 'sorry', 'time', 'way']);
+const IDIOM_WORD_FORMS = {
+  be: ['am', 'is', 'are', 'was', 'were', 'be', 'been', 'being', "i'm", "it's", "he's", "she's", "you're", "we're", "they're"],
+  oneself: ['myself', 'yourself', 'himself', 'herself', 'itself', 'ourselves', 'yourselves', 'themselves'],
+  "one's": ['my', 'your', 'his', 'her', 'its', 'our', 'their'],
+};
+function idiomWordForms(w) {
+  const l = w.toLowerCase();
+  if (IDIOM_WORD_FORMS[l]) return IDIOM_WORD_FORMS[l];
+  const forms = [l];
+  if (VERB_BASE_OF[l]) forms.push(...verbForms(VERB_BASE_OF[l]));
+  if (NOUN_BASE_OF[l]) forms.push(pluralOf(NOUN_BASE_OF[l]));
+  return forms;
+}
+// 例文の中に答えが出てしまうもの
+const IDIOM_SKIP = new Set(['For here or to go?', 'What was it about?']);
+function findIdiomBlanks(v) {
+  if (!v.example_en || IDIOM_SKIP.has(v.word)) return null;
+  const words = v.word.replace(/[.?!]/g, ' ').replace(/[～~…]|\.\.\./g, ' ～ ').trim().split(/\s+/);
+  while (words[0] === '～') words.shift();
+  while (words[words.length - 1] === '～') words.pop();
+  if (words.length < 2 || !words.some(w => IDIOM_PARTICLES.has(w.toLowerCase()))) return null;
+  const toks = [...v.example_en.matchAll(/[A-Za-z']+/g)].map(m => ({ lw: m[0].toLowerCase(), i: m.index, len: m[0].length }));
+  const match = (p, t) => {
+    if (p === words.length) return [];
+    if (words[p] === '～') {
+      for (let k = 1; k <= 4 && t + k < toks.length; k++) { const r = match(p + 1, t + k); if (r) return r; }
+      return null;
     }
+    if (t >= toks.length || !idiomWordForms(words[p]).includes(toks[t].lw)) return null;
+    const r = match(p + 1, t + 1);
+    return r ? [{ word: words[p], t }, ...r] : null;
+  };
+  let found = null;
+  for (let t = 0; t < toks.length && !found; t++) found = match(0, t);
+  if (!found) return null;
+  const blanks = found.filter(({ word, t }) => {
+    if (!IDIOM_PARTICLES.has(word.toLowerCase())) return false;
+    if (word.toLowerCase() !== 'to') return true;
+    const prev = toks[t - 1], next = toks[t + 1];
+    return !(prev && INFINITIVE_LEADS.has(prev.lw)) && !(next && VERB_BASE_OF[next.lw] === next.lw);
+  }).map(f => toks[f.t]);
+  if (!blanks.length || blanks.length >= toks.length - 1) return null;
+  let html = v.example_en;
+  [...blanks].reverse().forEach(b => { html = `${html.slice(0, b.i)}<span class="ws-blank">（　　　　）</span>${html.slice(b.i + b.len)}`; });
+  return { html, answers: blanks.map(b => v.example_en.substr(b.i, b.len).toLowerCase()) };
+}
+
+// 指定した形式の問題を作る(その語で作れない形式なら null)
+function buildVocabQuestion(v, type, pool) {
+  const item = { section: 'vocab', type, word: v.word, meaning: v.meaning };
+  if (type === 'vblank') {
+    const found = v.example_en && findWordInExample(v.example_en, v.word);
+    if (!found) return null;
+    return {
+      ...item, exampleJa: v.example_ja, answer: found.text,
+      sentenceHtml: `${v.example_en.slice(0, found.index)}<span class="ws-blank">（${found.text[0]}　　　　）</span>${v.example_en.slice(found.index + found.text.length)}`,
+    };
   }
-  if ((type === 'vword' || type === 'vblank') && !/～|\.\.\.|…|[,.?!]/.test(v.word)) {
+  if (type === 'vidiom') {
+    const found = findIdiomBlanks(v);
+    if (!found) return null;
+    return { ...item, exampleJa: v.example_ja, sentenceHtml: found.html, answer: found.answers.join(' ／ '), answers: found.answers };
+  }
+  if (type === 'vword') {
+    if (/～|\.\.\.|…|[,.?!('’]/.test(v.word)) return null;
     const letters = v.word.replace(/[^A-Za-z]/g, '').length;
-    return { ...item, type: 'vword', answer: v.word, hint: `${spellingHint(v.word)}（${letters}文字）` };
+    return { ...item, answer: v.word, hint: `${spellingHint(v.word)}（${letters}文字）` };
   }
+  if (type === 'vjp') return { ...item, answer: v.meaning };
   // 意味を選ぶ: 範囲内の別の語の意味をまぎらわしい選択肢にする(足りなければ同じ学年から)
   const others = shuffle(pool.filter(o => o.meaning !== v.meaning));
   const extra = shuffle(PROGRAM_VOCAB.filter(o => o.grade === v.grade && o.meaning !== v.meaning && !VOCAB_EXCLUDE_MEANING.test(o.meaning)));
@@ -2561,10 +2651,34 @@ function buildVocabQuestion(v, type, pool) {
   return { ...item, type: 'vmeaning', options: shuffle([v.meaning, ...distractors]), answer: v.meaning };
 }
 
-function generateVocabItems(stageList, cfg, types) {
+// 形式ごとに、範囲内で作れる問題の数(熟語は重要語にかぎらず範囲内のすべてから選ぶ)
+function vocabTypePool(stageList, type, importantOnly) {
+  const pool = vocabPool(stageList, type === 'vidiom' ? false : importantOnly);
+  if (type === 'vblank') return pool.filter(v => v.example_en && findWordInExample(v.example_en, v.word));
+  if (type === 'vidiom') return pool.filter(v => findIdiomBlanks(v));
+  if (type === 'vword') return pool.filter(v => !/～|\.\.\.|…|[,.?!('’]/.test(v.word));
+  return pool;
+}
+
+// 形式ごとの問題数(cfg.vocabCounts)だけ単語問題を作る。同じ語は2回出さない。
+// 作れる語が少ない形式(熟語・例文の穴埋め)から先に語を選ぶ。
+function generateVocabItems(stageList, cfg) {
   const pool = vocabPool(stageList, cfg.vocabImportant);
-  const picked = shuffle(pool).slice(0, cfg.vocabCount);
-  return picked.map(v => buildVocabQuestion(v, pickRandom(types), pool));
+  const used = new Set();
+  const items = [];
+  ['vidiom', 'vblank', 'vword', 'vjp', 'vmeaning'].forEach(type => {
+    let want = cfg.vocabCounts[type] || 0;
+    for (const v of shuffle(vocabTypePool(stageList, type, cfg.vocabImportant))) {
+      if (want <= 0) break;
+      if (used.has(v.word)) continue;
+      const item = buildVocabQuestion(v, type, pool);
+      if (!item) continue;
+      items.push(item);
+      used.add(v.word);
+      want--;
+    }
+  });
+  return items;
 }
 
 // level: 'part'(Part 単位) / 'program'(Program 単位) / 'both'
@@ -2632,7 +2746,7 @@ function renderMultiSwitch(container, entries, selected) {
 }
 
 function countQuestions() {
-  return allWorksheetItems().filter(it => it.type !== 'rja').length;
+  return allWorksheetItems().length;
 }
 
 function renderPrintOptions() {
@@ -2641,18 +2755,15 @@ function renderPrintOptions() {
   printSourceNote.style.display = isTest ? 'block' : 'none';
   printSourceNote.textContent = isTest ? `${printSource.summary}（${countQuestions()}問）` : '';
   backToProgramFromPrint.innerHTML = isTest ? '&larr; テスト範囲の設定に戻る' : '&larr; 単元選択に戻る';
-  const hasGrammar = printItems.length > 0;
-  const hasVocab = vocabItems.length > 0;
-  printTypeRow.style.display = hasGrammar ? 'flex' : 'none';
-  printReorderBox.style.display = hasGrammar && printItems.some(it => it.type === 'reorder') ? 'block' : 'none';
-  printVocabTypeRow.style.display = hasVocab ? 'flex' : 'none';
+  // テスト範囲のプリントでは、問題の種類と数は前の画面で決める
+  printTypeRow.style.display = isTest ? 'none' : 'flex';
+  printReorderBox.style.display = printItems.some(it => it.type === 'reorder') ? 'block' : 'none';
 
   renderOptionSwitch(printCountSwitch, PRINT_COUNTS.map(n => [n, `${n}問`]), printCount, v => {
     printCount = v; generateWorksheet();
   });
   // 問題の種類は複数選べる(選んだ種類の中から1問ずつランダムに決める)
   renderMultiSwitch(printTypeSwitch, Object.entries(QUESTION_TYPES), printTypes);
-  renderMultiSwitch(printVocabTypeSwitch, Object.entries(VOCAB_TYPES), printVocabTypes);
   renderOptionSwitch(printChunkSwitch, [1, 2, 3].map(l => [l, CHUNK_LEVEL_LABELS[l]]), printChunkLevel, v => {
     printChunkLevel = v; renderPrintOptions(); renderWorksheet();
   });
@@ -2661,17 +2772,15 @@ function renderPrintOptions() {
   });
 }
 
-// テスト範囲の「全体からランダム」: 合計問題数を単元に配る。単元の並びを毎回シャッフルして
-// 順に1問ずつ割り当てるので、どの単元も偏りなく出題される。
-function distributeRandom(stageList, total) {
-  const counts = new Map(stageList.map(s => [s, 0]));
-  let pool = [];
-  for (let i = 0; i < total; i++) {
-    if (!pool.length) pool = shuffle(stageList);
-    const s = pool.pop();
-    counts.set(s, counts.get(s) + 1);
-  }
-  return [...counts].map(([stage, count]) => ({ stage, count })).filter(u => u.count > 0);
+// 合計 total 問を、weights({形式: 重み})の比で形式に配る(端数は大きい順)。並びはシャッフル。
+function allocateTypes(weights, total) {
+  const entries = Object.entries(weights).filter(([, w]) => w > 0);
+  if (!entries.length) return Array(total).fill('reorder');
+  const sum = entries.reduce((a, [, w]) => a + w, 0);
+  const alloc = entries.map(([t, w]) => ({ t, n: Math.floor(total * w / sum), r: total * w / sum % 1 }));
+  let rest = total - alloc.reduce((a, x) => a + x.n, 0);
+  shuffle(alloc).sort((a, b) => b.r - a.r).forEach(x => { if (rest > 0) { x.n++; rest--; } });
+  return shuffle(alloc.flatMap(x => Array(x.n).fill(x.t)));
 }
 
 function sourceStages() {
@@ -2679,33 +2788,61 @@ function sourceStages() {
   return stages.filter(s => printSource.config.keys.includes(s.key));
 }
 
-function worksheetUnits() {
-  if (printSource.kind === 'stage') return [{ stage: currentStage(), count: printCount }];
+// 文法問題の「枠」({ stage, type, fixed })を決める。
+// - 1つの単元: 選んだ形式を均等に
+// - 種類ごと: 形式ごとの数をそろえ、単元は毎回シャッフルした順に1問ずつ割り当てる(どの単元も偏りなく)。
+//   その形式にできない単元だったら、別の単元で作り直してよい(fixed: false)
+// - 単元ごと: 単元ごとの数をそろえ、形式は種類ごとの数を比として配る
+function grammarSlots() {
+  if (printSource.kind === 'stage') {
+    const weights = Object.fromEntries([...printTypes].map(t => [t, 1]));
+    return allocateTypes(weights, printCount).map(type => ({ stage: currentStage(), type, fixed: true }));
+  }
   const cfg = printSource.config;
   const stageList = sourceStages();
-  if (cfg.mode === 'random') return distributeRandom(stageList, cfg.total);
-  return stageList.map(stage => ({ stage, count: cfg.perUnit[stage.key] || 0 })).filter(u => u.count > 0);
+  if (cfg.mode === 'perUnit') {
+    const units = stageList.map(stage => ({ stage, count: cfg.perUnit[stage.key] || 0 })).filter(u => u.count > 0);
+    const types = allocateTypes(cfg.grammarCounts, units.reduce((a, u) => a + u.count, 0));
+    return units.flatMap(u => Array.from({ length: u.count }, () => ({ stage: u.stage, type: types.pop(), fixed: true })));
+  }
+  const types = shuffle(Object.entries(cfg.grammarCounts).flatMap(([t, c]) => Array(c).fill(t)));
+  let pool = [];
+  return types.map(type => {
+    if (!pool.length) pool = shuffle(stageList);
+    return { stage: pool.pop(), type, fixed: false };
+  });
 }
 
 // 問題の中身(文・修飾語・形式)を作る。まとまりの大きさやヒントの切り替えでは作り直さず、
 // 表示だけ変える(同じプリントのまま難易度を調整できるように)。
 // 単元ごとに練習画面と同じく、基本文→修飾語つき→複合修飾の順に難しくなる。
 function generateWorksheet() {
-  const types = [...printTypes];
-  printItems = [];
-  worksheetUnits().forEach(({ stage, count }) => {
-    const order = shuffle(stage.questions.map((_, i) => i));
-    for (let n = 0; n < count; n++) {
-      printItems.push(buildQuestion(stage, getSessionQuestion(stage, n, order), pickRandom(types)));
+  const states = new Map();
+  const stateOf = stage => {
+    if (!states.has(stage)) states.set(stage, { order: shuffle(stage.questions.map((_, i) => i)), n: 0 });
+    return states.get(stage);
+  };
+  const slots = grammarSlots();
+  const isTest = printSource.kind === 'test';
+  // 順番をランダムにしないときは単元順(同じ形式の中で)
+  if (isTest && !printSource.config.shuffle) slots.sort((a, b) => stages.indexOf(a.stage) - stages.indexOf(b.stage));
+  const stageList = sourceStages();
+  printItems = slots.map(({ stage, type, fixed }) => {
+    let item = makeUnitQuestion(stage, type, stateOf(stage));
+    // その形式にできない単元(疑問文ばかりで書きかえができない など)なら、ほかの単元で作る
+    for (let tries = 0; !fixed && item.type !== type && tries < 8; tries++) {
+      const other = pickRandom(stageList);
+      const alt = makeUnitQuestion(other, type, stateOf(other));
+      if (alt.type === type) item = alt;
     }
+    return item;
   });
   vocabItems = [];
   readingItems = [];
-  if (printSource.kind === 'test') {
+  if (isTest) {
     const cfg = printSource.config;
-    if (cfg.shuffle) printItems = shuffle(printItems);
-    vocabItems = groupByType(generateVocabItems(sourceStages(), cfg, [...printVocabTypes]), VOCAB_TYPES);
-    readingItems = generateReadingItems(sourceStages(), cfg);
+    vocabItems = groupByType(generateVocabItems(stageList, cfg), VOCAB_TYPES);
+    readingItems = generateReadingItems(stageList, cfg);
   }
   printItems = groupByType(printItems, QUESTION_TYPES);
   renderPrintOptions();
@@ -2737,12 +2874,14 @@ function shuffledPieces(item) {
 }
 
 const SELECT_TYPES = new Set(['choice', 'vmeaning', 'rchoice', 'rtf']);
+// 日本語で答える問題は、模範解答を見て自分で採点する
+const SELF_GRADED_TYPES = new Set(['rja', 'entoja', 'vjp']);
 
 function answerText(item) {
   if (SELECT_TYPES.has(item.type)) {
     return item.type === 'rtf' ? item.answer : `${CHOICE_LABELS[item.options.indexOf(item.answer)]} ${item.answer}`;
   }
-  if (['form', 'vword', 'vblank', 'rfill', 'rja'].includes(item.type)) return item.answer;
+  if (['form', 'fillin', 'vword', 'vblank', 'vidiom', 'vjp', 'entoja', 'rfill', 'rja'].includes(item.type)) return item.answer;
   if (item.type === 'rewrite') return item.answerSentence;
   return fullSentence(item);
 }
@@ -2750,10 +2889,11 @@ function answerText(item) {
 // 正誤(和訳は自己採点なので null)
 function isCorrect(item) {
   const answer = item.userAnswer || '';
-  if (item.type === 'rja') return null;
+  if (SELF_GRADED_TYPES.has(item.type)) return null;
   if (SELECT_TYPES.has(item.type)) return answer === item.answer;
   if (item.type === 'rewrite') return normalize(answer) !== '' && item.answers.some(a => normalize(a) === normalize(answer));
-  const target = ['form', 'vword', 'vblank', 'rfill'].includes(item.type) ? item.answer : fullSentence(item);
+  if (item.type === 'vidiom') return normalize(answer.replace(/[／/・]/g, ' ')) === normalize(item.answers.join(' '));
+  const target = ['form', 'fillin', 'vword', 'vblank', 'rfill'].includes(item.type) ? item.answer : fullSentence(item);
   return normalize(answer) !== '' && normalize(answer) === normalize(target);
 }
 
@@ -2775,11 +2915,12 @@ function optionsHtml(item) {
 // 問題番号の横に出す文(日本語の意味・英単語・設問文)
 function itemPromptHtml(item) {
   if (item.section === 'vocab') {
-    if (item.type === 'vmeaning') return `<span class="ws-word">${item.word}</span>`;
+    if (item.type === 'vmeaning' || item.type === 'vjp') return `<span class="ws-word">${item.word}</span>`;
     if (item.type === 'vword') return item.meaning;
     return item.exampleJa;
   }
   if (item.section === 'reading') return item.q;
+  if (item.type === 'entoja') return `<span class="ws-en">${fullSentence(item)}</span>`;
   const tags = item.jpTags.map(t => `<span class="ws-tag">＋${t}</span>`).join('');
   return `${item.jp}${tags}`;
 }
@@ -2798,6 +2939,10 @@ function itemBodyHtml(item) {
     case 'form':
       return `<div class="ws-sentence">${blankedSentence(item)}<span class="ws-hint">[${item.hint}]</span></div>
         ${answerLineHtml('（　）に入る語', 'short')}`;
+    case 'fillin':
+      return `<div class="ws-sentence">${blankedSentence(item)}</div>${answerLineHtml('（　）に入る語', 'short')}`;
+    case 'entoja':
+      return answerLineHtml('日本語で書こう');
     case 'rewrite':
       return `<div class="ws-sentence">${fullSentence(item)}<span class="ws-hint">（${item.rewriteKind === 'neg' ? '否定文に' : '疑問文に'}）</span></div>
         ${answerLineHtml('書きかえた英文を書こう')}`;
@@ -2809,6 +2954,10 @@ function itemBodyHtml(item) {
       return `<div class="ws-sentence ws-wordcount">（${item.hint}）</div>${answerLineHtml('英語を書こう', 'short')}`;
     case 'vblank':
       return `<div class="ws-sentence">${item.sentenceHtml}</div>${answerLineHtml('（　）に入る英語', 'short')}`;
+    case 'vidiom':
+      return `<div class="ws-sentence">${item.sentenceHtml}</div>${answerLineHtml(item.answers.length > 1 ? '（　）に入る語を順に' : '（　）に入る語', 'short')}`;
+    case 'vjp':
+      return answerLineHtml('意味を書こう', 'short');
     case 'rfill':
       return answerLineHtml('本文中の英語で答えよう', 'short');
     case 'rja':
@@ -2953,7 +3102,7 @@ function checkWorksheet() {
     const mark = row.querySelector('.ws-mark');
     const correct = row.querySelector('.ws-correct');
     if (ok === null) {
-      // 和訳は模範解答を見て自分で採点する
+      // 日本語で答える問題は模範解答を見て自分で採点する
       mark.textContent = '';
       correct.style.display = 'block';
       correct.className = 'ws-correct self';
@@ -3014,9 +3163,50 @@ function selectedTestStages() {
   return stages.filter(s => testState.keys.has(s.key));
 }
 
+const sumCounts = counts => Object.values(counts).reduce((a, n) => a + (n || 0), 0);
 function testTotalCount() {
-  if (testState.mode === 'random') return testState.total;
+  if (testState.mode === 'byType') return sumCounts(testState.grammarCounts);
   return selectedTestStages().reduce((sum, s) => sum + (testState.perUnit[s.key] ?? 2), 0);
+}
+
+// 保存した範囲を読み込む(前の版の「合計◯問」だけの保存データは、種類ごとの数に直す)
+function applySavedRange(r) {
+  testState.keys = new Set(r.keys.filter(k => stages.some(s => s.key === k)));
+  testState.mode = r.mode === 'perUnit' ? 'perUnit' : 'byType';
+  testState.perUnit = r.perUnit || {};
+  testState.shuffle = r.shuffle !== false;
+  const toCounts = (keys, total) => {
+    const counts = Object.fromEntries(keys.map(k => [k, 0]));
+    allocateTypes(Object.fromEntries(keys.map(k => [k, 1])), total).forEach(t => { counts[t]++; });
+    return counts;
+  };
+  testState.grammarCounts = { ...Object.fromEntries(Object.keys(QUESTION_TYPES).map(k => [k, 0])),
+    ...(r.grammarCounts || toCounts(['reorder', 'choice', 'form'], r.total ?? 15)) };
+  testState.vocabCounts = { ...Object.fromEntries(Object.keys(VOCAB_TYPES).map(k => [k, 0])),
+    ...(r.vocabCounts || toCounts(['vmeaning', 'vword', 'vblank'], r.vocabCount ?? 10)) };
+  testState.vocabImportant = !!r.vocabImportant;
+  testState.readingCount = r.readingCount ?? 1;
+  testState.readingLevel = r.readingLevel || 'both';
+  testState.name = r.name;
+}
+
+// 種類ごとの問題数の入力欄
+function renderTypeCounts(container, defs, counts, max, availOf) {
+  container.innerHTML = '';
+  Object.entries(defs).forEach(([key, t]) => {
+    const row = document.createElement('label');
+    row.className = 'test-type-row' + (counts[key] ? '' : ' zero');
+    const avail = availOf ? availOf(key) : null;
+    row.innerHTML = `<span class="test-type-name">${t.label}${avail != null ? `<span class="test-avail">（範囲内 ${avail}）</span>` : ''}</span>`
+      + `<input type="number" min="0" max="${max}" value="${counts[key] || 0}">問`;
+    const input = row.querySelector('input');
+    input.oninput = () => {
+      counts[key] = Math.max(0, Math.min(max, Number(input.value) || 0));
+      row.classList.toggle('zero', !counts[key]);
+      updateTestMakeButton();
+    };
+    container.appendChild(row);
+  });
 }
 
 function renderTestScreen() {
@@ -3032,16 +3222,7 @@ function renderTestScreen() {
     use.className = 'btn btn-ghost btn-small';
     use.textContent = '使う';
     use.onclick = () => {
-      testState.keys = new Set(r.keys.filter(k => stages.some(s => s.key === k)));
-      testState.mode = r.mode || 'random';
-      testState.total = r.total || 20;
-      testState.perUnit = r.perUnit || {};
-      testState.shuffle = r.shuffle !== false;
-      testState.vocabCount = r.vocabCount ?? 10;
-      testState.vocabImportant = !!r.vocabImportant;
-      testState.readingCount = r.readingCount ?? 1;
-      testState.readingLevel = r.readingLevel || 'both';
-      testState.name = r.name;
+      applySavedRange(r);
       const first = selectedTestStages()[0];
       if (first) testState.grade = first.grade;
       renderTestScreen();
@@ -3098,13 +3279,18 @@ function renderTestScreen() {
     ? `選択中: ${selected.length}単元（${[...new Set(selected.map(s => grades.find(g => g.id === s.grade).name))].join('・')}）`
     : '単元を1つ以上選んでください';
 
-  // 出題数の決め方
-  renderOptionSwitch(testModeSwitch, [['random', '範囲全体からランダム'], ['perUnit', '単元ごとに問題数を指定']], testState.mode, v => {
+  // 単語問題: 種類ごとの数(範囲内で作れる数も出す)
+  renderTypeCounts(testVocabTypes, VOCAB_TYPES, testState.vocabCounts, 30,
+    selected.length ? key => vocabTypePool(selected, key, testState.vocabImportant).length : null);
+  // 文法問題: 種類ごとの数と、単元への割り振り方
+  renderTypeCounts(testGrammarTypes, QUESTION_TYPES, testState.grammarCounts, 30);
+  renderOptionSwitch(testModeSwitch, [['byType', '範囲全体からバランスよく'], ['perUnit', '単元ごとに問題数を指定']], testState.mode, v => {
     testState.mode = v; renderTestScreen();
   });
-  testRandomBox.style.display = testState.mode === 'random' ? 'flex' : 'none';
+  testModeNote.textContent = testState.mode === 'byType'
+    ? '上の数だけ、範囲の単元から偏りなく出題します。'
+    : '単元ごとの問題数を下で決めます。上の種類ごとの数は、種類の割合として使います。';
   testPerUnitBox.style.display = testState.mode === 'perUnit' ? 'block' : 'none';
-  testTotalInput.value = testState.total;
   testPerUnitList.innerHTML = '';
   if (testState.mode === 'perUnit') {
     if (!selected.length) testPerUnitList.innerHTML = '<div class="test-empty">単元を選ぶと、ここで問題数を決められます。</div>';
@@ -3121,7 +3307,6 @@ function renderTestScreen() {
     });
   }
   testShuffleCheck.checked = testState.shuffle;
-  testVocabInput.value = testState.vocabCount;
   testVocabImportant.checked = testState.vocabImportant;
   testReadingInput.value = testState.readingCount;
   renderOptionSwitch(testReadingLevelSwitch, Object.entries(READING_LEVEL_LABELS), testState.readingLevel, v => {
@@ -3131,11 +3316,19 @@ function renderTestScreen() {
   updateTestMakeButton();
 }
 
+// 単語問題の数(種類ごとに、範囲内で作れる数を上限にする。同じ語は2回出さないので全体の語数も上限)
+function testVocabCount(selected) {
+  if (!selected.length) return 0;
+  const byType = Object.entries(testState.vocabCounts)
+    .reduce((a, [t, n]) => a + Math.min(n || 0, vocabTypePool(selected, t, testState.vocabImportant).length), 0);
+  return Math.min(byType, vocabPool(selected, false).length);
+}
+
 // 単語・文法の問題数と長文の題数(範囲内にある数を上限にする)
 function testCounts() {
   const selected = selectedTestStages();
   return {
-    questions: testTotalCount() + Math.min(testState.vocabCount, vocabPool(selected, testState.vocabImportant).length),
+    questions: testTotalCount() + testVocabCount(selected),
     passages: Math.min(testState.readingCount, readingPassagesFor(selected, testState.readingLevel).length),
   };
 }
@@ -3145,6 +3338,8 @@ function updateTestMakeButton() {
   const vocabAvail = vocabPool(selected, testState.vocabImportant).length;
   const readingAvail = readingPassagesFor(selected, testState.readingLevel).length;
   testVocabNote.textContent = selected.length ? `（範囲内 ${vocabAvail}語）` : '';
+  testVocabTotal.textContent = `合計 ${testVocabCount(selected) || sumCounts(testState.vocabCounts)}問`;
+  testGrammarTotal.textContent = testState.mode === 'byType' ? `合計 ${testTotalCount()}問` : '';
   testReadingNote.textContent = selected.length ? `（範囲内 ${readingAvail}題）` : '';
   const { questions, passages } = testCounts();
   const ok = testState.keys.size > 0 && questions + passages > 0;
@@ -3161,15 +3356,7 @@ function rangeSummary(selected) {
   return `${span}（${selected.length}単元）`;
 }
 
-testTotalInput.addEventListener('input', () => {
-  testState.total = Math.max(0, Math.min(60, Number(testTotalInput.value) || 0));
-  updateTestMakeButton();
-});
-testVocabInput.addEventListener('input', () => {
-  testState.vocabCount = Math.max(0, Math.min(40, Number(testVocabInput.value) || 0));
-  updateTestMakeButton();
-});
-testVocabImportant.addEventListener('change', () => { testState.vocabImportant = testVocabImportant.checked; updateTestMakeButton(); });
+testVocabImportant.addEventListener('change', () => { testState.vocabImportant = testVocabImportant.checked; renderTestScreen(); });
 testReadingInput.addEventListener('input', () => {
   testState.readingCount = Math.max(0, Math.min(5, Number(testReadingInput.value) || 0));
   updateTestMakeButton();
@@ -3186,10 +3373,9 @@ testSaveConfirmBtn.addEventListener('click', () => {
   if (!name) { testNameInput.focus(); return; }
   const list = loadTestRanges().filter(r => r.name !== name);
   list.push({
-    name, keys: [...testState.keys], mode: testState.mode, total: testState.total,
-    perUnit: testState.perUnit, shuffle: testState.shuffle,
-    vocabCount: testState.vocabCount, vocabImportant: testState.vocabImportant, readingCount: testState.readingCount,
-    readingLevel: testState.readingLevel,
+    name, keys: [...testState.keys], mode: testState.mode, perUnit: testState.perUnit, shuffle: testState.shuffle,
+    grammarCounts: { ...testState.grammarCounts }, vocabCounts: { ...testState.vocabCounts },
+    vocabImportant: testState.vocabImportant, readingCount: testState.readingCount, readingLevel: testState.readingLevel,
   });
   saveTestRanges(list);
   testState.name = name;
@@ -3202,10 +3388,10 @@ testMakeBtn.addEventListener('click', () => {
     kind: 'test',
     summary: rangeSummary(selected),
     config: {
-      name: testState.name, keys: selected.map(s => s.key), mode: testState.mode, total: testState.total,
+      name: testState.name, keys: selected.map(s => s.key), mode: testState.mode,
       perUnit: { ...testState.perUnit }, shuffle: testState.shuffle,
-      vocabCount: testState.vocabCount, vocabImportant: testState.vocabImportant, readingCount: testState.readingCount,
-      readingLevel: testState.readingLevel,
+      grammarCounts: { ...testState.grammarCounts }, vocabCounts: { ...testState.vocabCounts },
+      vocabImportant: testState.vocabImportant, readingCount: testState.readingCount, readingLevel: testState.readingLevel,
     },
   };
   selected.forEach(s => { if (printSource.config.perUnit[s.key] == null) printSource.config.perUnit[s.key] = 2; });
