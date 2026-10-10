@@ -275,6 +275,8 @@
   .ws-passage p { margin: 0 0 6px; text-indent: 1em; }
   .ws-passage-title { font-weight: 800; font-size: 13.5px; margin-bottom: 6px; color: var(--ink-soft); }
   .ws-correct.self { color: var(--teal-dark); }
+  .ws-notes { font-size: 12.5px; color: var(--ink-soft); margin-top: 6px; }
+  .test-reading-level { margin: 10px 0 6px; }
   .ws-type-group { margin: 14px 0 0; font-size: 13px; color: var(--ink); }
   .answer-sheet h3 { font-size: 14px; margin: 12px 0 4px; }
   .answer-sub { font-size: 13px; font-weight: 700; margin-top: 6px; }
@@ -358,7 +360,8 @@
         範囲の長文から <input type="number" id="testReadingInput" min="0" max="5"> 題
         <span class="test-avail" id="testReadingNote"></span>
       </div>
-      <div class="test-empty">長文は各 Program の文法・単語だけで書いたオリジナルの文章です（1題に4〜5問）。</div>
+      <div class="mode-switch test-reading-level" id="testReadingLevelSwitch"></div>
+      <div class="test-empty">Part単位は教科書の各 Part までの文法・単語だけ、Program単位は Program 全体の内容で書いたオリジナルの文章です（1題に4〜5問）。</div>
     </div>
 
     <div class="test-actions">
@@ -491,6 +494,10 @@
 
 <script src="vocab.js"></script>
 <script src="reading.js"></script>
+<script src="reading_parts_g1.js"></script>
+<script src="reading_parts_g2.js"></script>
+<script src="reading_parts_g3.js"></script>
+<script src="reading_program2.js"></script>
 <script>
 // STAGE type "chunk": 日本語チャンクを英語と同じ語順に並べ替える(単語を知らなくても語順感覚を養う)
 // STAGE type "word": 実際の英単語タイルを並べ替える
@@ -1597,7 +1604,7 @@ let printSource = { kind: 'stage' };  // 出題元: 1つの単元(stage) / テ�
 // テスト範囲画面の状態
 const testState = {
   grade: 1, keys: new Set(), mode: 'random', total: 15, perUnit: {}, shuffle: true, name: '',
-  vocabCount: 10, vocabImportant: false, readingCount: 1,
+  vocabCount: 10, vocabImportant: false, readingCount: 1, readingLevel: 'both',
 };
 // クリアした単元はブラウザに保存して、次に開いたときも✓を表示する
 const CLEARED_STORAGE_KEY = 'engrammar_cleared_stages';
@@ -1683,6 +1690,7 @@ const testVocabImportant = document.getElementById('testVocabImportant');
 const testReadingInput = document.getElementById('testReadingInput');
 const testVocabNote = document.getElementById('testVocabNote');
 const testReadingNote = document.getElementById('testReadingNote');
+const testReadingLevelSwitch = document.getElementById('testReadingLevelSwitch');
 const printSourceNote = document.getElementById('printSourceNote');
 const sheetInstr = document.getElementById('sheetInstr');
 const screenTest = document.getElementById('screenTest');
@@ -2559,15 +2567,21 @@ function generateVocabItems(stageList, cfg, types) {
   return picked.map(v => buildVocabQuestion(v, pickRandom(types), pool));
 }
 
-function readingPassagesFor(stageList) {
+// level: 'part'(Part 単位) / 'program'(Program 単位) / 'both'
+const READING_LEVEL_LABELS = { both: '両方', part: 'Part単位', program: 'Program単位' };
+function readingPassagesFor(stageList, level = 'both') {
   const keys = programKeySet(stageList);
-  return READING_PASSAGES.filter(p => keys.has(`${p.grade}|${p.program}`));
+  return READING_PASSAGES.filter(p => keys.has(`${p.grade}|${p.program}`)
+    && (level === 'both' || (p.level || 'program') === level));
+}
+function passageLabel(p) {
+  return `中${p.grade} P${p.program}${p.level === 'part' ? ` Part ${p.part}` : ''}`;
 }
 
 function generateReadingItems(stageList, cfg) {
-  const passages = readingPassagesFor(stageList);
+  const passages = readingPassagesFor(stageList, cfg.readingLevel || 'both');
   const picked = shuffle(passages).slice(0, cfg.readingCount)
-    .sort((a, b) => a.grade - b.grade || a.program - b.program);
+    .sort((a, b) => a.grade - b.grade || a.program - b.program || (a.part || 9) - (b.part || 9));
   return picked.map(p => ({
     section: 'reading', passage: p,
     subs: p.questions.map(q => {
@@ -2904,7 +2918,8 @@ function renderWorksheet() {
         const box = document.createElement('div');
         box.className = 'ws-passage';
         const paragraphs = r.passage.text.split('\n').map(p => `<p>${p}</p>`).join('');
-        box.innerHTML = `<div class="ws-passage-title">${readingItems.length > 1 ? `[${ri + 1}] ` : ''}${r.passage.title}</div>${paragraphs}`;
+        const notes = (r.passage.notes || []).length ? `<div class="ws-notes">（注）${r.passage.notes.join('　')}</div>` : '';
+        box.innerHTML = `<div class="ws-passage-title">${readingItems.length > 1 ? `[${ri + 1}] ` : ''}${r.passage.title}</div>${paragraphs}${notes}`;
         sheetItems.appendChild(box);
         r.subs.forEach((sub, i) => sheetItems.appendChild(makeItemEl(sub, i + 1)));
       });
@@ -2923,7 +2938,7 @@ function renderWorksheet() {
     if (sec === 'grammar') answersHtml += head + listHtml(printItems);
     if (sec === 'reading') {
       answersHtml += head + readingItems.map((r, ri) =>
-        `${readingItems.length > 1 ? `<div class="answer-sub">[${ri + 1}] ${r.passage.title}</div>` : ''}${listHtml(r.subs)}`).join('');
+        `<div class="answer-sub">${readingItems.length > 1 ? `[${ri + 1}] ` : ''}${r.passage.title}（${passageLabel(r.passage)}）</div>${listHtml(r.subs)}`).join('');
     }
   });
   answerList.innerHTML = answersHtml;
@@ -3025,6 +3040,7 @@ function renderTestScreen() {
       testState.vocabCount = r.vocabCount ?? 10;
       testState.vocabImportant = !!r.vocabImportant;
       testState.readingCount = r.readingCount ?? 1;
+      testState.readingLevel = r.readingLevel || 'both';
       testState.name = r.name;
       const first = selectedTestStages()[0];
       if (first) testState.grade = first.grade;
@@ -3108,6 +3124,9 @@ function renderTestScreen() {
   testVocabInput.value = testState.vocabCount;
   testVocabImportant.checked = testState.vocabImportant;
   testReadingInput.value = testState.readingCount;
+  renderOptionSwitch(testReadingLevelSwitch, Object.entries(READING_LEVEL_LABELS), testState.readingLevel, v => {
+    testState.readingLevel = v; renderTestScreen();
+  });
   testSaveForm.style.display = 'none';
   updateTestMakeButton();
 }
@@ -3117,14 +3136,14 @@ function testCounts() {
   const selected = selectedTestStages();
   return {
     questions: testTotalCount() + Math.min(testState.vocabCount, vocabPool(selected, testState.vocabImportant).length),
-    passages: Math.min(testState.readingCount, readingPassagesFor(selected).length),
+    passages: Math.min(testState.readingCount, readingPassagesFor(selected, testState.readingLevel).length),
   };
 }
 
 function updateTestMakeButton() {
   const selected = selectedTestStages();
   const vocabAvail = vocabPool(selected, testState.vocabImportant).length;
-  const readingAvail = readingPassagesFor(selected).length;
+  const readingAvail = readingPassagesFor(selected, testState.readingLevel).length;
   testVocabNote.textContent = selected.length ? `（範囲内 ${vocabAvail}語）` : '';
   testReadingNote.textContent = selected.length ? `（範囲内 ${readingAvail}題）` : '';
   const { questions, passages } = testCounts();
@@ -3170,6 +3189,7 @@ testSaveConfirmBtn.addEventListener('click', () => {
     name, keys: [...testState.keys], mode: testState.mode, total: testState.total,
     perUnit: testState.perUnit, shuffle: testState.shuffle,
     vocabCount: testState.vocabCount, vocabImportant: testState.vocabImportant, readingCount: testState.readingCount,
+    readingLevel: testState.readingLevel,
   });
   saveTestRanges(list);
   testState.name = name;
@@ -3185,6 +3205,7 @@ testMakeBtn.addEventListener('click', () => {
       name: testState.name, keys: selected.map(s => s.key), mode: testState.mode, total: testState.total,
       perUnit: { ...testState.perUnit }, shuffle: testState.shuffle,
       vocabCount: testState.vocabCount, vocabImportant: testState.vocabImportant, readingCount: testState.readingCount,
+      readingLevel: testState.readingLevel,
     },
   };
   selected.forEach(s => { if (printSource.config.perUnit[s.key] == null) printSource.config.perUnit[s.key] = 2; });

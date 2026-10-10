@@ -1,5 +1,7 @@
 // 長文問題(オリジナルの文章)。教科書本文は使わず、各 Program までに習う文法と単語だけで書いている。
 // grade / program: その Program の学習後に出題できる / text: 本文(① などの下線部は <u>〜</u>)
+// level: 'program'(Program 全体の内容。省略時) / 'part'(その Part までの内容。part に Part 番号)
+// notes: 未習語の注(定期テストの「注」と同じ。本文の下に表示)
 // questions の type:
 //   choice … 日本語の質問に記号で答える(options の answer 番目が正解)
 //   tf     … 本文の内容と合っていれば○、違っていれば×(answer: true / false)
