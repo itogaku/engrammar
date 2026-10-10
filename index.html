@@ -3194,6 +3194,7 @@ const QUESTION_TYPES = {
   entoja:    { label: '英文和訳', instr: '次の英文を日本語にしなさい。' },
   extra:     { label: '並べ替え(1語不要)', instr: '日本語に合うように、下の語を並べ替えて英文を書きなさい。ただし、不要な語が1つあります。文頭に来る語も小文字で示してあります。' },
   error:     { label: '誤文訂正', instr: '次の英文には誤りが1か所あります。誤っている語を正しい形に直しなさい。' },
+  paraphrase: { label: '同意文書きかえ', instr: '上の文とほぼ同じ意味になるように、下の文の（　）に適する語を1語ずつ書きなさい。' },
 };
 
 // 1問ぶんの出題データを作る。空所が作れないときは別の形式に切り替える。
@@ -3211,6 +3212,16 @@ function buildQuestion(stage, q, type) {
       if (r) return { ...item, type: 'rewrite', rewriteKind: kind, answerSentence: r.text, answers: r.variants };
     }
     return buildQuestion(stage, q, 'choice');
+  }
+  if (type === 'paraphrase') {
+    // 同意文書きかえ: 書きかえた文で、もとの文にない語を空所にする。作れない文なら書きかえ(否定文・疑問文)にする
+    const r = paraphraseOf(tokens, sentenceEnd(q.jp));
+    if (!r) return buildQuestion(stage, q, 'rewrite');
+    const [from, to] = Math.random() < 0.5 ? [tokens, r] : [r, tokens];
+    const fromSet = new Set(from.map(t => t.toLowerCase().replace(/[,.?!]/g, '')));
+    const blanks = to.map((t, i) => (fromSet.has(t.toLowerCase().replace(/[,.?!]/g, '')) ? -1 : i)).filter(i => i >= 0);
+    if (!blanks.length || blanks.length > 4) return buildQuestion(stage, q, 'rewrite');
+    return { ...item, type, fromTokens: from, toTokens: to, blanks, answer: blanks.map(i => to[i].replace(/[,.?!]/g, '')).join(' / ') };
   }
   if (type === 'extra' || type === 'error') {
     // 並べ替え(1語不要)・誤文訂正: 文中の1語の「まちがった形」を使う。作れない文なら適語選択にする
@@ -3247,6 +3258,81 @@ function buildQuestion(stage, q, type) {
     }
   }
   return item;
+}
+
+// 同意文書きかえ: 同じ意味の別の言い方の文(単語の配列)を返す。作れないときは null。
+// must ⇔ have to / will ⇔ be going to / 受け身(by ~) ⇔ 能動態 / give 人 物 ⇔ give 物 to 人 /
+// like to ~ ⇔ like ~ing / It is ~ to ... ⇔ ~ing ... is ~
+const OBJ_TO_SUBJ = { me: 'I', him: 'he', her: 'she', us: 'we', them: 'they', you: 'you', it: 'it' };
+const SUBJ_TO_OBJ = { i: 'me', he: 'him', she: 'her', we: 'us', they: 'them', you: 'you', it: 'it' };
+function isThirdSingular(words) {
+  const head = words[words.length - 1];
+  if (['i', 'you', 'we', 'they'].includes(words[0]) || ['we', 'they', 'people', 'children'].includes(head)) return false;
+  if (['he', 'she', 'it', 'this', 'that'].includes(head) || words[0] === 'a' || words[0] === 'an') return true;
+  return !/s$/.test(head) || ['this', 'his', 'bus'].includes(head);
+}
+function paraphraseOf(tokens, end) {
+  const lw = tokens.map(t => t.toLowerCase().replace(/[,.?!]/g, ''));
+  if (end === '?' || lw.some(t => ['not', 'never', "don't", "doesn't", "didn't", 'cannot'].includes(t) || /n't$/.test(t))) return null;
+  if (tokens.some(t => /,$/.test(t))) return null;
+  // 節をふくむ文(I think ~ / which ~ / when ~)や命令文は、主語と動詞の関係がずれるので作らない
+  if (lw.some(t => ['that', 'which', 'who', 'think', 'hope', 'know', 'when', 'if', 'because', 'wish', 'than', 'please'].includes(t))) return null;
+  const cap = w => (w === 'i' ? 'I' : capitalize(w));
+  const lowerHead = t => lowerSubjectHead(t);
+  // must ⇔ have / has to
+  let i = lw.indexOf('must');
+  if (i > 0) return [...tokens.slice(0, i), isThirdSingular(lw.slice(0, i)) ? 'has' : 'have', 'to', ...tokens.slice(i + 1)];
+  i = lw.findIndex((t, k) => (t === 'have' || t === 'has') && lw[k + 1] === 'to');
+  if (i > 0 && lw[i + 2] && VERB_BASE_OF[lw[i + 2]] === lw[i + 2]) return [...tokens.slice(0, i), 'must', ...tokens.slice(i + 2)];
+  // will ⇔ be going to
+  i = lw.indexOf('will');
+  if (i > 0 && !lw.includes('if')) {
+    const subj = lw.slice(0, i);
+    const be = subj.length === 1 && subj[0] === 'i' ? 'am' : isThirdSingular(subj) ? 'is' : 'are';
+    return [...tokens.slice(0, i), be, 'going', 'to', ...tokens.slice(i + 1)];
+  }
+  i = lw.findIndex((t, k) => ['am', 'is', 'are'].includes(t) && lw[k + 1] === 'going' && lw[k + 2] === 'to');
+  if (i > 0 && lw[i + 3] && VERB_BASE_OF[lw[i + 3]] === lw[i + 3]) return [...tokens.slice(0, i), 'will', ...tokens.slice(i + 3)];
+  // 受け身(主語 + be + 過去分詞 + by 人) ⇒ 能動態(人 + 動詞 + 主語)
+  i = lw.findIndex((t, k) => ['is', 'are', 'was', 'were'].includes(t) && isPerfectParticiple(lw[k + 1] || '') && lw[k + 2] === 'by');
+  if (i > 0) {
+    const base = VERB_BASE_OF[lw[i + 1]];
+    let endAgent = i + 3;
+    while (endAgent < lw.length && !['every', 'last', 'yesterday', 'in', 'on', 'at', 'when', 'today'].includes(lw[endAgent])) endAgent++;
+    const agent = lw.slice(i + 3, endAgent);
+    if (!base || !agent.length) return null;
+    const past = ['was', 'were'].includes(lw[i]);
+    const subjAgent = agent.length === 1 && OBJ_TO_SUBJ[agent[0]] ? [OBJ_TO_SUBJ[agent[0]]] : agent;
+    const verb = past ? verbPast(base) : isThirdSingular(subjAgent) ? verbThirdPerson(base) : base;
+    const obj = lw.slice(0, i).length === 1 && SUBJ_TO_OBJ[lw[0]] ? [SUBJ_TO_OBJ[lw[0]]] : [lowerHead(tokens[0]), ...tokens.slice(1, i)];
+    return [cap(subjAgent[0]), ...subjAgent.slice(1), verb, ...obj, ...tokens.slice(endAgent)];
+  }
+  // give / show 人 物 ⇒ give / show 物 to 人(buy / make は for)
+  const TO_VERBS = ['give', 'show', 'tell', 'send', 'teach', 'lend'], FOR_VERBS = ['buy', 'make', 'cook'];
+  i = lw.findIndex((t, k) => k > 0 && [...TO_VERBS, ...FOR_VERBS].includes(VERB_BASE_OF[t]) && ['me', 'him', 'her', 'us', 'them'].includes(lw[k + 1])
+    && ['a', 'an', 'the', 'some', 'my', 'his', 'her', 'our', 'their', 'your', 'this', 'that'].includes(lw[k + 2]));
+  if (i > 0 && lw.length - (i + 2) <= 3 && !lw.slice(i + 2).some(t => ['how', 'what', 'where', 'that', 'to'].includes(t))) {
+    const prep = TO_VERBS.includes(VERB_BASE_OF[lw[i]]) ? 'to' : 'for';
+    return [...tokens.slice(0, i + 1), ...tokens.slice(i + 2), prep, tokens[i + 1]];
+  }
+  // like / love / start / begin + to ~ ⇔ + ~ing
+  i = lw.findIndex(t => ['like', 'likes', 'liked', 'love', 'loves', 'start', 'starts', 'started', 'begin', 'began'].includes(t));
+  if (i > 0) {
+    if (lw[i + 1] === 'to' && VERB_BASE_OF[lw[i + 2]] === lw[i + 2]) return [...tokens.slice(0, i + 1), verbIng(lw[i + 2]), ...tokens.slice(i + 3)];
+    const b = VERB_BASE_OF[lw[i + 1]];
+    if (b && lw[i + 1] === verbIng(b) && b !== lw[i + 1]) return [...tokens.slice(0, i + 1), 'to', b, ...tokens.slice(i + 2)];
+  }
+  // It is ~ to ... ⇔ ~ing ... is ~(for 人 のある文は除く)
+  if (lw[0] === 'it' && ['is', 'was'].includes(lw[1]) && !lw.includes('for')) {
+    const t = lw.indexOf('to');
+    if (t > 2 && VERB_BASE_OF[lw[t + 1]] === lw[t + 1]) return [capitalize(verbIng(lw[t + 1])), ...tokens.slice(t + 2), tokens[1], ...tokens.slice(2, t)];
+  }
+  const b0 = VERB_BASE_OF[lw[0]];
+  if (b0 && lw[0] === verbIng(b0) && b0 !== lw[0]) {
+    const be = lw.findIndex(t => ['is', 'was'].includes(t));
+    if (be > 0 && be + 1 < lw.length) return ['It', lw[be], ...tokens.slice(be + 1), 'to', b0, ...tokens.slice(1, be)];
+  }
+  return null;
 }
 
 // 文中の1語(空所の候補)の「まちがった形」を返す。
@@ -3483,6 +3569,13 @@ const VOCAB_TYPES = {
 // 人名・架空の名前・地名などは単語問題に出さない
 const VOCAB_EXCLUDE_MEANING = /(男子の名|女子の名|（姓）|人名|架空|登場人物|都市|の州|タイトル|チーム|施設|マンガ|映画)/;
 
+// 2語以上の固有名詞(Hiroshima Peace Memorial Park / STAR WARS など)は単語問題に出さない。
+// 曜日・月・国名・言語(Saturday / June / Canada / English)や French fries などは出す。人名は VOCAB_EXCLUDE_MEANING で除く
+function isProperNoun(v) {
+  const w = v.word.trim();
+  if (/,$/.test(w)) return true;
+  return /^[A-Z][A-Za-z.'-]*( [A-Z][A-Za-z.'-]*)+$/.test(w) || /^[A-Z]{2,}( [A-Z]+)*$/.test(w) && !['TV', 'OK'].includes(w);
+}
 function vocabPool(stageList, importantOnly) {
   const keys = programKeySet(stageList);
   const seen = new Set();
@@ -3490,7 +3583,7 @@ function vocabPool(stageList, importantOnly) {
     if (!keys.has(`${v.grade}|${v.program}`) || (importantOnly && !v.important)) return false;
     // 「look at ~」と「look at ～」のような表記ちがいも同じ語として扱う
     const key = v.word.replace(/~/g, '～');
-    if (VOCAB_EXCLUDE_MEANING.test(v.meaning) || seen.has(key)) return false;
+    if (VOCAB_EXCLUDE_MEANING.test(v.meaning) || isProperNoun(v) || seen.has(key)) return false;
     seen.add(key);
     return true;
   });
@@ -3600,7 +3693,7 @@ function buildVocabQuestion(v, type, pool) {
   if (type === 'vjp') return { ...item, answer: v.meaning };
   // 意味を選ぶ: 範囲内の別の語の意味をまぎらわしい選択肢にする(足りなければ同じ学年から)
   const others = shuffle(pool.filter(o => o.meaning !== v.meaning));
-  const extra = shuffle(PROGRAM_VOCAB.filter(o => o.grade === v.grade && o.meaning !== v.meaning && !VOCAB_EXCLUDE_MEANING.test(o.meaning)));
+  const extra = shuffle(PROGRAM_VOCAB.filter(o => o.grade === v.grade && o.meaning !== v.meaning && !VOCAB_EXCLUDE_MEANING.test(o.meaning) && !isProperNoun(o)));
   const distractors = [...new Set([...others, ...extra].map(o => o.meaning))].slice(0, 3);
   return { ...item, type: 'vmeaning', options: shuffle([v.meaning, ...distractors]), answer: v.meaning };
 }
@@ -4227,6 +4320,7 @@ function answerText(item) {
   if (['form', 'fillin', 'vword', 'vblank', 'vidiom', 'vjp', 'entoja', 'rfill', 'rja'].includes(item.type)) return item.answer;
   if (item.type === 'rewrite') return item.answerSentence;
   if (item.type === 'error') return `${item.wrongWord} → ${item.answer}`;
+  if (item.type === 'paraphrase') return item.answer;
   if (item.type === 'extra') return `${fullSentence(item)}（不要：${item.wrongWord}）`;
   return fullSentence(item);
 }
@@ -4237,6 +4331,7 @@ function isCorrect(item) {
   if (SELF_GRADED_TYPES.has(item.type)) return null;
   if (SELECT_TYPES.has(item.type)) return answer === item.answer;
   if (item.type === 'rewrite') return normalize(answer) !== '' && item.answers.some(a => normalize(a) === normalize(answer));
+  if (item.type === 'paraphrase') return normalize(answer.replace(/[／/・]/g, ' ')) !== '' && normalize(answer.replace(/[／/・]/g, ' ')) === normalize(item.answer.replace(/ \/ /g, ' '));
   // 誤文訂正: 「正しい語」だけ、または「誤っている語 → 正しい語」を正解にする
   if (item.type === 'error') {
     const words = answer.toLowerCase().replace(/[’]/g, "'").split(/[^a-z']+/).filter(Boolean);
@@ -4295,6 +4390,10 @@ function itemBodyHtml(item) {
       return `<div class="ws-sentence">${blankedSentence(item)}</div>${answerLineHtml('（　）に入る語', 'short')}`;
     case 'error':
       return `<div class="ws-sentence">${errorSentence(item)}</div>${answerLineHtml('誤っている語 → 正しい語', 'short')}`;
+    case 'paraphrase':
+      return `<div class="ws-sentence">${endWith(item.fromTokens.join(' '), item.end)}</div>
+        <div class="ws-sentence">${endWith(item.toTokens.map((t, i) => (item.blanks.includes(i) ? '<span class="ws-blank">（　　　　）</span>' : t)).join(' '), item.end)}</div>
+        ${answerLineHtml('（　）に入る語を順に', 'short')}`;
     case 'entoja':
       return answerLineHtml('日本語で書こう');
     case 'rewrite':
