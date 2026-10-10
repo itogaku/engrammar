@@ -489,7 +489,7 @@ const stages = [
     promptLabel: "日本語の意味",
     typePlaceholder: "英文を入力してね (例: I am a student.)",
     questions: [
-      { jp: "あなたは忙しいです。", pieces: [{en:"You", jp:"あなた"}, {en:"are", jp:"は"}, {en:"busy", jp:"忙しい"}], coreSlotIndex: 2, corePool: [{en:"kind", jp:"親切"}, {en:"tall", jp:"背が高い"}, {en:"hungry", jp:"おなかがすいて"}, {en:"tired", jp:"疲れて"}, {en:"happy", jp:"幸せ"}] },
+      { jp: "あなたは忙しいです。", pieces: [{en:"You", jp:"あなた"}, {en:"are", jp:"は"}, {en:"busy", jp:"忙しい"}], coreSlotIndex: 2, corePool: [{en:"kind", jp:"親切"}, {en:"tall", jp:"背が高い"}, {en:"sad", jp:"悲しい"}, {en:"happy", jp:"幸せ"}] },
       { jp: "私はここにいます。", pieces: [{en:"I", jp:"私"}, {en:"am", jp:"います"}, {en:"here", jp:"ここに"}], coreSlotIndex: 2, corePool: [{en:"at home", jp:"家に"}, {en:"at school", jp:"学校に"}] },
       { jp: "私は学生です。", pieces: [{en:"I", jp:"私"}, {en:"am", jp:"は"}, {en:"a student", jp:"学生"}], coreSlotIndex: 2, corePool: [{en:"a teacher", jp:"先生"}, {en:"a doctor", jp:"医者"}, {en:"a nurse", jp:"看護師"}, {en:"a firefighter", jp:"消防士"}] },
       { jp: "私は日本出身です。", pieces: [{en:"I", jp:"私"}, {en:"am", jp:"は"}, {en:"from Japan", jp:"日本出身"}], coreSlotIndex: 2, corePool: [{en:"from the U.S.", jp:"アメリカ出身"}, {en:"from Canada", jp:"カナダ出身"}, {en:"from China", jp:"中国出身"}] },
@@ -516,7 +516,7 @@ const stages = [
     promptLabel: "日本語の意味",
     typePlaceholder: "英文を入力してね (例: I am a student.)",
     questions: [
-      { jp: "あなたは忙しいですか。", pieces: [{en:"Are", jp:"は?"}, {en:"you", jp:"あなた"}, {en:"busy", jp:"忙しい"}], coreSlotIndex: 2, corePool: [{en:"kind", jp:"親切"}, {en:"tall", jp:"背が高い"}, {en:"hungry", jp:"おなかがすいて"}, {en:"tired", jp:"疲れて"}] },
+      { jp: "あなたは忙しいですか。", pieces: [{en:"Are", jp:"は?"}, {en:"you", jp:"あなた"}, {en:"busy", jp:"忙しい"}], coreSlotIndex: 2, corePool: [{en:"kind", jp:"親切"}, {en:"tall", jp:"背が高い"}, {en:"sad", jp:"悲しい"}, {en:"happy", jp:"幸せ"}] },
       { jp: "あなたは学生ですか。", pieces: [{en:"Are", jp:"は?"}, {en:"you", jp:"あなた"}, {en:"a student", jp:"学生"}], coreSlotIndex: 2, corePool: [{en:"a teacher", jp:"先生"}, {en:"a doctor", jp:"医者"}, {en:"a nurse", jp:"看護師"}] },
     ],
   },
@@ -541,7 +541,7 @@ const stages = [
     promptLabel: "日本語の意味",
     typePlaceholder: "英文を入力してね (例: I play tennis.)",
     questions: [
-      { jp: "私はテニスをします。", pieces: [{en:"I", jp:"私"}, {en:"play", jp:"します"}, {en:"tennis", jp:"テニスを"}], coreSlotIndex: 2, corePool: [{en:"soccer", jp:"サッカーを"}, {en:"baseball", jp:"野球を"}, {en:"basketball", jp:"バスケットボールを"}, {en:"the guitar", jp:"ギターを"}, {en:"the piano", jp:"ピアノを"}] },
+      { jp: "私はテニスをします。", pieces: [{en:"I", jp:"私"}, {en:"play", jp:"します"}, {en:"tennis", jp:"テニスを"}], coreSlotIndex: 2, corePool: [{en:"soccer", jp:"サッカーを"}, {en:"baseball", jp:"野球を"}, {en:"basketball", jp:"バスケットボールを"}] },
       { jp: "私たちはサッカーが好きです。", pieces: [{en:"We", jp:"私たち"}, {en:"like", jp:"好きです"}, {en:"soccer", jp:"サッカーが"}], coreSlotIndex: 2, corePool: [{en:"tennis", jp:"テニスが"}, {en:"dogs", jp:"イヌが"}, {en:"cats", jp:"ネコが"}, {en:"music", jp:"音楽が"}] },
     ],
   },
@@ -615,7 +615,7 @@ const stages = [
     promptLabel: "日本語の意味",
     typePlaceholder: "英文を入力してね (例: I play tennis.)",
     questions: [
-      { jp: "私は2匹のイヌを飼っています。", pieces: [{en:"I", jp:"私"}, {en:"have", jp:"飼っています"}, {en:"two dogs", jp:"2匹のイヌを"}], coreSlotIndex: 2, corePool: [{en:"two cats", jp:"2匹のネコを"}, {en:"three books", jp:"3冊の本を"}] },
+      { jp: "私は2匹のイヌを飼っています。", pieces: [{en:"I", jp:"私"}, {en:"have", jp:"飼っています"}, {en:"two dogs", jp:"2匹のイヌを"}], coreSlotIndex: 2, corePool: [{en:"two cats", jp:"2匹のネコを"}, {en:"three rabbits", jp:"3匹のウサギを"}] },
       { jp: "私は1本のペンを持っています。", pieces: [{en:"I", jp:"私"}, {en:"have", jp:"持っています"}, {en:"a pen", jp:"1本のペンを"}], coreSlotIndex: 2, corePool: [{en:"a bag", jp:"1つのかばんを"}, {en:"a book", jp:"1冊の本を"}] },
     ],
   },
@@ -628,7 +628,7 @@ const stages = [
     typePlaceholder: "英文を入力してね",
     questions: [
       { jp: "私は泳ぐことができます。", pieces: [{en:"I", jp:"私"}, {en:"can", jp:"〜できます"}, {en:"swim", jp:"泳ぐ"}], coreSlotIndex: 2, corePool: [{en:"dance", jp:"踊る"}, {en:"ski", jp:"スキーをする"}, {en:"sing", jp:"歌う"}] },
-      { jp: "私たちはギターを弾くことができます。", pieces: [{en:"We", jp:"私たち"}, {en:"can", jp:"〜できます"}, {en:"play", jp:"弾く"}, {en:"the guitar", jp:"ギターを"}], coreSlotIndex: 3, corePool: [{en:"the piano", jp:"ピアノを"}, {en:"the violin", jp:"バイオリンを"}, {en:"tennis", jp:"テニスを"}, {en:"soccer", jp:"サッカーを"}] },
+      { jp: "私たちはギターを弾くことができます。", pieces: [{en:"We", jp:"私たち"}, {en:"can", jp:"〜できます"}, {en:"play", jp:"弾く"}, {en:"the guitar", jp:"ギターを"}], coreSlotIndex: 3, corePool: [{en:"the piano", jp:"ピアノを"}, {en:"the violin", jp:"バイオリンを"}] },
     ],
   },
   {
@@ -691,7 +691,7 @@ const stages = [
     typePlaceholder: "英文を入力してね",
     questions: [
       { jp: "これは私の本です。", pieces: [{en:"This", jp:"これ"}, {en:"is", jp:"は"}, {en:"my book", jp:"私の本"}], coreSlotIndex: 2, corePool: [{en:"my bag", jp:"私のかばん"}, {en:"my pen", jp:"私のペン"}] },
-      { jp: "彼は私の兄です。", pieces: [{en:"He", jp:"彼"}, {en:"is", jp:"は"}, {en:"my brother", jp:"私の兄"}], coreSlotIndex: 2, corePool: [{en:"my father", jp:"私の父"}, {en:"my uncle", jp:"おじ"}] },
+      { jp: "彼は私の兄です。", pieces: [{en:"He", jp:"彼"}, {en:"is", jp:"は"}, {en:"my brother", jp:"私の兄"}], coreSlotIndex: 2, corePool: [{en:"my father", jp:"私の父"}, {en:"my uncle", jp:"私のおじ"}] },
     ],
   },
   {
@@ -703,7 +703,7 @@ const stages = [
     typePlaceholder: "英文を入力してね",
     questions: [
       { jp: "あれは私の本ではありません。", pieces: [{en:"That", jp:"あれ"}, {en:"is not", jp:"ではありません"}, {en:"my book", jp:"私の本"}], coreSlotIndex: 2, corePool: [{en:"my pen", jp:"私のペン"}, {en:"my bag", jp:"私のかばん"}] },
-      { jp: "彼女は私の姉ではありません。", pieces: [{en:"She", jp:"彼女"}, {en:"is not", jp:"ではありません"}, {en:"my sister", jp:"私の姉"}], coreSlotIndex: 2, corePool: [{en:"my mother", jp:"私の母"}, {en:"my aunt", jp:"おば"}] },
+      { jp: "彼女は私の姉ではありません。", pieces: [{en:"She", jp:"彼女"}, {en:"is not", jp:"ではありません"}, {en:"my sister", jp:"私の姉"}], coreSlotIndex: 2, corePool: [{en:"my mother", jp:"私の母"}, {en:"my aunt", jp:"私のおば"}] },
     ],
   },
   {
@@ -900,7 +900,7 @@ const stages = [
     typePlaceholder: "英文を入力してね",
     questions: [
       { jp: "彼は今勉強しています。", pieces: [{en:"He", jp:"彼"}, {en:"is studying", jp:"勉強しています"}, {en:"now", jp:"今"}], coreSlotIndex: 1, corePool: [{en:"is reading", jp:"読書をしています"}, {en:"is cooking", jp:"料理をしています"}] },
-      { jp: "私は今テニスをしています。", pieces: [{en:"I", jp:"私"}, {en:"am playing", jp:"しています"}, {en:"tennis", jp:"テニスを"}, {en:"now", jp:"今"}], coreSlotIndex: 2, corePool: [{en:"soccer", jp:"サッカーを"}, {en:"the guitar", jp:"ギターを"}] },
+      { jp: "私は今テニスをしています。", pieces: [{en:"I", jp:"私"}, {en:"am playing", jp:"しています"}, {en:"tennis", jp:"テニスを"}, {en:"now", jp:"今"}], coreSlotIndex: 2, corePool: [{en:"soccer", jp:"サッカーを"}, {en:"basketball", jp:"バスケットボールを"}] },
     ],
   },
   {
@@ -961,9 +961,9 @@ const stages = [
     promptLabel: "日本語の意味",
     typePlaceholder: "英文を入力してね",
     questions: [
-      { jp: "私は昨日忙しかったです。", pieces: [{en:"I", jp:"私"}, {en:"was", jp:"は"}, {en:"busy", jp:"忙しかった"}, {en:"yesterday", jp:"昨日"}], coreSlotIndex: 2, corePool: [{en:"tired", jp:"疲れた"}, {en:"happy", jp:"幸せだった"}] },
-      { jp: "あなたは昨日忙しかったですか。", pieces: [{en:"Were", jp:"は?"}, {en:"you", jp:"あなた"}, {en:"busy", jp:"忙しかった"}, {en:"yesterday", jp:"昨日"}], coreSlotIndex: 2, corePool: [{en:"tired", jp:"疲れた"}, {en:"hungry", jp:"おなかがすいた"}] },
-      { jp: "私たちは昨日忙しくありませんでした。", pieces: [{en:"We", jp:"私たち"}, {en:"were not", jp:"ありませんでした"}, {en:"busy", jp:"忙しく"}, {en:"yesterday", jp:"昨日"}], coreSlotIndex: 2, corePool: [{en:"tired", jp:"疲れて"}, {en:"happy", jp:"幸せで"}] },
+      { jp: "私は昨日忙しかったです。", pieces: [{en:"I", jp:"私"}, {en:"was", jp:"は"}, {en:"busy", jp:"忙しかった"}, {en:"yesterday", jp:"昨日"}], coreSlotIndex: 2, corePool: [{en:"sleepy", jp:"眠かった"}, {en:"sad", jp:"悲しかった"}] },
+      { jp: "あなたは昨日忙しかったですか。", pieces: [{en:"Were", jp:"は?"}, {en:"you", jp:"あなた"}, {en:"busy", jp:"忙しかった"}, {en:"yesterday", jp:"昨日"}], coreSlotIndex: 2, corePool: [{en:"sleepy", jp:"眠かった"}, {en:"sad", jp:"悲しかった"}] },
+      { jp: "私たちは昨日忙しくありませんでした。", pieces: [{en:"We", jp:"私たち"}, {en:"were not", jp:"ありませんでした"}, {en:"busy", jp:"忙しく"}, {en:"yesterday", jp:"昨日"}], coreSlotIndex: 2, corePool: [{en:"sleepy", jp:"眠く"}, {en:"sad", jp:"悲しく"}] },
     ],
   },
   {
@@ -1000,7 +1000,7 @@ const stages = [
     questions: [
       { jp: "彼は来ないでしょう。", pieces: [{en:"He", jp:"彼"}, {en:"will not come", jp:"来ないでしょう"}] },
       { jp: "私は明日彼を手伝います。", pieces: [{en:"I", jp:"私"}, {en:"will help", jp:"手伝います"}, {en:"him", jp:"彼を"}, {en:"tomorrow", jp:"明日"}], coreSlotIndex: 2, corePool: [{en:"her", jp:"彼女を"}, {en:"them", jp:"彼らを"}] },
-      { jp: "あなたは明日忙しいですか。", pieces: [{en:"Will", jp:"〜でしょうか"}, {en:"you", jp:"あなた"}, {en:"be busy", jp:"忙しい"}, {en:"tomorrow", jp:"明日"}], coreSlotIndex: 2, corePool: [{en:"sick", jp:"病気"}, {en:"tired", jp:"疲れて"}] },
+      { jp: "あなたは明日忙しいですか。", pieces: [{en:"Will", jp:"〜でしょうか"}, {en:"you", jp:"あなた"}, {en:"be busy", jp:"忙しい"}, {en:"tomorrow", jp:"明日"}], coreSlotIndex: 2, corePool: [{en:"sick", jp:"病気"}] },
     ],
   },
   {
@@ -1036,8 +1036,8 @@ const stages = [
     promptLabel: "日本語の意味",
     typePlaceholder: "英文を入力してね",
     questions: [
-      { jp: "泳ぐことは楽しいです。", pieces: [{en:"Swimming", jp:"泳ぐこと"}, {en:"is", jp:"は"}, {en:"fun", jp:"楽しい"}], coreSlotIndex: 2, corePool: [{en:"exciting", jp:"わくわくする"}, {en:"interesting", jp:"おもしろい"}] },
-      { jp: "テニスをすることは楽しいです。", pieces: [{en:"Playing tennis", jp:"テニスをすること"}, {en:"is", jp:"は"}, {en:"fun", jp:"楽しい"}], coreSlotIndex: 2, corePool: [{en:"exciting", jp:"わくわくする"}, {en:"interesting", jp:"おもしろい"}] },
+      { jp: "泳ぐことは楽しいです。", pieces: [{en:"Swimming", jp:"泳ぐこと"}, {en:"is", jp:"は"}, {en:"fun", jp:"楽しい"}], coreSlotIndex: 2, corePool: [{en:"important", jp:"大切"}, {en:"interesting", jp:"おもしろい"}] },
+      { jp: "テニスをすることは楽しいです。", pieces: [{en:"Playing tennis", jp:"テニスをすること"}, {en:"is", jp:"は"}, {en:"fun", jp:"楽しい"}], coreSlotIndex: 2, corePool: [{en:"important", jp:"大切"}, {en:"interesting", jp:"おもしろい"}] },
       { jp: "サッカーをすることはわくわくします。", pieces: [{en:"Playing soccer", jp:"サッカーをすること"}, {en:"is", jp:"は"}, {en:"exciting", jp:"わくわくする"}] },
     ],
   },
@@ -1049,8 +1049,8 @@ const stages = [
     promptLabel: "日本語の意味",
     typePlaceholder: "英文を入力してね",
     questions: [
-      { jp: "私はあなたが疲れていると思います。", pieces: [{en:"I", jp:"私"}, {en:"think", jp:"思います"}, {en:"you are tired", jp:"あなたが疲れていると"}], coreSlotIndex: 2, corePool: [{en:"he is kind", jp:"彼が親切だと"}, {en:"she is busy", jp:"彼女が忙しいと"}] },
-      { jp: "私は彼が親切だと思います。", pieces: [{en:"I", jp:"私"}, {en:"think", jp:"思います"}, {en:"that he is kind", jp:"彼が親切だと"}], coreSlotIndex: 2, corePool: [{en:"she is busy", jp:"彼女が忙しいと"}, {en:"you are tired", jp:"あなたが疲れていると"}] },
+      { jp: "私はあなたが疲れていると思います。", pieces: [{en:"I", jp:"私"}, {en:"think", jp:"思います"}, {en:"that you are tired", jp:"あなたが疲れていると"}], coreSlotIndex: 2, corePool: [{en:"he is kind", jp:"彼が親切だと"}, {en:"that she is busy", jp:"彼女が忙しいと"}] },
+      { jp: "私は彼が親切だと思います。", pieces: [{en:"I", jp:"私"}, {en:"think", jp:"思います"}, {en:"that he is kind", jp:"彼が親切だと"}], coreSlotIndex: 2, corePool: [{en:"that she is busy", jp:"彼女が忙しいと"}, {en:"that you are tired", jp:"あなたが疲れていると"}] },
     ],
   },
   {
@@ -1072,8 +1072,8 @@ const stages = [
     promptLabel: "日本語の意味",
     typePlaceholder: "英文を入力してね",
     questions: [
-      { jp: "もしあなたが忙しければ、私が手伝います。", pieces: [{en:"If", jp:"もし"}, {en:"you are busy", jp:"あなたが忙しければ"}, {en:"I will help you", jp:"私が手伝います"}], coreSlotIndex: 1, corePool: [{en:"he is free", jp:"彼が暇なら"}, {en:"she is tired", jp:"彼女が疲れていれば"}] },
-      { jp: "晴れれば、私たちは公園に行きます。", pieces: [{en:"If", jp:"もし"}, {en:"it is sunny", jp:"晴れれば"}, {en:"we will go to the park", jp:"私たちは公園に行きます"}], coreSlotIndex: 1, corePool: [{en:"it rains", jp:"雨が降れば"}, {en:"it is cold", jp:"寒ければ"}] },
+      { jp: "もしあなたが忙しければ、私が手伝います。", pieces: [{en:"If", jp:"もし"}, {en:"you are busy,", jp:"あなたが忙しければ"}, {en:"I will help you", jp:"私が手伝います"}], coreSlotIndex: 1, corePool: [{en:"he is free,", jp:"彼が暇なら"}, {en:"she is tired,", jp:"彼女が疲れていれば"}] },
+      { jp: "晴れれば、私たちは公園に行きます。", pieces: [{en:"If", jp:"もし"}, {en:"it is sunny,", jp:"晴れれば"}, {en:"we will go to the park", jp:"私たちは公園に行きます"}], coreSlotIndex: 1, corePool: [{en:"it is warm,", jp:"暖かければ"}] },
     ],
   },
   {
@@ -1098,7 +1098,7 @@ const stages = [
     typePlaceholder: "英文を入力してね",
     questions: [
       { jp: "彼は本を買うために店に行きました。", pieces: [{en:"He", jp:"彼"}, {en:"went to the shop", jp:"店に行きました"}, {en:"to buy", jp:"買うために"}, {en:"a book", jp:"本を"}], coreSlotIndex: 3, corePool: [{en:"a comic", jp:"マンガを"}, {en:"a notebook", jp:"ノートを"}] },
-      { jp: "彼女は本を読むために図書館に行きました。", pieces: [{en:"She", jp:"彼女"}, {en:"went to the library", jp:"図書館に行きました"}, {en:"to read", jp:"読むために"}, {en:"a book", jp:"本を"}], coreSlotIndex: 3, corePool: [{en:"a comic", jp:"マンガを"}, {en:"a notebook", jp:"ノートを"}] },
+      { jp: "彼女は本を読むために図書館に行きました。", pieces: [{en:"She", jp:"彼女"}, {en:"went to the library", jp:"図書館に行きました"}, {en:"to read", jp:"読むために"}, {en:"a book", jp:"本を"}], coreSlotIndex: 3, corePool: [{en:"a comic", jp:"マンガを"}, {en:"a textbook", jp:"教科書を"}] },
     ],
   },
   {
@@ -1158,7 +1158,7 @@ const stages = [
     typePlaceholder: "英文を入力してね",
     questions: [
       { jp: "私は勉強しなければなりませんか。", pieces: [{en:"Do", jp:"〜ませんか"}, {en:"I", jp:"私"}, {en:"have to study", jp:"勉強しなければなり"}] },
-      { jp: "私は明日早く起きなければなりません。", pieces: [{en:"I", jp:"私"}, {en:"have to get up", jp:"起きなければなりません"}, {en:"early", jp:"早く"}, {en:"tomorrow", jp:"明日"}], coreSlotIndex: 3, corePool: [{en:"late", jp:"遅く"}, {en:"at six", jp:"6時に"}] },
+      { jp: "私は明日早く起きなければなりません。", pieces: [{en:"I", jp:"私"}, {en:"have to get up", jp:"起きなければなりません"}, {en:"early", jp:"早く"}, {en:"tomorrow", jp:"明日"}], coreSlotIndex: 3, corePool: [{en:"today", jp:"今日"}, {en:"on Sunday", jp:"日曜日に"}] },
       { jp: "彼は今日学校に行く必要はありません。", pieces: [{en:"He", jp:"彼"}, {en:"does not have to go", jp:"行く必要はありません"}, {en:"to school", jp:"学校に"}, {en:"today", jp:"今日"}], coreSlotIndex: 2, corePool: [{en:"to the hospital", jp:"病院に"}, {en:"to work", jp:"仕事に"}] },
     ],
   },
@@ -1406,7 +1406,7 @@ const stages = [
     typePlaceholder: "英文を入力してね",
     questions: [
       { jp: "彼は私が宿題をするのを手伝ってくれました。", pieces: [{en:"He", jp:"彼"}, {en:"helped", jp:"手伝ってくれました"}, {en:"me", jp:"私が"}, {en:"do my homework", jp:"宿題をするのを"}], coreSlotIndex: 3, corePool: [{en:"clean my room", jp:"部屋を掃除するのを"}, {en:"carry the bags", jp:"かばんを運ぶのを"}] },
-      { jp: "母は私に皿を洗わせました。", pieces: [{en:"My mother", jp:"母"}, {en:"made", jp:"させました"}, {en:"me", jp:"私に"}, {en:"wash the dishes", jp:"皿を洗わ"}], coreSlotIndex: 3, corePool: [{en:"clean the room", jp:"部屋を掃除させ"}, {en:"carry the bags", jp:"かばんを運ばせ"}] },
+      { jp: "母は私に皿を洗わせました。", pieces: [{en:"My mother", jp:"母"}, {en:"made", jp:"させました"}, {en:"me", jp:"私に"}, {en:"wash the dishes", jp:"皿を洗わ"}], coreSlotIndex: 3, corePool: [{en:"clean the room", jp:"部屋を掃除さ"}, {en:"carry the bags", jp:"かばんを運ば"}] },
       { jp: "父は私に車を使わせてくれました。", pieces: [{en:"My father", jp:"父"}, {en:"let", jp:"くれました"}, {en:"me", jp:"私に"}, {en:"use the car", jp:"車を使わせて"}], coreSlotIndex: 3, corePool: [{en:"use the computer", jp:"コンピューターを使わせて"}, {en:"go out", jp:"外出させて"}] },
     ],
   },
@@ -1418,7 +1418,7 @@ const stages = [
     promptLabel: "日本語の意味",
     typePlaceholder: "英文を入力してね",
     questions: [
-      { jp: "あそこで走っている男の子は私の弟です。", pieces: [{en:"The boy", jp:"男の子"}, {en:"running over there", jp:"あそこで走っている"}, {en:"is", jp:"は"}, {en:"my brother", jp:"私の弟"}], coreSlotIndex: 3, corePool: [{en:"my sister", jp:"私の妹"}, {en:"my classmate", jp:"私のクラスメート"}] },
+      { jp: "あそこで走っている男の子は私の弟です。", pieces: [{en:"The boy", jp:"男の子"}, {en:"running over there", jp:"あそこで走っている"}, {en:"is", jp:"は"}, {en:"my brother", jp:"私の弟"}], coreSlotIndex: 3, corePool: [{en:"my friend", jp:"私の友達"}, {en:"my classmate", jp:"私のクラスメート"}] },
       { jp: "あそこで歌っている女の子を知っていますか。", pieces: [{en:"Do", jp:"〜ていますか"}, {en:"you", jp:"(あなたは)"}, {en:"know", jp:"知っ"}, {en:"the girl", jp:"女の子を"}, {en:"singing over there", jp:"あそこで歌っている"}], coreSlotIndex: 4, corePool: [{en:"dancing over there", jp:"あそこで踊っている"}, {en:"running over there", jp:"あそこで走っている"}] },
     ],
   },
@@ -1502,8 +1502,8 @@ const stages = [
     promptLabel: "日本語の意味",
     typePlaceholder: "英文を入力してね",
     questions: [
-      { jp: "もし私が鳥だったら、飛べるのに。", pieces: [{en:"If", jp:"もし"}, {en:"I were a bird", jp:"私が鳥だったら"}, {en:"I could fly", jp:"飛べるのに"}], coreSlotIndex: 1, corePool: [{en:"I were a fish", jp:"私が魚だったら"}, {en:"I were a cat", jp:"私が猫だったら"}] },
-      { jp: "もし私がお金持ちだったら、世界中を旅するのに。", pieces: [{en:"If", jp:"もし"}, {en:"I were rich", jp:"私がお金持ちだったら"}, {en:"I would travel around the world", jp:"世界中を旅するのに"}], coreSlotIndex: 1, corePool: [{en:"I were famous", jp:"私が有名だったら"}, {en:"I were a king", jp:"私が王様だったら"}] },
+      { jp: "もし私が鳥だったら、飛べるのに。", pieces: [{en:"If", jp:"もし"}, {en:"I were a bird,", jp:"私が鳥だったら"}, {en:"I could fly", jp:"飛べるのに"}], coreSlotIndex: 1, corePool: [{en:"I were a butterfly,", jp:"私がチョウだったら"}] },
+      { jp: "もし私がお金持ちだったら、世界中を旅するのに。", pieces: [{en:"If", jp:"もし"}, {en:"I were rich,", jp:"私がお金持ちだったら"}, {en:"I would travel around the world", jp:"世界中を旅するのに"}], coreSlotIndex: 1, corePool: [{en:"I were famous,", jp:"私が有名だったら"}, {en:"I were a king,", jp:"私が王様だったら"}] },
     ],
   },
   {
@@ -1514,8 +1514,8 @@ const stages = [
     promptLabel: "日本語の意味",
     typePlaceholder: "英文を入力してね",
     questions: [
-      { jp: "もし私が答えを知っていたら、あなたに教えるのに。", pieces: [{en:"If", jp:"もし"}, {en:"I knew the answer", jp:"私が答えを知っていたら"}, {en:"I would tell you", jp:"あなたに教えるのに"}], coreSlotIndex: 1, corePool: [{en:"I knew his name", jp:"彼の名前を知っていたら"}, {en:"I knew her name", jp:"彼女の名前を知っていたら"}] },
-      { jp: "もし私がもっとお金を持っていたら、車を買うのに。", pieces: [{en:"If", jp:"もし"}, {en:"I had more money", jp:"私がもっとお金を持っていたら"}, {en:"I would buy a car", jp:"車を買うのに"}], coreSlotIndex: 1, corePool: [{en:"I had enough money", jp:"十分なお金を持っていたら"}] },
+      { jp: "もし私が答えを知っていたら、あなたに教えるのに。", pieces: [{en:"If", jp:"もし"}, {en:"I knew the answer,", jp:"私が答えを知っていたら"}, {en:"I would tell you", jp:"あなたに教えるのに"}], coreSlotIndex: 1, corePool: [{en:"I knew his name,", jp:"彼の名前を知っていたら"}, {en:"I knew her name,", jp:"彼女の名前を知っていたら"}] },
+      { jp: "もし私がもっとお金を持っていたら、車を買うのに。", pieces: [{en:"If", jp:"もし"}, {en:"I had more money,", jp:"私がもっとお金を持っていたら"}, {en:"I would buy a car", jp:"車を買うのに"}], coreSlotIndex: 1, corePool: [{en:"I had enough money,", jp:"十分なお金を持っていたら"}] },
     ],
   },
   {
@@ -1527,7 +1527,7 @@ const stages = [
     typePlaceholder: "英文を入力してね",
     questions: [
       { jp: "空を飛べたらいいのに。", pieces: [{en:"I wish", jp:"〜たらいいのに"}, {en:"I could fly", jp:"空を飛べ"}], coreSlotIndex: 1, corePool: [{en:"I could sing", jp:"歌が歌え"}, {en:"I could swim faster", jp:"もっと速く泳げ"}] },
-      { jp: "もっと時間があればいいのに。", pieces: [{en:"I wish", jp:"〜あればいいのに"}, {en:"I had more time", jp:"もっと時間が"}], coreSlotIndex: 1, corePool: [{en:"more money", jp:"もっとお金が"}, {en:"more friends", jp:"もっと友達が"}] },
+      { jp: "もっと時間があればいいのに。", pieces: [{en:"I wish", jp:"〜あればいいのに"}, {en:"I had more time", jp:"もっと時間が"}], coreSlotIndex: 1, corePool: [{en:"I had more money", jp:"もっとお金が"}, {en:"I had more books", jp:"もっと本が"}] },
     ],
   },
 ];
@@ -1553,7 +1553,15 @@ let printTypes = new Set(['reorder']); // プリントに出す問題の種類(Q
 let printSource = { kind: 'stage' };  // 出題元: 1つの単元(stage) / テスト範囲(test)
 // テスト範囲画面の状態
 const testState = { grade: 1, keys: new Set(), mode: 'random', total: 20, perUnit: {}, shuffle: true, name: '' };
-const clearedStages = new Set();
+// クリアした単元はブラウザに保存して、次に開いたときも✓を表示する
+const CLEARED_STORAGE_KEY = 'engrammar_cleared_stages';
+const clearedStages = new Set((() => {
+  try { return JSON.parse(localStorage.getItem(CLEARED_STORAGE_KEY) || '[]'); } catch (_) { return []; }
+})());
+function markCleared(key) {
+  clearedStages.add(key);
+  try { localStorage.setItem(CLEARED_STORAGE_KEY, JSON.stringify([...clearedStages])); } catch (_) {}
+}
 
 const EXERCISE_MODE_LABELS = {
   glossed: "英単語+意味",
@@ -1564,14 +1572,14 @@ const EXERCISE_MODE_LABELS = {
 // from: その語句に含まれる単語を教科書で習う単元のkey。それより前の単元では出題しない
 // (未習の単語をなるべく使わないため)。
 const TIME_PLACE_MODIFIERS = [
-  { en: "every day", jp: "毎日" },
-  { en: "every morning", jp: "毎朝" },
-  { en: "on weekends", jp: "週末に", from: "program2-aff" },
-  { en: "after school", jp: "放課後に", from: "program2-aff" },
-  { en: "at home", jp: "家で" },
-  { en: "at school", jp: "学校で" },
-  { en: "in the park", jp: "公園で" },
-  { en: "with my friends", jp: "友達と" },
+  { en: "every day", jp: "毎日", kind: "time" },
+  { en: "every morning", jp: "毎朝", kind: "time" },
+  { en: "on weekends", jp: "週末に", kind: "time", from: "program2-aff" },
+  { en: "after school", jp: "放課後に", kind: "time", from: "program2-aff" },
+  { en: "at home", jp: "家で", kind: "place" },
+  { en: "at school", jp: "学校で", kind: "place" },
+  { en: "in the park", jp: "公園で", kind: "place" },
+  { en: "with my friends", jp: "友達と", kind: "place" },
 ];
 const ADVERB_MODIFIERS = [
   { en: "usually", jp: "たいてい" },
@@ -1759,6 +1767,7 @@ function pickRandom(arr) {
 }
 
 // ベースの文に修飾語を合成する。副詞は動詞の前後に挿入、時・場所の句は文末に追加する。
+const TRAILING_TIME_PIECES = new Set(['now', 'yesterday', 'tomorrow', 'today', 'then', 'this evening', 'tonight', 'twice', 'yet', 'early']);
 function applyModifiers(basePieces, mods) {
   let pieces = basePieces.map(p => ({ ...p }));
   const jpTags = [];
@@ -1775,7 +1784,12 @@ function applyModifiers(basePieces, mods) {
         pieces.splice(idx, 0, { en: mod.en, jp: mod.jp });
       }
     } else {
-      pieces.push({ en: mod.en, jp: mod.jp });
+      // 文末が now / yesterday などの時の語なら、場所はその前に入れる(playing tennis at school now)
+      let at = pieces.length;
+      if (mod.kind === 'place') {
+        while (at > 1 && TRAILING_TIME_PIECES.has(pieces[at - 1].en.toLowerCase())) at--;
+      }
+      pieces.splice(at, 0, { en: mod.en, jp: mod.jp });
     }
     jpTags.push(mod.jp);
   });
@@ -1807,13 +1821,6 @@ function applyCoreSlot(base, pieces) {
 // tier1(最初の3問)=そのまま / tier2(次の3問)=修飾語を1つ追加 / tier3(それ以降)=2つ組み合わせる。
 // coreSlotが設定されている問題は、tierに関係なく中身の単語もランダムに入れ替える。
 // 2つの異なる時・場所の句をランダムに選ぶ(同じものが重ならないように)
-function pickTwoTimePlace(pool) {
-  const a = pickRandom(pool);
-  let b = pickRandom(pool);
-  while (b === a && pool.length > 1) b = pickRandom(pool);
-  return [a, b];
-}
-
 // 単元sで使ってよい修飾語だけに絞る(fromの単元より前なら除く)。
 function modifiersForStage(pool, s) {
   const idx = stages.indexOf(s);
@@ -1826,34 +1833,106 @@ function modifiersForStage(pool, s) {
 // s.noAdverbが立っている単元(命令文・Let's文・if節・I wishなど、副詞を文中に挟むと
 // 不自然になるもの)は、副詞を使わず時・場所の句だけで修飾する。
 function getSessionQuestion(s, n, order = sessionOrder) {
-  const idx = order[n % order.length];
-  const base = s.questions[idx];
-  const { pieces: corePieces, jp: coreJp } = applyCoreSlot(base, pieceList(base));
-  const tier = n < 3 ? 1 : n < 6 ? 2 : 3;
-  const timePlace = modifiersForStage(TIME_PLACE_MODIFIERS, s);
-  const adverbs = modifiersForStage(ADVERB_MODIFIERS, s);
-  let mods = [];
-  if (tier === 2) {
-    if (s.noAdverb) {
-      mods = [{ ...pickRandom(timePlace), type: 'timeplace' }];
-    } else {
-      mods = Math.random() < 0.5
-        ? [{ ...pickRandom(adverbs), type: 'adverb' }]
-        : [{ ...pickRandom(timePlace), type: 'timeplace' }];
-    }
-  } else if (tier === 3) {
-    if (s.noAdverb) {
-      const [a, b] = pickTwoTimePlace(timePlace);
-      mods = [{ ...a, type: 'timeplace' }, { ...b, type: 'timeplace' }];
-    } else {
-      mods = [
-        { ...pickRandom(adverbs), type: 'adverb' },
-        { ...pickRandom(timePlace), type: 'timeplace' },
-      ];
+  const wantTier = n < 3 ? 1 : n < 6 ? 2 : 3;
+  // 修飾語が合わない文(be動詞+名詞の文など)もあるので、ねらいの数の修飾語を付けられる例文を
+  // 出題順にさがす。見つからなければ修飾語の数を減らす。
+  for (let want = wantTier - 1; want >= 0; want--) {
+    for (let t = 0; t < order.length; t++) {
+      const base = s.questions[order[(n + t) % order.length]];
+      const { pieces: corePieces, jp: coreJp } = applyCoreSlot(base, pieceList(base));
+      const mods = chooseModifiers(s, corePieces, want);
+      if (!mods) continue;
+      const { pieces, jpTags } = applyModifiers(corePieces, mods);
+      return { jp: coreJp, pieces, tier: mods.length + 1, jpTags };
     }
   }
-  const { pieces, jpTags } = applyModifiers(corePieces, mods);
-  return { jp: coreJp, pieces, tier, jpTags };
+  const base = s.questions[order[n % order.length]];
+  const { pieces, jp } = applyCoreSlot(base, pieceList(base));
+  return { jp, pieces, tier: 1, jpTags: [] };
+}
+
+// 文に付けてよい修飾語の種類を調べる。
+// - be動詞+名詞・形容詞(I am a teacher)、状態動詞(know / become など)、現在完了には付けない
+//   (「私は毎朝先生です」のような不自然な文を避ける)
+// - 進行形・be going to・助動詞の文は場所だけ、like / love などは really だけ
+// - すでに時(yesterday / now)や場所(in the box)を表す語がある文には、同じ種類を重ねない
+// - 接続詞や関係代名詞を含む文、比較の文には付けない
+const STATIVE_VERBS = new Set(['know', 'think', 'wish', 'hope', 'become', 'look', 'respect', 'need', 'have', 'get',
+  'believe', 'understand', 'live', 'show', 'tell', 'ask', 'make', 'let', 'help', 'leave', 'keep', 'teach', 'give', 'buy']);
+const REALLY_ONLY_VERBS = new Set(['like', 'love', 'want', 'enjoy']);
+const TIME_WORDS = new Set(['yesterday', 'tomorrow', 'now', 'today', 'then', 'tonight', 'every', 'ago', 'twice', 'once',
+  'since', 'for', 'last', 'evening', 'night', 'morning', 'weekends', 'saturday', 'sunday', 'six']);
+const PLACE_WORDS = new Set(['here', 'there', 'home', 'school', 'park', 'in', 'on', 'at', 'to', 'with']);
+const CLAUSE_WORDS = new Set(['if', 'because', 'who', 'which', 'whose', 'than', 'as', 'since']);
+
+const FREQUENCY_ADVERBS = ['usually', 'always', 'sometimes'];
+function modifierFit(pieces) {
+  const tokens = sentenceTokens(pieces);
+  const lower = tokens.map(t => t.toLowerCase().replace(/,$/, ''));
+  const none = { adverbs: [], time: false, place: false, withFriends: false };
+  if (lower.some((t, i) => CLAUSE_WORDS.has(t) || (t === 'when' && i > 0)
+    || (t === 'that' && i > 0 && (VERB_BASE_OF[lower[i - 1]] || SUBJECT_PRONOUNS.has(lower[i + 1]))))) return none;
+  // 現在完了(Have you ever ~? も含む)には付けない
+  if (['have', 'has', 'had'].includes(lower[0]) && lower[1] !== 'to') return none;
+  let time = !lower.some(t => TIME_WORDS.has(t));
+  let place = !lower.some(t => PLACE_WORDS.has(t)) && !lower.some(t => ['come', 'go', 'went', 'came'].includes(t));
+  if (lower[0] === 'where') place = false; // Where ~ in the park? のような矛盾を避ける
+  if (lower[0] === 'when') time = false;
+  // 疑問文・否定文では副詞の位置が変わる(Do you usually ~?)ので付けない。時を表す語がある文は really だけ
+  const questionOrNegative = sentenceEnd(pieces.map(p => p.en).join(' ')) === '?' || /^(do|does|did|can|will|is|are|am|was|were|what|where|when|how|who|which)$/.test(lower[0])
+    || lower.some(t => t === 'not' || t === 'cannot' || /n't$/.test(t));
+  const adverbsFor = list => (questionOrNegative ? [] : time ? list : list.filter(a => a === 'really'));
+  const withFriends = ['i', 'we', "let's"].includes(lower[0]);
+  for (let i = 0; i < lower.length; i++) {
+    const w = lower[i];
+    if (['do', 'does', 'did', "don't", "doesn't", "didn't", 'what', 'where', 'how', 'who', 'when', 'which'].includes(w) && i + 1 < lower.length) continue;
+    if (['am', 'is', 'are', 'was', 'were', "isn't", "aren't"].includes(w)) {
+      // 進行形には場所だけ(I am playing tennis every day は不自然なので時は付けない)
+      const progressive = lower.slice(i + 1).some(t => /ing$/.test(t) && VERB_BASE_OF[t]);
+      return progressive ? { adverbs: [], time: false, place, withFriends } : none;
+    }
+    if (['can', 'cannot', 'will', 'must', 'should', 'could', 'would', 'may'].includes(w)) return { adverbs: [], time, place, withFriends };
+    if (['have', 'has', 'had'].includes(w) && isPerfectParticiple(lower[i + 1] || '')) return none;
+    if (['have', 'has'].includes(w) && lower[i + 1] === 'to') return { adverbs: [], time, place, withFriends };
+    const base = VERB_BASE_OF[w] || ({ has: 'have', had: 'have', have: 'have' })[w];
+    if (!base || (i > 0 && DETERMINERS.has(lower[i - 1]))) continue;
+    // Swimming is ~ / The boy running over there ~ の -ing・過去分詞は主語の一部なので飛ばす
+    if (w !== base && w !== verbThirdPerson(base) && w !== verbPast(base)) continue;
+    if (i === 0) return w === "let's" ? { adverbs: [], time, place, withFriends: true } : { adverbs: [], time, place: false, withFriends: false };
+    if (REALLY_ONLY_VERBS.has(base)) return { adverbs: adverbsFor(['really']), time: false, place: false, withFriends };
+    if (STATIVE_VERBS.has(base)) return none;
+    return { adverbs: adverbsFor(['usually', 'always', 'sometimes', 'really']), time, place, withFriends };
+  }
+  if (lower[0] === "let's") return { adverbs: [], time, place, withFriends: true };
+  return none;
+}
+
+// want個の修飾語を、副詞・時・場所から重ならないように選ぶ。選べなければ null。
+// 時と場所の両方を付けるときは「場所 → 時」の順(play tennis in the park every day)。
+function chooseModifiers(s, pieces, want) {
+  if (want === 0) return [];
+  const fit = modifierFit(pieces);
+  const hasSchool = sentenceTokens(pieces).some(t => /^school/i.test(t));
+  const pools = {
+    adverb: s.noAdverb ? [] : modifiersForStage(ADVERB_MODIFIERS, s).filter(m => fit.adverbs.includes(m.en)),
+    place: !fit.place ? [] : modifiersForStage(TIME_PLACE_MODIFIERS, s)
+      .filter(m => m.kind === 'place' && (fit.withFriends || m.en !== 'with my friends')),
+    time: !fit.time ? [] : modifiersForStage(TIME_PLACE_MODIFIERS, s)
+      .filter(m => m.kind === 'time' && !(hasSchool && m.en === 'after school')),
+  };
+  const kinds = shuffle(Object.keys(pools).filter(k => pools[k].length)).slice(0, want);
+  if (kinds.length < want) return null;
+  // 矛盾する組み合わせは選び直す(sometimes ~ every day / at school after school)
+  for (let tries = 0; tries < 10; tries++) {
+    const picked = {};
+    kinds.forEach(k => { picked[k] = pickRandom(pools[k]); });
+    const clash = (picked.adverb && picked.time && FREQUENCY_ADVERBS.includes(picked.adverb.en) && /^every/.test(picked.time.en))
+      || (picked.place && picked.time && /school/.test(picked.place.en) && /school/.test(picked.time.en));
+    if (clash) continue;
+    return ['adverb', 'place', 'time'].filter(k => picked[k])
+      .map(k => ({ ...picked[k], type: k === 'adverb' ? 'adverb' : 'timeplace' }));
+  }
+  return null;
 }
 
 // ---------- 文法問題(適語選択・語形変化・和文英訳)の自動生成 ----------
@@ -2061,6 +2140,7 @@ function findBlank(stage, tokens, needHint) {
   for (const fam of groups) {
     const found = [];
     tokens.forEach((t, i) => {
+      if (/,$/.test(t)) return; // 「busy,」のようにコンマが付いた語は空所にしない
       const r = WORD_FAMILIES[fam](t.toLowerCase(), i, tokens);
       if (!r) return;
       if (needHint && !r.hint) return;
@@ -2601,7 +2681,7 @@ function stageGroupLabel(s) {
 }
 function stageShortLabel(s) {
   const g = grades.find(gr => gr.id === s.grade);
-  return `${g ? g.name.replace('学', '') : ''} ${s.label.replace(/^\d年 /, '')}`;
+  return `${g ? g.name.replace('学', '').replace('年', '') : ''} ${s.label.replace(/^\d年 /, '')}`;
 }
 
 function selectedTestStages() {
@@ -2991,8 +3071,16 @@ function renderTiles() {
   });
 }
 
+// 答え合わせ用に表記をそろえる。短縮形はもとの形に戻す(I'm = I am, don't = do not)。
+const CONTRACTION_EXPANSIONS = [
+  [/\bcan't\b/g, 'cannot'], [/\bcan not\b/g, 'cannot'], [/\bwon't\b/g, 'will not'], [/n't\b/g, ' not'],
+  [/\bi'm\b/g, 'i am'], [/'re\b/g, ' are'], [/'ll\b/g, ' will'], [/'ve\b/g, ' have'],
+  [/\b(it|that|he|she|what|there|where|who|here)'s\b/g, '$1 is'],
+];
 function normalize(s) {
-  return s.replace(/[。、.,!?\s]/g, '').toLowerCase();
+  let t = s.toLowerCase().replace(/[’‘]/g, "'");
+  CONTRACTION_EXPANSIONS.forEach(([re, rep]) => { t = t.replace(re, rep); });
+  return t.replace(/[。、.,!?？！\s]/g, '');
 }
 
 function checkAnswer() {
@@ -3031,7 +3119,7 @@ function nextQuestion() {
   const milestone = s.questions.length + 6;
   if (sessionCount === milestone && !milestoneReached) {
     milestoneReached = true;
-    clearedStages.add(s.key);
+    markCleared(s.key);
     showDone();
   } else {
     loadQuestion();
