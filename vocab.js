@@ -1,4 +1,4 @@
-// 単語データ(Sunrise 教科書の Program 別単語)。単語プリントメーカー(itogaku/wordstest)と同じデータ。
+// 単語データ(SUNSHINE 教科書の Program 別単語)。単語プリントメーカー(itogaku/wordstest)と同じデータ。
 // grade: 学年 / program: Program番号(x.5 は言語活動・Power-Up など) / important: 太字の重要語 / source: elementary は小学校で学んだ語
 const PROGRAM_VOCAB = [
 {"grade": 1, "program": 0, "word": "Bob", "meaning": "ボブ（男子の名）", "example_en": "Bob is my classmate.", "example_ja": "ボブは私のクラスメートです。", "important": false, "source": "new"},

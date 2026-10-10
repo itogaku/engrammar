@@ -349,6 +349,10 @@
   .ws-gitem:first-child .ws-gtype, .ws-guide + .ws-gitem .ws-gtype { margin-top: 2px; }
   .ws-guide-unit { font-size: 13px; font-weight: 800; margin-left: 8px; }
   .ws-gunit + .ws-gunit { margin-top: 16px; }
+  .sheet-no { margin-left: auto; font-size: 11px; color: var(--ink-soft); }
+  .ws-pts { margin-left: auto; font-size: 11.5px; color: var(--ink-soft); white-space: nowrap; padding-left: 8px; }
+  .ws-teacher { display: none; color: #c00; font-weight: 700; font-size: 13.5px; margin: 4px 0 0 36px; }
+  .sheet.teacher .ws-teacher { display: block; }
   .ws-part-head { font-size: 12.5px; color: var(--ink-soft); border-top: 2px solid var(--ink); padding-top: 6px; margin-top: 6px; }
   .ws-part-head b { display: inline-block; color: var(--ink); font-size: 14px; margin-right: 8px; }
   .ws-part-practice { margin-top: 0; }
@@ -413,6 +417,11 @@
         <div class="g-sub">1つの単元を「ポイントの説明と確認の問題 → くわしい解説 → 練習問題 → 解答」の4ページで学べるプリントです。学年を選んでください。</div>
         <div class="guide-entry-grades" id="guideEntryGrades"></div>
       </div>
+    </div>
+    <div class="card test-card" id="printHistoryCard" style="display:none; margin-top:16px;">
+      <div class="test-label">印刷したプリント</div>
+      <div class="test-empty">「同じプリント」で同じ問題をもう一度作れます（再印刷・解答の確認に）。「類題」は同じ設定で問題だけを変えます（再テストに）。</div>
+      <div id="printHistoryList"></div>
     </div>
     <div class="grade-heading">単元ごとにプリントを作る</div>
     <div class="grade-list" id="gradeList"></div>
@@ -507,8 +516,12 @@
       <div class="opt-row">
         <label class="opt-check"><input type="checkbox" id="printIncludeAnswers" checked> 解答ページも印刷する</label>
       </div>
+      <div class="opt-row">
+        <label class="opt-check" id="printPointsLabel"><input type="checkbox" id="printPointsCheck" checked> 配点を入れる（100点満点）</label>
+        <label class="opt-check"><input type="checkbox" id="printTeacherCheck"> 先生用（答えを赤字で書き入れる）</label>
+      </div>
       <div class="print-actions">
-        <button class="btn btn-ghost" id="printRegenBtn">別の問題で作り直す</button>
+        <button class="btn btn-ghost" id="printRegenBtn">類題を作る（同じ設定で別の問題）</button>
         <button class="btn btn-primary" id="printPrintBtn">印刷する</button>
       </div>
     </div>
@@ -521,6 +534,7 @@
           <span>日付 <span class="blank"></span></span>
           <span>名前 <span class="blank wide"></span></span>
           <span>得点 <span class="blank" id="sheetScore"></span> / <span id="sheetTotal"></span></span>
+          <span class="sheet-no" id="sheetNo"></span>
         </div>
       </div>
       <p class="sheet-instr" id="sheetInstr"></p>
@@ -2461,6 +2475,10 @@ const printCountSwitch = document.getElementById('printCountSwitch');
 const printChunkSwitch = document.getElementById('printChunkSwitch');
 const printGlossSwitch = document.getElementById('printGlossSwitch');
 const printIncludeAnswers = document.getElementById('printIncludeAnswers');
+const printPointsCheck = document.getElementById('printPointsCheck');
+const printPointsLabel = document.getElementById('printPointsLabel');
+const printTeacherCheck = document.getElementById('printTeacherCheck');
+const sheetNo = document.getElementById('sheetNo');
 const printRegenBtn = document.getElementById('printRegenBtn');
 const printPrintBtn = document.getElementById('printPrintBtn');
 const printCheckBtn = document.getElementById('printCheckBtn');
@@ -2489,6 +2507,8 @@ const printSourceNote = document.getElementById('printSourceNote');
 const sheetInstr = document.getElementById('sheetInstr');
 const screenTest = document.getElementById('screenTest');
 const openTestBtn = document.getElementById('openTestBtn');
+const printHistoryCard = document.getElementById('printHistoryCard');
+const printHistoryList = document.getElementById('printHistoryList');
 const backToGradeFromTest = document.getElementById('backToGradeFromTest');
 const testSavedCard = document.getElementById('testSavedCard');
 const testSavedList = document.getElementById('testSavedList');
@@ -2539,10 +2559,19 @@ const doneContinueBtn = document.getElementById('doneContinueBtn');
 const doneNextBtn = document.getElementById('doneNextBtn');
 const doneBackBtn = document.getElementById('doneBackBtn');
 
+// 乱数(プリント番号から同じ問題を作り直せるように、種を決められる乱数を使う)
+let rngState = (Math.random() * 4294967296) >>> 0;
+function seedRandom(seed) { rngState = seed >>> 0; }
+function rand() {
+  rngState = (rngState + 0x6D2B79F5) | 0;
+  let t = Math.imul(rngState ^ (rngState >>> 15), 1 | rngState);
+  t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+  return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+}
 function shuffle(arr) {
   const a = [...arr];
   for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
+    const j = Math.floor(rand() * (i + 1));
     [a[i], a[j]] = [a[j], a[i]];
   }
   return a;
@@ -2621,7 +2650,7 @@ function adverbInsertIndex(pieces) {
 }
 
 function pickRandom(arr) {
-  return arr[Math.floor(Math.random() * arr.length)];
+  return arr[Math.floor(rand() * arr.length)];
 }
 
 // ベースの文に修飾語を合成する。副詞は動詞の前後に挿入、時・場所の句は文末に追加する。
@@ -3335,7 +3364,7 @@ function buildQuestion(stage, q, type) {
     // 同意文書きかえ: 書きかえた文で、もとの文にない語を空所にする。作れない文なら書きかえ(否定文・疑問文)にする
     const r = paraphraseOf(tokens, sentenceEnd(q.jp), stage.key);
     if (!r) return buildQuestion(stage, q, 'rewrite');
-    const [from, to] = Math.random() < 0.5 ? [tokens, r] : [r, tokens];
+    const [from, to] = rand() < 0.5 ? [tokens, r] : [r, tokens];
     const fromSet = new Set(from.map(t => t.toLowerCase().replace(/[,.?!]/g, '')));
     const blanks = to.map((t, i) => (fromSet.has(t.toLowerCase().replace(/[,.?!]/g, '')) ? -1 : i)).filter(i => i >= 0);
     if (!blanks.length || blanks.length > 4) return buildQuestion(stage, q, 'rewrite');
@@ -3742,7 +3771,7 @@ function showScreen(name) {
   screenPrint.style.display = name === 'print' ? 'block' : 'none';
   screenTest.style.display = name === 'test' ? 'block' : 'none';
   if (name === 'test') renderTestScreen();
-  if (name === 'grade') renderGradeList();
+  if (name === 'grade') { renderGradeList(); renderPrintHistory(); }
   if (name === 'program') renderProgramList();
   if (name === 'practice') { mainCard.style.display = 'block'; doneCard.style.display = 'none'; }
 }
@@ -4353,7 +4382,7 @@ function generateGuideWorksheet() {
         const item = makeUnitQuestion(stage, type, st, 1);
         if (!seen.has(`${item.type}|${fullSentence(item)}`)) return accept(item);
       }
-      const wide = { order: st.order, n: 6 + Math.floor(Math.random() * 6) };
+      const wide = { order: st.order, n: 6 + Math.floor(rand() * 6) };
       for (let tries = 0; tries < 10; tries++) {
         const item = makeUnitQuestion(stage, type, wide, 2);
         if (!seen.has(fullSentence(item))) return accept(item);
@@ -4417,6 +4446,7 @@ function renderPrintOptions() {
   const isGuide = printSource.kind === 'guide';
   printCountRow.style.display = isTest || isGuide ? 'none' : 'flex';
   printGuideRow.style.display = isGuide ? 'block' : 'none';
+  printPointsLabel.style.display = isTest ? '' : 'none';
   document.getElementById('printGlossRow').style.display = isGuide ? 'none' : 'flex';
   printCheckBtn.parentElement.style.display = isGuide ? 'none' : '';
   printSourceNote.style.display = isTest ? 'block' : 'none';
@@ -4484,7 +4514,11 @@ function grammarSlots() {
 // 問題の中身(文・修飾語・形式)を作る。まとまりの大きさやヒントの切り替えでは作り直さず、
 // 表示だけ変える(同じプリントのまま難易度を調整できるように)。
 // 単元ごとに練習画面と同じく、基本文→修飾語つき→複合修飾の順に難しくなる。
-function generateWorksheet() {
+let printSeed = 0;
+function generateWorksheet(seed) {
+  // プリント番号(乱数の種)。番号を指定すると同じ問題を作り直せる
+  printSeed = typeof seed === 'number' ? seed : 100000 + Math.floor(Math.random() * 900000);
+  seedRandom(printSeed);
   if (printSource.kind === 'guide') {
     generateGuideWorksheet();
     printChunkLevel = 1;
@@ -4564,11 +4598,16 @@ function shuffledPieces(item) {
   item.shuffled = item.shuffled || {};
   if (!item.shuffled[printChunkLevel]) {
     const pieces = worksheetPieces(item);
+    // 問題ごとの種で並べる(表示を切り替えても、同じプリント番号なら同じ並びになるように)
+    const saved = rngState;
+    if (item.pieceSeed == null) item.pieceSeed = Math.floor(rand() * 4294967296);
+    seedRandom(item.pieceSeed + printChunkLevel * 7919);
     let order = shuffle(pieces);
     // たまたま正解と同じ並びになったら、もう一度シャッフルする
     for (let tries = 0; tries < 5 && pieces.length > 1 && order.every((p, i) => p === pieces[i]); tries++) {
       order = shuffle(pieces);
     }
+    rngState = saved;
     item.shuffled[printChunkLevel] = order;
   }
   return item.shuffled[printChunkLevel];
@@ -4700,8 +4739,9 @@ function makeItemEl(item, num, typeLine) {
   el._item = item;
   el.innerHTML = `
     ${typeLine || ''}
-    <div class="ws-top"><span class="ws-num">(${num})</span><span class="ws-jp">${itemPromptHtml(item)}</span></div>
+    <div class="ws-top"><span class="ws-num">(${num})</span><span class="ws-jp">${itemPromptHtml(item)}</span>${item.points ? `<span class="ws-pts">${item.points}点</span>` : ''}</div>
     <div class="ws-body">${itemBodyHtml(item)}</div>
+    <div class="ws-teacher">${SELF_GRADED_TYPES.has(item.type) ? '（例）' : ''}${answerText(item)}</div>
     <div class="ws-correct" style="display:none;"></div>
   `;
   const input = el.querySelector('.ws-input');
@@ -4960,8 +5000,40 @@ function renderGuideWorksheet() {
   });
 }
 
+// 配点: 形式ごとの重み(書く問題・長い問題ほど高く)を、合計がちょうど100点になるように整数にする。同じ形式は同じ点
+const POINT_WEIGHTS = {
+  vmeaning: 1, vjp: 2, vword: 2, vblank: 2, vidiom: 2,
+  choice: 2, usage: 2, fillin: 2, form: 2, error: 3, extra: 3, reorder: 3, rewrite: 3, paraphrase: 3, translate: 4, entoja: 4,
+  rchoice: 3, rtf: 2, rfill: 3, rja: 4,
+};
+function assignPoints(items) {
+  items.forEach(it => { delete it.points; });
+  if (!items.length) return 0;
+  const counts = {};
+  items.forEach(it => { counts[it.type] = (counts[it.type] || 0) + 1; });
+  const total = sc => Object.entries(counts).reduce((a, [t, n]) => a + n * Math.max(1, Math.round(sc * (POINT_WEIGHTS[t] || 2))), 0);
+  let best = null;
+  for (let sc = 0.05; sc <= 40; sc += 0.005) {
+    const t = total(sc);
+    if (!best || Math.abs(t - 100) < Math.abs(best.t - 100)) best = { sc, t };
+    if (t === 100) break;
+  }
+  items.forEach(it => { it.points = Math.max(1, Math.round(best.sc * (POINT_WEIGHTS[it.type] || 2))); });
+  // 形式ごとの一律配点で100点にならないときは、重い形式の問題から1点ずつ足し引きして合わせる
+  let diff = 100 - best.t;
+  const order = items.slice().sort((a, b) => (POINT_WEIGHTS[b.type] || 2) - (POINT_WEIGHTS[a.type] || 2));
+  for (let guard = 0; diff !== 0 && guard < 1000; guard++) {
+    const it = order[guard % order.length];
+    if (diff > 0) { it.points++; diff--; }
+    else if (it.points > 1) { it.points--; diff++; }
+  }
+  return 100 - diff;
+}
+
 function renderWorksheet() {
-  if (printSource.kind === 'guide') { renderGuideWorksheet(); return; }
+  document.getElementById('sheet').classList.toggle('teacher', printTeacherCheck.checked);
+  sheetNo.textContent = `No.${printSeed}`;
+  if (printSource.kind === 'guide') { allWorksheetItems().forEach(it => { delete it.points; }); renderGuideWorksheet(); return; }
   if (printSource.kind === 'stage') {
     const s = currentStage();
     const gradeName = (grades.find(g => g.id === s.grade) || {}).name || '';
@@ -4971,10 +5043,15 @@ function renderWorksheet() {
     sheetTitle.textContent = `英語テスト ${printSource.config.name || ''}`.trim();
     sheetSub.textContent = printSource.summary;
   }
-  sheetTotal.textContent = countQuestions();
+  // 定期テスト形式(テスト範囲)のプリントは配点を入れられる
+  const usePoints = printSource.kind === 'test' && printPointsCheck.checked;
+  const pointTotal = usePoints ? assignPoints(allWorksheetItems()) : (assignPoints([]), allWorksheetItems().forEach(it => { delete it.points; }), 0);
+  sheetTotal.textContent = usePoints ? pointTotal : countQuestions();
   sheetScore.textContent = '';
   printScoreBanner.style.display = 'none';
   sheetItems.innerHTML = '';
+  const sumPoints = items => items.reduce((a, it) => a + (it.points || 0), 0);
+  const titleWithPoints = (title, items) => (usePoints ? `${title}（${sumPoints(items)}点）` : title);
 
   const sections = [];
   if (vocabItems.length) sections.push('vocab');
@@ -4984,10 +5061,10 @@ function renderWorksheet() {
   let instr = '';
   sections.forEach((sec, si) => {
     const numeral = numbered ? SECTION_NUMERALS[si] : '';
-    if (sec === 'vocab') instr = appendItemGroup(vocabItems, VOCAB_TYPES, numeral, '単語');
-    if (sec === 'grammar') instr = appendItemGroup(printItems, QUESTION_TYPES, numeral, '文法');
+    if (sec === 'vocab') instr = appendItemGroup(vocabItems, VOCAB_TYPES, numeral, titleWithPoints('単語', vocabItems));
+    if (sec === 'grammar') instr = appendItemGroup(printItems, QUESTION_TYPES, numeral, titleWithPoints('文法', printItems));
     if (sec === 'reading') {
-      sheetItems.appendChild(sectionHead(numeral || '', '長文', '次の英文を読んで、あとの問いに答えなさい。'));
+      sheetItems.appendChild(sectionHead(numeral || '', titleWithPoints('長文', readingItems.flatMap(r => r.subs)), '次の英文を読んで、あとの問いに答えなさい。'));
       readingItems.forEach((r, ri) => {
         const box = document.createElement('div');
         box.className = 'ws-passage';
@@ -5050,13 +5127,23 @@ function showScore(score, total, suffix = '') {
 }
 
 function checkWorksheet() {
-  let score = 0, total = 0;
+  let score = 0, total = 0, pts = 0, ptsTotal = 0, selfPts = 0;
   sheetItems.querySelectorAll('.ws-item').forEach(row => {
     const ok = markItemRow(row);
-    if (ok === null) return;
+    const p = row._item.points || 0;
+    if (ok === null) { selfPts += p; return; }
     total++;
-    if (ok) score++;
+    ptsTotal += p;
+    if (ok) { score++; pts += p; }
   });
+  if (ptsTotal) {
+    sheetScore.textContent = pts;
+    printScoreBanner.style.display = 'block';
+    printScoreBanner.textContent = selfPts
+      ? `${pts}点 / ${ptsTotal}点（${score} / ${total} 問正解）　※日本語で答える問題（${selfPts}点分）は模範解答を見て自分で採点し、足すと${ptsTotal + selfPts}点満点です`
+      : `${pts}点 / ${ptsTotal}点（${score} / ${total} 問正解）`;
+    return;
+  }
   showScore(score, total);
 }
 
@@ -5082,7 +5169,59 @@ grades.forEach(g => {
   guideEntryGrades.appendChild(btn);
 });
 printRegenBtn.addEventListener('click', generateWorksheet);
-printPrintBtn.addEventListener('click', () => window.print());
+printPrintBtn.addEventListener('click', () => { savePrintHistory(); window.print(); });
+printPointsCheck.addEventListener('change', renderWorksheet);
+printTeacherCheck.addEventListener('change', () => document.getElementById('sheet').classList.toggle('teacher', printTeacherCheck.checked));
+
+// ---------- 印刷したプリントの履歴 ----------
+// 印刷したときの出題元・設定・プリント番号を保存しておき、同じプリントをもう一度作ったり、類題を作ったりできる
+const PRINT_HISTORY_KEY = 'engrammar_print_history';
+function loadPrintHistory() {
+  try { return JSON.parse(localStorage.getItem(PRINT_HISTORY_KEY) || '[]'); } catch (_) { return []; }
+}
+function savePrintHistory() {
+  const entry = {
+    seed: printSeed, title: sheetTitle.textContent, sub: sheetSub.textContent, date: new Date().toISOString().slice(0, 10),
+    source: JSON.parse(JSON.stringify(printSource)), stageIndex,
+    settings: { printCount, printTypes: [...printTypes], printChunkLevel, printGlossMode, points: printPointsCheck.checked },
+  };
+  const list = loadPrintHistory().filter(e => !(e.seed === entry.seed && e.title === entry.title));
+  list.unshift(entry);
+  try { localStorage.setItem(PRINT_HISTORY_KEY, JSON.stringify(list.slice(0, 30))); } catch (_) {}
+}
+function openFromHistory(entry, sameQuestions) {
+  printSource = JSON.parse(JSON.stringify(entry.source));
+  stageIndex = entry.stageIndex;
+  const st = entry.settings || {};
+  printCount = st.printCount || printCount;
+  printTypes = new Set(st.printTypes || [...printTypes]);
+  printChunkLevel = st.printChunkLevel || 1;
+  printGlossMode = st.printGlossMode || printGlossMode;
+  printPointsCheck.checked = st.points !== false;
+  showScreen('print');
+  generateWorksheet(sameQuestions ? entry.seed : undefined);
+}
+function renderPrintHistory() {
+  const list = loadPrintHistory();
+  printHistoryCard.style.display = list.length ? 'block' : 'none';
+  printHistoryList.innerHTML = '';
+  list.slice(0, 10).forEach(e => {
+    const row = document.createElement('div');
+    row.className = 'test-saved-row';
+    row.innerHTML = `<div class="test-saved-name">${e.title}<span>${e.date}・No.${e.seed}</span></div>`;
+    const same = document.createElement('button');
+    same.className = 'btn btn-ghost btn-small';
+    same.textContent = '同じプリント';
+    same.onclick = () => openFromHistory(e, true);
+    const similar = document.createElement('button');
+    similar.className = 'btn btn-ghost btn-small';
+    similar.textContent = '類題';
+    similar.onclick = () => openFromHistory(e, false);
+    row.appendChild(same);
+    row.appendChild(similar);
+    printHistoryList.appendChild(row);
+  });
+}
 printCheckBtn.addEventListener('click', checkWorksheet);
 printResetBtn.addEventListener('click', resetWorksheetAnswers);
 printIncludeAnswers.addEventListener('change', () => {
