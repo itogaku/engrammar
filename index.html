@@ -392,7 +392,15 @@
     .ws-ans-page { display: none !important; }
     .ws-ans-page.include { display: block !important; break-before: page; page-break-before: always; border: none; background: none; padding: 0; margin: 0; }
     .guide-paged .ws-ans-page + .ws-qpage { break-before: page; page-break-before: always; }
+    /* くり返しプリント: 第1回の問題 → 解答 → 第2回の問題 → 解答 … と続けて印刷する */
+    body.multi-round #sheet { display: none !important; }
+    body.multi-round #roundsPrint { display: block !important; }
+    .round-copy + .round-copy { break-before: page; page-break-before: always; }
+    .round-tabs { display: none !important; }
   }
+  #roundsPrint { display: none; }
+  .round-tabs { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0 0 10px; }
+  .round-tabs .opt-label { margin-right: 4px; }
 </style>
 </head>
 <body>
@@ -513,6 +521,10 @@
       <div class="opt-row"><span class="opt-label">まとまり</span><div class="mode-switch" id="printChunkSwitch"></div></div>
       <div class="opt-row" id="printGlossRow"><span class="opt-label">ヒント</span><div class="mode-switch" id="printGlossSwitch"></div></div>
       </div>
+      <div id="printRoundRow">
+        <div class="opt-row"><span class="opt-label">くり返し</span><div class="mode-switch" id="printRoundSwitch"></div></div>
+        <div class="opt-hint">「解く → 丸付け → 類題を解く」をくり返せるように、問題と解答を1回分ずつ続けて印刷します（第1回の問題 → 第1回の解答 → 第2回の問題 → …）。2回目からは同じ形式・同じ範囲の別の問題です。</div>
+      </div>
       <div class="opt-row">
         <label class="opt-check"><input type="checkbox" id="printIncludeAnswers" checked> 解答ページも印刷する</label>
       </div>
@@ -526,6 +538,7 @@
       </div>
     </div>
 
+    <div class="round-tabs no-print" id="roundTabs"></div>
     <div class="sheet" id="sheet">
       <div class="sheet-head">
         <div class="sheet-title" id="sheetTitle"></div>
@@ -543,12 +556,14 @@
       <div class="controls no-print" style="margin-top:16px;">
         <button class="btn btn-primary" id="printCheckBtn">画面でこたえ合わせ</button>
         <button class="btn btn-ghost" id="printResetBtn">解答を消す</button>
+        <button class="btn btn-primary" id="printNextRoundBtn" style="display:none;"></button>
       </div>
       <div class="answer-sheet" id="answerSheet">
         <h2 id="answerSheetTitle"></h2>
         <div id="answerList"></div>
       </div>
     </div>
+    <div id="roundsPrint"></div>
   </div>
 
   <!-- Screen 3: practice -->
@@ -2397,6 +2412,9 @@ let poolPieces = [];
 let answered = false;
 let programMode = "print";    // 'print' | 'practice'  (単元選択後に開く画面。プリント作りが中心)
 let printCount = 10;
+let printRounds = 3;          // くり返しの回数(1回分 = 問題 + 解答)
+let roundSets = [];           // [{ vocab, grammar, reading }] 回ごとの問題
+let activeRound = 0;          // 画面に出している回
 let printChunkLevel = 1;
 let printGlossMode = "glossed";
 let printItems = [];          // 今のプリントの問題(ベース文+修飾語を合成したもの)
@@ -3969,19 +3987,22 @@ function vocabTypePool(stageList, type, importantOnly) {
 
 // 形式ごとの問題数(cfg.vocabCounts)だけ単語問題を作る。同じ語は2回出さない。
 // 作れる語が少ない形式(熟語・例文の穴埋め)から先に語を選ぶ。
-function generateVocabItems(stageList, cfg) {
+function generateVocabItems(stageList, cfg, usedBefore = new Set()) {
   const pool = vocabPool(stageList, cfg.vocabImportant);
   const used = new Set();
   const items = [];
   ['vidiom', 'vblank', 'vword', 'vjp', 'vmeaning'].forEach(type => {
     let want = cfg.vocabCounts[type] || 0;
-    for (const v of shuffle(vocabTypePool(stageList, type, cfg.vocabImportant))) {
+    // 前の回で出した語はあとまわし(足りないときだけ使う)
+    const cands = shuffle(vocabTypePool(stageList, type, cfg.vocabImportant));
+    for (const v of [...cands.filter(c => !usedBefore.has(c.word)), ...cands.filter(c => usedBefore.has(c.word))]) {
       if (want <= 0) break;
       if (used.has(v.word)) continue;
       const item = buildVocabQuestion(v, type, pool);
       if (!item) continue;
       items.push(item);
       used.add(v.word);
+      usedBefore.add(v.word);
       want--;
     }
   });
@@ -3999,9 +4020,11 @@ function passageLabel(p) {
   return `中${p.grade} P${p.program}${p.level === 'part' ? ` Part ${p.part}` : ''}`;
 }
 
-function generateReadingItems(stageList, cfg) {
-  const passages = readingPassagesFor(stageList, cfg.readingLevel || 'both');
-  const picked = shuffle(passages).slice(0, cfg.readingCount)
+function generateReadingItems(stageList, cfg, usedBefore = new Set()) {
+  const passages = shuffle(readingPassagesFor(stageList, cfg.readingLevel || 'both'));
+  const picked = [...passages.filter(p => !usedBefore.has(p)), ...passages.filter(p => usedBefore.has(p))].slice(0, cfg.readingCount);
+  picked.forEach(p => usedBefore.add(p));
+  picked
     .sort((a, b) => a.grade - b.grade || a.program - b.program || (a.part || 9) - (b.part || 9));
   return picked.map(p => ({
     section: 'reading', passage: p,
@@ -4447,6 +4470,10 @@ function renderPrintOptions() {
   printCountRow.style.display = isTest || isGuide ? 'none' : 'flex';
   printGuideRow.style.display = isGuide ? 'block' : 'none';
   printPointsLabel.style.display = isTest ? '' : 'none';
+  printRoundRow.style.display = isGuide ? 'none' : '';
+  renderOptionSwitch(printRoundSwitch, [1, 2, 3, 4].map(n => [n, n === 1 ? '1回分' : `${n}回分`]), printRounds, v => {
+    printRounds = v; generateWorksheet(printSeed);
+  });
   document.getElementById('printGlossRow').style.display = isGuide ? 'none' : 'flex';
   printCheckBtn.parentElement.style.display = isGuide ? 'none' : '';
   printSourceNote.style.display = isTest ? 'block' : 'none';
@@ -4531,11 +4558,15 @@ function generateWorksheet(seed) {
     if (!states.has(stage)) states.set(stage, { order: shuffle(stage.questions.map((_, i) => i)), n: 0 });
     return states.get(stage);
   };
-  const slots = grammarSlots();
   const isTest = printSource.kind === 'test';
+  const stageList = sourceStages();
+  // くり返しの回ごとに、同じ形式・同じ範囲で別の問題を作る(文は回をまたいで重ならないように順に使う)
+  const usedWords = new Set(), usedPassages = new Set();
+  roundSets = [];
+  for (let r = 0; r < printRounds; r++) {
+  const slots = grammarSlots();
   // 順番をランダムにしないときは単元順(同じ形式の中で)
   if (isTest && !printSource.config.shuffle) slots.sort((a, b) => stages.indexOf(a.stage) - stages.indexOf(b.stage));
-  const stageList = sourceStages();
   printItems = slots.map(({ stage, type, fixed }) => {
     let item = makeUnitQuestion(stage, type, stateOf(stage));
     // その形式にできない単元(疑問文ばかりで書きかえができない など)なら、ほかの単元で作る
@@ -4552,12 +4583,66 @@ function generateWorksheet(seed) {
   readingItems = [];
   if (isTest) {
     const cfg = printSource.config;
-    vocabItems = groupByType(generateVocabItems(stageList, cfg), VOCAB_TYPES);
-    readingItems = generateReadingItems(stageList, cfg);
+    vocabItems = groupByType(generateVocabItems(stageList, cfg, usedWords), VOCAB_TYPES);
+    readingItems = generateReadingItems(stageList, cfg, usedPassages);
   }
   printItems = groupByType(printItems, QUESTION_TYPES);
+  roundSets.push({ vocab: vocabItems, grammar: printItems, reading: readingItems });
+  }
+  useRound(0);
   renderPrintOptions();
   renderWorksheet();
+}
+
+// 画面に出す回を切りかえる(入力した答えは回ごとに残る)
+function useRound(i) {
+  activeRound = Math.max(0, Math.min(i, roundSets.length - 1));
+  const r = roundSets[activeRound];
+  if (!r) return;
+  vocabItems = r.vocab; printItems = r.grammar; readingItems = r.reading;
+}
+function roundCount() {
+  return printSource.kind === 'guide' ? 1 : roundSets.length;
+}
+function renderRoundTabs() {
+  const n = roundCount();
+  roundTabs.style.display = n > 1 ? '' : 'none';
+  roundTabs.innerHTML = '';
+  if (n > 1) {
+    const label = document.createElement('span');
+    label.className = 'opt-label';
+    label.textContent = '解く回';
+    roundTabs.appendChild(label);
+    const sw = document.createElement('div');
+    sw.className = 'mode-switch';
+    roundTabs.appendChild(sw);
+    renderOptionSwitch(sw, roundSets.map((_, i) => [i, `第${i + 1}回`]), activeRound, v => { useRound(v); renderWorksheet(); window.scrollTo(0, sheet.offsetTop - 60); });
+  }
+  printNextRoundBtn.style.display = 'none';
+}
+// 印刷用に、すべての回(問題 + 解答)を順にならべる
+function buildRoundsPrint() {
+  roundsPrint.innerHTML = '';
+  const multi = roundCount() > 1;
+  document.body.classList.toggle('multi-round', multi);
+  if (!multi) return;
+  const keep = activeRound;
+  roundSets.forEach((_, i) => {
+    useRound(i);
+    renderWorksheet();
+    const copy = sheet.cloneNode(true);
+    copy.removeAttribute('id');
+    copy.querySelectorAll('[id]').forEach(e => e.removeAttribute('id'));
+    copy.classList.add('round-copy');
+    roundsPrint.appendChild(copy);
+  });
+  useRound(keep);
+  renderWorksheet();
+}
+function nextRound() {
+  if (activeRound < roundSets.length - 1) { useRound(activeRound + 1); renderWorksheet(); }
+  else generateWorksheet();
+  window.scrollTo(0, sheet.offsetTop - 60);
 }
 
 // プリント上のすべての設問(長文の小問も含む)
@@ -5034,13 +5119,15 @@ function renderWorksheet() {
   document.getElementById('sheet').classList.toggle('teacher', printTeacherCheck.checked);
   sheetNo.textContent = `No.${printSeed}`;
   if (printSource.kind === 'guide') { allWorksheetItems().forEach(it => { delete it.points; }); renderGuideWorksheet(); return; }
+  renderRoundTabs();
+  const roundLabel = roundCount() > 1 ? `（第${activeRound + 1}回）` : '';
   if (printSource.kind === 'stage') {
     const s = currentStage();
     const gradeName = (grades.find(g => g.id === s.grade) || {}).name || '';
-    sheetTitle.textContent = `英語プリント ${s.label}`;
+    sheetTitle.textContent = `英語プリント ${s.label}${roundLabel}`;
     sheetSub.innerHTML = `${gradeName} &middot; ${s.eyebrow}`;
   } else {
-    sheetTitle.textContent = `英語テスト ${printSource.config.name || ''}`.trim();
+    sheetTitle.textContent = `英語テスト ${printSource.config.name || ''}`.trim() + roundLabel;
     sheetSub.textContent = printSource.summary;
   }
   // 定期テスト形式(テスト範囲)のプリントは配点を入れられる
@@ -5127,6 +5214,14 @@ function showScore(score, total, suffix = '') {
 }
 
 function checkWorksheet() {
+  checkWorksheetScore();
+  // 答え合わせのあとは、次の回(類題)へ進める
+  if (printSource.kind !== 'guide') {
+    printNextRoundBtn.style.display = '';
+    printNextRoundBtn.textContent = activeRound < roundCount() - 1 ? `第${activeRound + 2}回（類題）を解く` : '新しい類題でもう1回';
+  }
+}
+function checkWorksheetScore() {
   let score = 0, total = 0, pts = 0, ptsTotal = 0, selfPts = 0;
   sheetItems.querySelectorAll('.ws-item').forEach(row => {
     const ok = markItemRow(row);
@@ -5169,7 +5264,10 @@ grades.forEach(g => {
   guideEntryGrades.appendChild(btn);
 });
 printRegenBtn.addEventListener('click', generateWorksheet);
-printPrintBtn.addEventListener('click', () => { savePrintHistory(); window.print(); });
+printPrintBtn.addEventListener('click', () => { savePrintHistory(); buildRoundsPrint(); window.print(); });
+window.addEventListener('beforeprint', () => { if (screenPrint.style.display !== 'none') buildRoundsPrint(); });
+window.addEventListener('afterprint', () => { roundsPrint.innerHTML = ''; document.body.classList.remove('multi-round'); });
+printNextRoundBtn.addEventListener('click', nextRound);
 printPointsCheck.addEventListener('change', renderWorksheet);
 printTeacherCheck.addEventListener('change', () => document.getElementById('sheet').classList.toggle('teacher', printTeacherCheck.checked));
 
@@ -5183,7 +5281,7 @@ function savePrintHistory() {
   const entry = {
     seed: printSeed, title: sheetTitle.textContent, sub: sheetSub.textContent, date: new Date().toISOString().slice(0, 10),
     source: JSON.parse(JSON.stringify(printSource)), stageIndex,
-    settings: { printCount, printTypes: [...printTypes], printChunkLevel, printGlossMode, points: printPointsCheck.checked },
+    settings: { printCount, printTypes: [...printTypes], printChunkLevel, printGlossMode, points: printPointsCheck.checked, rounds: printRounds },
   };
   const list = loadPrintHistory().filter(e => !(e.seed === entry.seed && e.title === entry.title));
   list.unshift(entry);
@@ -5198,6 +5296,7 @@ function openFromHistory(entry, sameQuestions) {
   printChunkLevel = st.printChunkLevel || 1;
   printGlossMode = st.printGlossMode || printGlossMode;
   printPointsCheck.checked = st.points !== false;
+  printRounds = st.rounds || 1;
   showScreen('print');
   generateWorksheet(sameQuestions ? entry.seed : undefined);
 }
