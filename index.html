@@ -685,7 +685,7 @@ const stages = [
       { jp: "あなたはどこの出身ですか。", pieces: [{en:"Where", jp:"どこ"}, {en:"are", jp:"ですか"}, {en:"you", jp:"あなた"}, {en:"from", jp:"の出身"}] },
       { jp: "彼はどこにいますか。", pieces: [{en:"Where", jp:"どこに"}, {en:"is", jp:"います"}, {en:"he", jp:"彼"}] },
       { jp: "彼女はどこにいますか。", pieces: [{en:"Where", jp:"どこに"}, {en:"is", jp:"います"}, {en:"she", jp:"彼女"}] },
-      { jp: "あなたは今どこにいますか。", pieces: [{en:"Where", jp:"どこに"}, {en:"are", jp:"います"}, {en:"you", jp:"あなた"}, {en:"now", jp:"今"}] },
+      { jp: "あなたのお姉さんはどこにいますか。", pieces: [{en:"Where", jp:"どこに"}, {en:"is", jp:"います"}, {en:"your sister", jp:"あなたのお姉さん"}] },
       { jp: "私のかばんはどこにありますか。", pieces: [{en:"Where", jp:"どこに"}, {en:"is", jp:"あります"}, {en:"my bag", jp:"私のかばん"}], coreSlotIndex: 2, corePool: [{en:"my pen", jp:"私のペン"}, {en:"my book", jp:"私の本"}] },
       { jp: "彼はどこの出身ですか。", pieces: [{en:"Where", jp:"どこ"}, {en:"is", jp:"ですか"}, {en:"he", jp:"彼"}, {en:"from", jp:"の出身"}] },
     ],
@@ -1155,10 +1155,10 @@ const stages = [
     questions: [
       { jp: "私は明日テニスをするつもりです。", pieces: [{en:"I", jp:"私"}, {en:"am going to play", jp:"するつもりです"}, {en:"tennis", jp:"テニスを"}, {en:"tomorrow", jp:"明日"}], coreSlotIndex: 2, corePool: [{en:"soccer", jp:"サッカーを"}, {en:"baseball", jp:"野球を"}] },
       { jp: "彼は今晩勉強するつもりはありません。", pieces: [{en:"He", jp:"彼"}, {en:"is not going to study", jp:"勉強するつもりはありません"}, {en:"this evening", jp:"今晩"}] },
-      { jp: "私たちは今夜映画を見るつもりです。", pieces: [{en:"We", jp:"私たち"}, {en:"are going to watch", jp:"見るつもりです"}, {en:"a movie", jp:"映画を"}, {en:"tonight", jp:"今夜"}] },
+      { jp: "私たちは今晩映画を見るつもりです。", pieces: [{en:"We", jp:"私たち"}, {en:"are going to watch", jp:"見るつもりです"}, {en:"a movie", jp:"映画を"}, {en:"this evening", jp:"今晩"}] },
       { jp: "彼女は来週京都を訪れるつもりです。", pieces: [{en:"She", jp:"彼女"}, {en:"is going to visit", jp:"訪れるつもりです"}, {en:"Kyoto", jp:"京都を"}, {en:"next week", jp:"来週"}] },
       { jp: "私は今日テレビを見るつもりはありません。", pieces: [{en:"I", jp:"私"}, {en:"am not going to watch", jp:"見るつもりはありません"}, {en:"TV", jp:"テレビを"}, {en:"today", jp:"今日"}] },
-      { jp: "あなたは今夜勉強するつもりですか。", pieces: [{en:"Are you", jp:"あなたは"}, {en:"going to study", jp:"勉強するつもりですか"}, {en:"tonight", jp:"今夜"}] },
+      { jp: "あなたは今晩勉強するつもりですか。", pieces: [{en:"Are you", jp:"あなたは"}, {en:"going to study", jp:"勉強するつもりですか"}, {en:"this evening", jp:"今晩"}] },
       { jp: "彼らは放課後サッカーをするつもりです。", pieces: [{en:"They", jp:"彼ら"}, {en:"are going to play", jp:"するつもりです"}, {en:"soccer", jp:"サッカーを"}, {en:"after school", jp:"放課後"}], coreSlotIndex: 2, corePool: [{en:"tennis", jp:"テニスを"}, {en:"basketball", jp:"バスケットボールを"}] },
     ],
   },
@@ -1172,7 +1172,7 @@ const stages = [
     questions: [
       { jp: "彼は来ないでしょう。", pieces: [{en:"He", jp:"彼"}, {en:"will not come", jp:"来ないでしょう"}] },
       { jp: "私は明日彼を手伝います。", pieces: [{en:"I", jp:"私"}, {en:"will help", jp:"手伝います"}, {en:"him", jp:"彼を"}, {en:"tomorrow", jp:"明日"}], coreSlotIndex: 2, corePool: [{en:"her", jp:"彼女を"}, {en:"them", jp:"彼らを"}] },
-      { jp: "あなたは明日忙しいですか。", pieces: [{en:"Will", jp:"〜でしょうか"}, {en:"you", jp:"あなた"}, {en:"be busy", jp:"忙しい"}, {en:"tomorrow", jp:"明日"}], coreSlotIndex: 2, corePool: [{en:"be sick", jp:"病気"}, {en:"be free", jp:"ひま"}] },
+      { jp: "あなたは明日忙しいですか。", pieces: [{en:"Will", jp:"〜でしょうか"}, {en:"you", jp:"あなた"}, {en:"be busy", jp:"忙しい"}, {en:"tomorrow", jp:"明日"}], coreSlotIndex: 2, corePool: [{en:"be sick", jp:"病気"}] },
     ],
   },
   {
@@ -2501,13 +2501,15 @@ function rewriteSentence(tokens, jp, kind) {
 
 const CHOICE_LABELS = ['ア', 'イ', 'ウ', 'エ'];
 const QUESTION_TYPES = {
-  reorder:   { label: '並べ替え', instr: '日本語に合うように、下の語句を並べ替えて英文を書きなさい。' },
+  reorder:   { label: '並べ替え', instr: '日本語に合うように、下の語句を並べ替えて英文を書きなさい。文頭に来る語も小文字で示してあります。' },
   choice:    { label: '適語選択', instr: '日本語に合うように、（　）に入る最も適切な語を選びなさい。' },
   fillin:    { label: '適語補充', instr: '日本語に合うように、（　）に入る適切な英語を1語書きなさい。' },
   form:      { label: '語形変化', instr: '日本語に合うように、[　]の語を適切な形にして（　）に書きなさい。' },
   rewrite:   { label: '書きかえ', instr: '（　）内の指示にしたがって、英文を書きかえなさい。' },
   translate: { label: '和文英訳', instr: '日本語を英語にしなさい。' },
   entoja:    { label: '英文和訳', instr: '次の英文を日本語にしなさい。' },
+  extra:     { label: '並べ替え(1語不要)', instr: '日本語に合うように、下の語を並べ替えて英文を書きなさい。ただし、不要な語が1つあります。文頭に来る語も小文字で示してあります。' },
+  error:     { label: '誤文訂正', instr: '次の英文には誤りが1か所あります。誤っている語を正しい形に直しなさい。' },
 };
 
 // 1問ぶんの出題データを作る。空所が作れないときは別の形式に切り替える。
@@ -2525,6 +2527,16 @@ function buildQuestion(stage, q, type) {
       if (r) return { ...item, type: 'rewrite', rewriteKind: kind, answerSentence: r.text, answers: r.variants };
     }
     return buildQuestion(stage, q, 'choice');
+  }
+  if (type === 'extra' || type === 'error') {
+    // 並べ替え(1語不要)・誤文訂正: 文中の1語の「まちがった形」を使う。作れない文なら適語選択にする
+    const blank = findBlank(stage, tokens, false);
+    const wrong = blank && wrongFormFor(tokens, blank, type === 'error');
+    if (!wrong) return buildQuestion(stage, q, 'choice');
+    const answer = tokens[blank.index];
+    const capital = blank.index === 0;
+    const fmt = w => (capital || w.toLowerCase() === 'i' ? capitalize(w.toLowerCase()) : w.toLowerCase());
+    return { ...item, type, blankIndex: blank.index, blankFamily: blank.family, answer, wrongWord: fmt(wrong) };
   }
   if (type === 'choice' || type === 'form' || type === 'fillin') {
     const blank = findBlank(stage, tokens, type === 'form');
@@ -2553,6 +2565,76 @@ function buildQuestion(stage, q, type) {
   return item;
 }
 
+// 文中の1語(空所の候補)の「まちがった形」を返す。
+// strict(誤文訂正)のときは、日本語がなくても文法的にまちがいだとわかる形だけにする
+// (主語と be動詞・do / does・3単現の s の不一致、助動詞や to のあとの原形、進行形・完了形の形、
+//  代名詞の格、数と名詞の形、比較の形)。I played を I play にするような、それだけでは正しい文になる変え方はしない。
+function wrongFormFor(tokens, blank, strict) {
+  const lw = tokens.map(t => t.replace(/[,.?!]/g, '').toLowerCase());
+  const i = blank.index, a = lw[i], prev = lw[i - 1] || '', prev2 = lw[i - 2] || '';
+  const used = new Set(lw);
+  const ok = w => w && w !== a && !used.has(w);
+  const fam = blank.family;
+  if (fam === 'be') {
+    if (['am', 'is', 'are'].includes(a)) return pickRandom(['am', 'is', 'are'].filter(ok));
+    if (a === 'was') return ok('were') ? 'were' : null;
+    if (a === 'were') return lw.includes('if') || lw.includes('wish') ? null : (ok('was') ? 'was' : null);
+    return null;
+  }
+  if (fam === 'do') {
+    if (a === 'do') return 'does';
+    if (a === 'does') return 'do';
+    if (a === "don't") return "doesn't";
+    if (a === "doesn't") return "don't";
+    return strict ? null : (a === 'did' ? 'does' : null);
+  }
+  if (fam === 'have') {
+    if (a === 'has') return 'have';
+    if (a === 'have' && !['do', 'does', 'did', 'will', 'must', 'to', 'not'].includes(prev) && !(i === 0 && lw[1] !== 'to')) {
+      const subj = lw[i - 1];
+      return ['i', 'you', 'we', 'they'].includes(subj) || /s$/.test(subj) && subj !== 'this' ? 'has' : null;
+    }
+    return null;
+  }
+  if (fam === 'verb') {
+    const base = VERB_BASE_OF[a];
+    if (!base) return null;
+    const third = verbThirdPerson(base), past = verbPast(base), pp = verbPastParticiple(base), ing = verbIng(base);
+    const afterAux = ['can', 'will', 'must', 'should', 'could', 'would', 'may', 'to', 'do', 'does', 'did', "don't", "doesn't", "didn't", "let's", 'cannot'].includes(prev)
+      || prev === 'not' && ['do', 'does', 'did', 'will', 'can', 'must'].includes(prev2);
+    if (a === base && afterAux) return ok(third) ? third : ok(ing) ? ing : null;
+    if (a === third && a !== base && ['he', 'she', 'it', 'this', 'that'].includes(prev)) return base;
+    if (a === ing && a !== base && GUIDE_BE.has(prev)) return ok(base) ? base : null;
+    if (a === pp && pp !== past && ['have', 'has', 'is', 'are', 'was', 'were', 'been', 'be'].includes(prev)) return ok(past) ? past : base;
+    if (a === pp && pp !== base && ['have', 'has', 'is', 'are', 'was', 'were', 'been', 'be'].includes(prev)) return ok(base) ? base : null;
+    if (a === ing && ['enjoy', 'enjoyed', 'enjoys', 'stop', 'stopped', 'finish', 'finished'].includes(prev)) return ok(base) ? base : null;
+    return strict ? null : pickRandom(blank.options.filter(o => ok(o.toLowerCase())));
+  }
+  if (fam === 'pronoun') {
+    const set = PRONOUN_SET_OF[a].map(w => w.toLowerCase()); // [主格, 所有格, 目的格, 所有代名詞]
+    if (i === 0 && a === set[0] && a !== 'you') return set[2] !== a ? set[2] : null;
+    if (a === set[2] && a !== set[0] && a !== set[1] && i > 0) return set[0];
+    if (a === set[1] && a !== set[2] && a !== set[3] && i < tokens.length - 1) return set[2] !== a ? (a === 'my' ? 'me' : set[0]) : null;
+    if (a === set[3] && a !== set[1] && i === tokens.length - 1) return set[1];
+    return null;
+  }
+  if (fam === 'noun') {
+    const base = NOUN_BASE_OF[a];
+    if (!base) return null;
+    if (a !== base && GUIDE_NUMBERS.has(prev) && !['a', 'an', 'the', 'some', 'any'].includes(prev)) return base;
+    if (a === base && ['a', 'an', 'one'].includes(prev)) return pluralOf(base);
+    return null;
+  }
+  if (fam === 'compare') {
+    const base = COMPARE_BASE_OF[a];
+    if (base && COMPARE_ADJ[base][0] === a && lw[i + 1] === 'than') return base;
+    if (base && COMPARE_ADJ[base][1] === a && prev === 'the') return COMPARE_ADJ[base][0];
+    if (COMPARE_ADJ[a] && prev === 'as') return COMPARE_ADJ[a][0];
+    return null;
+  }
+  return strict ? null : pickRandom(blank.options.filter(o => ok(o.toLowerCase())));
+}
+
 // 1つの単元から、指定した形式の問題を1問作る。その形式にできない文だったら別の例文で試す。
 // st は単元ごとの出題順と出題数({ order, n })。作れなければ別の形式になった問題を返す。
 function makeUnitQuestion(stage, type, st, maxTier = 3) {
@@ -2569,6 +2651,9 @@ function blankedSentence(item) {
   // 解説つきプリントの適語補充は、最初の文字をヒントに出す
   const blank = item.firstLetter ? `（${item.answer[0]}　　　）` : '（　　　　）';
   return endWith(item.tokens.map((t, i) => (i === item.blankIndex ? `<span class="ws-blank">${blank}</span>` : t)).join(' '), item.end);
+}
+function errorSentence(item) {
+  return endWith(item.tokens.map((t, i) => (i === item.blankIndex ? item.wrongWord + (/,$/.test(t) ? ',' : '') : t)).join(' '), item.end);
 }
 function fullSentence(item) {
   return endWith(item.tokens.join(' '), item.end);
@@ -3408,8 +3493,16 @@ function allWorksheetItems() {
   return [...vocabItems, ...printItems, ...readingItems.flatMap(r => r.subs)];
 }
 
+// 入試と同じように、文頭に来る語も小文字で示す(大文字で最初の語がわからないように)。I や地名などはそのまま
+const KEEP_CAPITAL = new Set(['I', "I'm", 'Japan', 'Tokyo', 'Kyoto', 'Osaka', 'Hokkaido', 'Okinawa', 'English', 'Japanese', 'TV', 'Mr.', 'Ms.']);
+function lowerFirst(en) {
+  const [first, ...rest] = en.split(' ');
+  return KEEP_CAPITAL.has(first) ? en : [first.charAt(0).toLowerCase() + first.slice(1), ...rest].join(' ');
+}
 function worksheetPieces(item) {
-  return expandPieces(item.pieces, printChunkLevel);
+  // 並べ替え(1語不要)は1語ずつにして、まちがった形の語を1つまぜる
+  const pieces = item.type === 'extra' ? [...expandPieces(item.pieces, 3), { en: item.wrongWord, jp: '' }] : expandPieces(item.pieces, printChunkLevel);
+  return pieces.map((p, i) => (i === 0 || (item.type === 'extra' && i === pieces.length - 1) ? { ...p, en: lowerFirst(p.en) } : p));
 }
 
 // シャッフル結果をまとまりの大きさごとに固定する(再描画のたびに並びが変わらないように)
@@ -3437,6 +3530,8 @@ function answerText(item) {
   }
   if (['form', 'fillin', 'vword', 'vblank', 'vidiom', 'vjp', 'entoja', 'rfill', 'rja'].includes(item.type)) return item.answer;
   if (item.type === 'rewrite') return item.answerSentence;
+  if (item.type === 'error') return `${item.wrongWord} → ${item.answer}`;
+  if (item.type === 'extra') return `${fullSentence(item)}（不要：${item.wrongWord}）`;
   return fullSentence(item);
 }
 
@@ -3446,6 +3541,12 @@ function isCorrect(item) {
   if (SELF_GRADED_TYPES.has(item.type)) return null;
   if (SELECT_TYPES.has(item.type)) return answer === item.answer;
   if (item.type === 'rewrite') return normalize(answer) !== '' && item.answers.some(a => normalize(a) === normalize(answer));
+  // 誤文訂正: 「正しい語」だけ、または「誤っている語 → 正しい語」を正解にする
+  if (item.type === 'error') {
+    const words = answer.toLowerCase().replace(/[’]/g, "'").split(/[^a-z']+/).filter(Boolean);
+    const want = item.answer.toLowerCase();
+    return words.length > 0 && words[words.length - 1] === want && (words.length === 1 || (words.length === 2 && words[0] === item.wrongWord.toLowerCase()));
+  }
   if (item.type === 'vidiom') return normalize(answer.replace(/[／/・]/g, ' ')) === normalize(item.answers.join(' '));
   const target = ['form', 'fillin', 'vword', 'vblank', 'rfill'].includes(item.type) ? item.answer : fullSentence(item);
   return normalize(answer) !== '' && normalize(answer) === normalize(target);
@@ -3481,10 +3582,10 @@ function itemPromptHtml(item) {
 
 function itemBodyHtml(item) {
   switch (item.type) {
-    case 'reorder': {
+    case 'reorder': case 'extra': {
       const pieces = shuffledPieces(item).map(p => {
-        // 解説つきプリント(noHint)では、語句の下の日本語(ヒント)は出さない
-        const jp = printGlossMode === 'glossed' && !item.noHint && p.jp ? `<span class="wp-jp">${p.jp}</span>` : '';
+        // 解説つきプリント(noHint)・1語不要では、語句の下の日本語(ヒント)は出さない
+        const jp = printGlossMode === 'glossed' && !item.noHint && item.type !== 'extra' && p.jp ? `<span class="wp-jp">${p.jp}</span>` : '';
         return `<span class="ws-piece"><span>${p.en}</span>${jp}</span>`;
       }).join('');
       return `<div class="ws-pieces">${pieces}</div>${answerLineHtml('ここに英文を書こう')}`;
@@ -3496,6 +3597,8 @@ function itemBodyHtml(item) {
         ${answerLineHtml('（　）に入る語', 'short')}`;
     case 'fillin':
       return `<div class="ws-sentence">${blankedSentence(item)}</div>${answerLineHtml('（　）に入る語', 'short')}`;
+    case 'error':
+      return `<div class="ws-sentence">${errorSentence(item)}</div>${answerLineHtml('誤っている語 → 正しい語', 'short')}`;
     case 'entoja':
       return answerLineHtml('日本語で書こう');
     case 'rewrite':
