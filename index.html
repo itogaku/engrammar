@@ -288,6 +288,27 @@
   .ws-type-group { margin: 14px 0 0; font-size: 13px; color: var(--ink); }
   .answer-sheet h3 { font-size: 14px; margin: 12px 0 4px; }
   .answer-sub { font-size: 13px; font-weight: 700; margin-top: 6px; }
+  /* 解説つきプリント */
+  .guide-entry { cursor: default; background: var(--amber-tint); border-color: var(--amber); }
+  .guide-entry-grades { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+  .guide-entry-grades button { font-family: inherit; font-size: 14px; font-weight: 700; padding: 8px 16px; border-radius: 999px; border: 1.5px solid var(--amber); background: var(--panel); color: var(--amber); cursor: pointer; }
+  .guide-entry-grades button:hover { background: var(--amber); color: #fff; }
+  .ws-guide { border: 2px solid var(--ink); border-radius: 12px; padding: 14px 16px; margin: 4px 0 18px; break-inside: avoid; }
+  .ws-guide-label { display: inline-block; font-size: 12px; font-weight: 800; border: 1.5px solid var(--ink); padding: 1px 10px; border-radius: 999px; }
+  .ws-guide-title { font-size: 17px; font-weight: 800; margin: 8px 0 4px; }
+  .ws-guide-point { font-size: 14px; line-height: 1.8; margin: 0 0 10px; }
+  .ws-forms { display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px; }
+  .ws-form { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; font-size: 13.5px; }
+  .ws-form span { border: 1.5px solid var(--ink); border-radius: 6px; padding: 3px 8px; font-weight: 700; }
+  .ws-form i { font-style: normal; color: var(--ink-soft); }
+  .ws-guide-sub { font-size: 12.5px; font-weight: 800; margin: 8px 0 2px; }
+  .ws-examples, .ws-tips { margin: 0; padding-left: 20px; font-size: 14px; line-height: 1.7; }
+  .ws-ex-en { font-family: 'Georgia', serif; font-size: 15px; margin-right: 10px; }
+  .ws-ex-jp { font-size: 12.5px; color: var(--ink-soft); }
+  .ws-hl { text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 3px; }
+  .ws-hintline { font-size: 12.5px; color: var(--ink-soft); margin-top: 6px; }
+  .ws-explain { font-size: 13px; margin-top: 4px; line-height: 1.7; color: var(--ink); font-weight: 400; background: var(--amber-tint); border-radius: 8px; padding: 6px 10px; }
+  .answer-explain { font-size: 12.5px; line-height: 1.6; margin-bottom: 4px; }
 
   @media print {
     @page { size: A4; margin: 14mm 14mm; }
@@ -319,6 +340,13 @@
       </div>
       <div class="g-arrow">&rarr;</div>
     </button>
+    <div class="test-entry guide-entry">
+      <div>
+        <div class="g-name">解説つきプリントを作る（はじめて学ぶ人向け）</div>
+        <div class="g-sub">文法のポイントの説明 → ヒントつきのやさしい問題 → 1問ずつの解説、の順に学べるプリントです。学年を選んでください。</div>
+        <div class="guide-entry-grades" id="guideEntryGrades"></div>
+      </div>
+    </div>
     <div class="grade-heading">単元ごとにプリントを作る</div>
     <div class="grade-list" id="gradeList"></div>
   </div>
@@ -387,6 +415,7 @@
     <button class="back-link" id="backToGrade">&larr; 学年選択に戻る</button>
     <div class="mode-switch" id="programModeSwitch">
       <button id="programModePrint" class="active">プリントを作る</button>
+      <button id="programModeGuide">解説つきプリント（初学者向け）</button>
       <button id="programModePractice">画面で練習する（並べ替え）</button>
     </div>
     <div class="program-list" id="programList"></div>
@@ -399,6 +428,10 @@
     <div class="card print-options no-print">
       <div class="print-source-note" id="printSourceNote" style="display:none;"></div>
       <div class="opt-row" id="printCountRow"><span class="opt-label">問題数</span><div class="mode-switch" id="printCountSwitch"></div></div>
+      <div id="printGuideRow" style="display:none;">
+        <div class="opt-row"><span class="opt-label">問題数</span><div class="mode-switch" id="printGuideCountSwitch"></div></div>
+        <div class="opt-row"><label class="opt-check"><input type="checkbox" id="printGuideHintCheck" checked> 問題ごとにヒントを表示する</label></div>
+      </div>
       <div class="opt-row" id="printTypeRow"><span class="opt-label">文法問題</span><div class="mode-switch multi" id="printTypeSwitch"></div></div>
       <div id="printReorderBox">
       <div class="opt-hint">並べ替えの設定</div>
@@ -504,6 +537,7 @@
 <script src="reading_parts_g2.js"></script>
 <script src="reading_parts_g3.js"></script>
 <script src="reading_program2.js"></script>
+<script src="guides.js"></script>
 <script>
 // STAGE type "chunk": 日本語チャンクを英語と同じ語順に並べ替える(単語を知らなくても語順感覚を養う)
 // STAGE type "word": 実際の英単語タイルを並べ替える
@@ -1669,6 +1703,11 @@ const backToProgram = document.getElementById('backToProgram');
 const screenPrint = document.getElementById('screenPrint');
 const programModePractice = document.getElementById('programModePractice');
 const programModePrint = document.getElementById('programModePrint');
+const programModeGuide = document.getElementById('programModeGuide');
+const guideEntryGrades = document.getElementById('guideEntryGrades');
+const printGuideRow = document.getElementById('printGuideRow');
+const printGuideCountSwitch = document.getElementById('printGuideCountSwitch');
+const printGuideHintCheck = document.getElementById('printGuideHintCheck');
 const backToProgramFromPrint = document.getElementById('backToProgramFromPrint');
 const printCountSwitch = document.getElementById('printCountSwitch');
 const printChunkSwitch = document.getElementById('printChunkSwitch');
@@ -2366,6 +2405,7 @@ function buildQuestion(stage, q, type) {
     const capital = blank.index === 0;
     item.type = type;
     item.blankIndex = blank.index;
+    item.blankFamily = blank.family;
     item.answer = answer;
     if (type === 'choice') {
       // 仮定法の were は was でも口語では通じるので、選択肢に was を入れない
@@ -2386,10 +2426,10 @@ function buildQuestion(stage, q, type) {
 
 // 1つの単元から、指定した形式の問題を1問作る。その形式にできない文だったら別の例文で試す。
 // st は単元ごとの出題順と出題数({ order, n })。作れなければ別の形式になった問題を返す。
-function makeUnitQuestion(stage, type, st) {
+function makeUnitQuestion(stage, type, st, maxTier = 3) {
   let item;
   for (let tries = 0; tries < 6; tries++) {
-    const q = getSessionQuestion(stage, st.n++, st.order, type === 'entoja' ? 1 : 3);
+    const q = getSessionQuestion(stage, st.n++, st.order, type === 'entoja' ? 1 : maxTier);
     item = buildQuestion(stage, q, type);
     if (item.type === type) return item;
   }
@@ -2397,7 +2437,9 @@ function makeUnitQuestion(stage, type, st) {
 }
 
 function blankedSentence(item) {
-  return endWith(item.tokens.map((t, i) => (i === item.blankIndex ? '<span class="ws-blank">（　　　　）</span>' : t)).join(' '), item.end);
+  // 解説つきプリントの適語補充は、最初の文字をヒントに出す
+  const blank = item.firstLetter ? `（${item.answer[0]}　　　）` : '（　　　　）';
+  return endWith(item.tokens.map((t, i) => (i === item.blankIndex ? `<span class="ws-blank">${blank}</span>` : t)).join(' '), item.end);
 }
 function fullSentence(item) {
   return endWith(item.tokens.join(' '), item.end);
@@ -2471,8 +2513,8 @@ function renderProgramList() {
     `;
     card.onclick = () => {
       stageIndex = globalIdx;
-      if (programMode === 'print') {
-        printSource = { kind: 'stage' };
+      if (programMode === 'print' || programMode === 'guide') {
+        printSource = { kind: programMode === 'guide' ? 'guide' : 'stage' };
         showScreen('print');
         generateWorksheet();
         return;
@@ -2708,6 +2750,331 @@ function generateReadingItems(stageList, cfg) {
   }));
 }
 
+// ---------- 解説つきプリント(初学者向け) ----------
+// 1つの単元について、「ここがポイント」(guides.js)の説明 → やさしい問題(STEP 1〜4) → 解答と解説 の順に
+// まとめたプリント。問題は修飾語なしの基本文だけで作り、1問ずつヒントと解説を自動でつける。
+const GUIDE_COUNTS = { 2: '少なめ', 3: 'ふつう', 4: '多め' }; // 1つのSTEPの問題数
+let guideCount = 3;
+let guideShowHints = true;
+let guideSteps = [];
+const GUIDE_STEPS = [
+  { type: 'choice', title: 'STEP 1　えらんでみよう', instr: '日本語に合うように、（　）に入る語を選びましょう。' },
+  { type: 'reorder', title: 'STEP 2　ならべかえよう', instr: '日本語に合うように、語句をならべかえて英文を書きましょう。' },
+  { type: 'fillin', title: 'STEP 3　書いてみよう', instr: '日本語に合うように、（　）に入る英語を1語書きましょう。最初の文字がヒントです。' },
+  { type: 'translate', title: 'STEP 4　英文を書いてみよう', instr: '日本語を英語にしましょう。', less: 1 },
+];
+
+const GUIDE_WH_MEANING = { what: '何', where: 'どこ', when: 'いつ', who: 'だれ', whose: 'だれの', which: 'どちら・どの', how: 'どのように・どう', why: 'なぜ' };
+const GUIDE_HOW_MEANING = { many: 'いくつ（数）', much: 'いくら（値段・量）', long: 'どのくらい（長さ・期間）', old: '何歳', about: '〜はどうですか' };
+const GUIDE_MODAL_MEANING = { can: '〜できる', will: '〜でしょう・〜します', must: '〜しなければならない', should: '〜すべきだ',
+  could: '〜できる（のに）', would: '〜する（のに）', may: '〜してもよい' };
+const GUIDE_CONJ_MEANING = { that: '〜ということ（〜と思う・〜と知っている）', when: '〜するとき', if: 'もし〜なら', because: '〜なので' };
+const GUIDE_BE = new Set(['am', 'is', 'are', 'was', 'were']);
+const GUIDE_AUX_BEFORE_BASE = new Set(['can', 'will', 'must', 'should', 'could', 'would', 'may', 'do', 'does', 'did',
+  "don't", "doesn't", "didn't", 'cannot', "can't", "won't", "let's", 'to']);
+const GUIDE_GERUND_VERBS = new Set(['enjoy', 'enjoys', 'enjoyed', 'stop', 'stops', 'stopped', 'finish', 'finished',
+  'like', 'likes', 'love', 'loves', 'start', 'started', 'began', 'begin']);
+const GUIDE_PLURAL_WORDS = new Set(['we', 'they', 'these', 'those', 'people', 'children', 'you']);
+const GUIDE_NUMBERS = new Set(['two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten', 'many', 'some', 'any', 'a', 'an', 'the', 'lots']);
+
+const guideClean = t => t.replace(/[,.?!]/g, '');
+const GUIDE_SKIP_WORDS = new Set(['not', 'always', 'usually', 'sometimes', 'often', 'really', 'also', 'never', 'just', 'already']);
+const NOT_ING = new Set(['something', 'anything', 'everything', 'nothing', 'morning', 'evening', 'thing', 'king', 'ring', 'spring', 'sing', 'bring', 'swing', 'string']);
+const isIngWord = t => /ing$/.test(t) && t.length > 4 && !NOT_ING.has(t);
+const GUIDE_WHTO_MEANING = { what: '何を', where: 'どこに（で）', when: 'いつ', how: 'どのように', which: 'どちらを', who: 'だれに' };
+function guideLower(item) { return item.tokens.map(t => guideClean(t).toLowerCase()); }
+function isPastItem(item) {
+  if (guideLower(item).some(t => ['yesterday', 'ago', 'last', 'then'].includes(t))) return true;
+  return /(た|でした|ました|かった|だった)(か|のですか)?。?$/.test(item.jp.trim());
+}
+// 名詞のまとまり(a book / my sister / Playing tennis など)
+function phraseBefore(tokens, end) {
+  let start = end;
+  const lw = i => guideClean(tokens[i] || '').toLowerCase();
+  if (start > 0 && (DETERMINERS.has(lw(start - 1)) || GUIDE_NUMBERS.has(lw(start - 1)) || /ing$/.test(lw(start - 1)))) start--;
+  return tokens.slice(start, end + 1).map(guideClean).join(' ');
+}
+function phraseAfter(tokens, start) {
+  const lw = guideClean(tokens[start] || '').toLowerCase();
+  const next = guideClean(tokens[start + 1] || '').toLowerCase();
+  // this your pen のように、次も限定詞なら this だけが主語
+  const end = (DETERMINERS.has(lw) || GUIDE_NUMBERS.has(lw)) && next && !DETERMINERS.has(next) && !GUIDE_BE.has(next) ? start + 1 : start;
+  return tokens.slice(start, end + 1).map(guideClean).join(' ');
+}
+// 空所の語の主語。疑問文の形(文頭・疑問詞のあと)なら空所のうしろ、There is ならうしろのもの、それ以外は前
+function guideSubject(item, idx) {
+  const tokens = item.tokens, lw = guideLower(item);
+  const prev = lw[idx - 1];
+  const skipAfter = i => { while (GUIDE_SKIP_WORDS.has(lw[i])) i++; return i; };
+  const skipBefore = i => { while (i > 0 && GUIDE_SKIP_WORDS.has(lw[i])) i--; return i; };
+  if (prev === 'there') return { text: phraseAfter(tokens, skipAfter(idx + 1)), there: true };
+  if (idx === 0 || GUIDE_WH_MEANING[prev] || GUIDE_HOW_MEANING[prev] && lw[idx - 2] === 'how') {
+    if (lw[idx + 1] === 'there') return { text: phraseAfter(tokens, skipAfter(idx + 2)), there: true };
+    return { text: phraseAfter(tokens, idx + 1) };
+  }
+  if (['who', 'which', 'that'].includes(prev) && idx > 1) return { text: phraseBefore(tokens, idx - 2) };
+  return { text: phraseBefore(tokens, skipBefore(idx - 1)) };
+}
+function subjectKind(text) {
+  const words = text.toLowerCase().split(' ');
+  const head = words[words.length - 1];
+  if (head === 'i') return 'I';
+  if (head === 'you') return 'you';
+  if (/ing$/.test(words[0]) && words.length > 1 || /ing$/.test(head)) return 'third';
+  if (GUIDE_PLURAL_WORDS.has(head) || GUIDE_NUMBERS.has(words[0]) && !['a', 'an', 'the'].includes(words[0]) && /s$/.test(head)) return 'plural';
+  if (/s$/.test(head) && NOUN_BASE_OF[head] && NOUN_BASE_OF[head] !== head) return 'plural';
+  if (/[^s]s$/.test(head) && !['this', 'his', 'its', 'yours', 'hers', 'ours', 'theirs', 'is', 'us', 'bus'].includes(head) && words[0] !== 'a') return 'plural';
+  return 'third';
+}
+// 主語の種類のラベル(答えのbe動詞と食いちがわないように、答えから決める)
+function beKindLabel(a, kind) {
+  if (a === 'am') return '';
+  if (a === 'is') return '（3人称単数）';
+  if (a === 'was') return kind === 'I' ? '' : '（3人称単数）';
+  return kind === 'you' ? '' : '（複数）';
+}
+
+function explainBe(item, a, idx) {
+  const lw = guideLower(item);
+  if (a === 'be') return { hint: `前の「${lw[idx - 1]}」に注目。`, why: `${lw[idx - 1]} のあとは原形なので、be動詞は be になる。` };
+  if (a === 'been') return { hint: `前の「${lw[idx - 1]}」に注目。`, why: 'have / has のあとは過去分詞。be動詞の過去分詞は been。' };
+  if (a === 'were' && (lw.includes('if') || lw.includes('wish'))) {
+    return { hint: '「もし〜だったら」の文。', why: '今の事実とちがうことを言う仮定法では、主語が I や he でも be動詞は were を使う。' };
+  }
+  const s = guideSubject(item, idx);
+  const kind = subjectKind(s.text);
+  const past = a === 'was' || a === 'were';
+  const after = lw.slice(idx + 1);
+  let lead = '';
+  const going = after.indexOf('going');
+  if (going >= 0 && after[going + 1] === 'to') lead = '「〜するつもり」は be going to ＋ 動詞の原形。be動詞は主語に合わせる。';
+  else if (after.some(isIngWord)) lead = '「〜している」は be動詞 ＋ ing形。';
+  else if (after.some(t => isPerfectParticiple(t) && VERB_BASE_OF[t] !== t) && /(され|られ|れ)/.test(item.jp)) lead = '「〜される」は be動詞 ＋ 過去分詞。';
+  const rule = past ? 'I・3人称単数 → was／you・複数 → were' : 'I → am／you・複数 → are／3人称単数 → is';
+  return {
+    hint: `主語は「${s.text}」。${isPastItem(item) ? '過去' : '今'}のこと。`,
+    why: `${lead}${s.there ? 'There is / are の文は、うしろのものに合わせる。' : ''}主語が「${s.text}」${beKindLabel(a, kind)}で${past ? '過去' : '現在'}の文なので ${a}。（${rule}）`,
+  };
+}
+function explainDo(item, a, idx) {
+  const lw = guideLower(item);
+  if (/n't$/.test(a) && idx === 0 && item.end !== '?') {
+    return { hint: '「〜してはいけない」という文。', why: '「〜してはいけない」は Don\'t ＋ 動詞の原形 で文を始める。' };
+  }
+  const s = guideSubject(item, idx);
+  const kind = subjectKind(s.text);
+  const which = a.replace(/n't$/, '');
+  const reason = which === 'did' ? '過去の文なので did' : which === 'does' ? '3人称単数で現在の文なので does' : '現在の文なので do';
+  return {
+    hint: `主語は「${s.text}」。${isPastItem(item) ? '過去' : '今'}のこと。`,
+    why: `一般動詞の${item.end === '?' ? '疑問文' : '否定文'}は do / does / did を使う。主語が「${s.text}」で、${reason}${/n't$/.test(a) ? `（${which} not → ${a}）` : ''}。`,
+  };
+}
+function explainVerb(item, a, idx) {
+  const lw = guideLower(item);
+  const base = VERB_BASE_OF[a] || a;
+  const prev = lw[idx - 1], prev2 = lw[idx - 2];
+  if (a === base && (GUIDE_AUX_BEFORE_BASE.has(prev) || prev === 'not' && GUIDE_AUX_BEFORE_BASE.has(prev2))) {
+    const p = prev === 'not' ? `${prev2} not` : prev;
+    return { hint: `前の「${p}」に注目。`, why: prev === 'to' ? 'to のあとの動詞はいつも原形（to ＋ 動詞の原形）。' : `${p} のあとの動詞は原形なので ${a}。` };
+  }
+  if (a === base && idx === 0) return { hint: '主語がない文。', why: '「〜しなさい」と言う命令文は、動詞の原形で文を始める。' };
+  if (a === base && ['make', 'made', 'let', 'help', 'helped', 'makes', 'lets', 'helps'].includes(prev2)) {
+    return { hint: `前の「${prev2} ${prev}」に注目。`, why: `${prev2} ＋ 人 ＋ 動詞の原形 の形なので ${a}（to はつけない）。` };
+  }
+  // keep my room clean / leave the door open: 「様子」を表す語なので形を変えない
+  const svoc = lw.slice(0, idx - 1).find(t => ['keep', 'keeps', 'kept', 'leave', 'leaves', 'left'].includes(t));
+  if (svoc && idx >= 3 && (a === base || a === verbPastParticiple(base))) {
+    return { hint: `「${svoc} ＋ もの ＋ 様子」の形。`, why: `${svoc} ＋ もの ＋ 様子 の形。${a === base
+      ? `この ${a} は「（〜な）様子」を表すことばなので、形を変えない。`
+      : `「〜された（状態）」を表すので過去分詞の ${a}。`}` };
+  }
+  // 文の前のほうに did / can などがあれば(疑問文)、動詞は原形
+  const auxBefore = lw.slice(0, idx).filter(t => ['do', 'does', 'did', 'can', 'will', 'must', 'should', 'could', 'would', 'may'].includes(t)).pop();
+  if (a === base && auxBefore && !lw.slice(lw.lastIndexOf(auxBefore) + 1, idx).some(t => VERB_BASE_OF[t] && !SUBJECT_PRONOUNS.has(t))) {
+    return { hint: `「${capitalize(auxBefore)}」で始まる疑問文。`, why: `${auxBefore} のある文では、動詞は原形なので ${a}。` };
+  }
+  if (a !== base && a === verbIng(base)) {
+    if (GUIDE_BE.has(prev) || prev === 'not' && GUIDE_BE.has(prev2) || item.end === '?' && lw.slice(0, idx).some(t => GUIDE_BE.has(t))) {
+      return { hint: 'be動詞がある。', why: `「〜している」は be動詞 ＋ ing形 なので ${a}。` };
+    }
+    if (prev === 'been') return { hint: '前の「been」に注目。', why: `have / has been ＋ ing形 で「ずっと〜している」なので ${a}。` };
+    if (GUIDE_GERUND_VERBS.has(prev)) return { hint: `前の「${prev}」に注目。`, why: `${prev} のあとの「〜すること」は ing形（動名詞）なので ${a}。` };
+    if (idx === 0) return { hint: '文の主語になる「〜すること」。', why: `「〜することは」と主語にするときは ing形（動名詞）なので ${a}。` };
+    return { hint: '前の名詞を説明している。', why: `名詞をうしろから「〜している（人・もの）」と説明するときは ing形なので ${a}。` };
+  }
+  const pp = verbPastParticiple(base);
+  if (a === pp) {
+    const perfect = ['have', 'has', 'had', "haven't", "hasn't"].includes(prev)
+      || ['just', 'already', 'never', 'ever', 'not', 'been'].includes(prev) && ['have', 'has', 'had'].includes(prev2)
+      || ['have', 'has'].includes(lw[0]) && idx > 1 && item.end === '?' && !lw.slice(0, idx).some(t => GUIDE_BE.has(t));
+    const forms = a !== verbPast(base) ? `（${base} → ${verbPast(base)} → ${a}）` : a === base ? `（${base} は過去分詞も同じ形）` : '';
+    if (perfect) return { hint: '前に have / has がある。', why: `現在完了は have / has ＋ 過去分詞 なので ${a}${forms}。` };
+    const passive = GUIDE_BE.has(prev) || ['be', 'been', 'being'].includes(prev) || prev === 'not' && GUIDE_BE.has(prev2)
+      || GUIDE_BE.has(lw[0]) && item.end === '?';
+    if (passive) return { hint: '前に be動詞がある。「〜される」の文。', why: `「〜される」は be動詞 ＋ 過去分詞 なので ${a}${forms}。` };
+    // This is a bag made in Japan: 動詞のあとの名詞を、うしろから説明している
+    const nounBefore = DETERMINERS.has(prev2) || NOUN_BASE_OF[prev];
+    if (a !== base && nounBefore && lw.slice(0, idx - 1).some(t => GUIDE_BE.has(t) || VERB_BASE_OF[t] && !DETERMINERS.has(t))) {
+      return { hint: '前の名詞を説明している。', why: `名詞をうしろから「〜された（もの）」と説明するときは過去分詞なので ${a}${forms}。` };
+    }
+  }
+  if (a === verbPast(base) && (a !== base || isPastItem(item))) {
+    if (lw.includes('if') || lw.includes('wish')) return { hint: '「もし〜なら」「〜ならいいのに」の文。', why: `今の事実とちがうことを言う仮定法なので、過去形の ${a} を使う。` };
+    const forms = a === base ? `（${base} は過去形も同じ形）` : IRREGULAR_VERBS[base] ? `（${base} → ${a} と形が変わる）` : `（${base} に ed をつける）`;
+    return { hint: '過去のこと。', why: `過去の文なので過去形 ${a}${forms}。` };
+  }
+  const s = guideSubject(item, idx);
+  if (a !== base && a === verbThirdPerson(base)) {
+    return { hint: `主語は「${s.text}」。今のこと。`, why: `主語が「${s.text}」（3人称単数）で現在の文なので、s のついた ${a}。` };
+  }
+  return { hint: `主語は「${s.text}」。`, why: `主語が「${s.text}」で現在の文なので、動詞はそのままの形 ${a}。` };
+}
+function explainPronoun(item, a, idx) {
+  const lw = guideLower(item);
+  const set = PRONOUN_SET_OF[a].map(w => w.toLowerCase());
+  let role;
+  const next = lw[idx + 1];
+  const isEnd = idx === item.tokens.length - 1;
+  if (a === set[3] && a !== set[1]) role = 'posp';
+  else if (a === 'his') role = isEnd ? 'posp' : 'poss';
+  else if (a === 'her') role = /彼女の/.test(item.jp) && !isEnd && !/彼女のもの/.test(item.jp) ? 'poss' : 'obj';
+  else if (a === 'you') role = idx === 0 || GUIDE_AUX_BEFORE_BASE.has(lw[idx - 1]) || GUIDE_BE.has(lw[idx - 1]) || GUIDE_WH_MEANING[lw[idx - 1]] ? 'subj' : 'obj';
+  else role = ['subj', 'poss', 'obj', 'posp'][set.indexOf(a)] || 'subj';
+  const hint = '「〜は」「〜の」「〜を・〜に」「〜のもの」のどれかな？';
+  if (role === 'subj') return { hint, why: `文の主語（〜は）なので ${a === 'i' ? 'I' : a}。` };
+  if (role === 'poss') return { hint, why: `うしろの名詞「${next}」につけて「〜の」と言うので所有格 ${a}。` };
+  if (role === 'obj') return { hint, why: `${lw[idx - 1] ? `「${lw[idx - 1]}」のあとで` : ''}「〜を・〜に」の形（目的格）なので ${a}。` };
+  return { hint, why: `「〜のもの」は所有代名詞 ${a}。うしろに名詞はつかない。` };
+}
+function explainCompare(item, a, idx) {
+  const lw = guideLower(item);
+  const hint = 'than（〜より）、the 〜（いちばん）、as 〜 as（同じくらい）のどれがあるかな？';
+  if (a === 'more') return { hint, why: 'うしろに than があるので比較級。長い語は前に more を置く。' };
+  if (a === 'most') return { hint, why: '「いちばん」なので最上級。長い語は the most ＋ 形容詞。' };
+  if (a === 'better') return { hint, why: lw.includes('than') ? 'than があるので比較級。good / well の比較級は better。' : 'like 〜 better で「〜のほうが好き」。' };
+  if (a === 'best') return { hint, why: '「いちばん」なので最上級。good / well の最上級は best。' };
+  const base = COMPARE_BASE_OF[a] || a;
+  if (COMPARE_ADJ[base] && COMPARE_ADJ[base][0] === a) return { hint, why: `うしろに than（〜より）があるので比較級 ${a}（${base} → ${a}）。` };
+  if (COMPARE_ADJ[base] && COMPARE_ADJ[base][1] === a) return { hint, why: `the 〜 in / of（〜の中でいちばん）なので最上級 ${a}（${base} → ${a}）。` };
+  return { hint, why: `as と as の間は形を変えない（原級）ので ${a}。` };
+}
+function explainHave(item, a, idx) {
+  const lw = guideLower(item);
+  const prev = lw[idx - 1];
+  if (GUIDE_AUX_BEFORE_BASE.has(prev) || prev === 'not' && GUIDE_AUX_BEFORE_BASE.has(lw[idx - 2])) {
+    const p = prev === 'not' ? `${lw[idx - 2]} not` : prev;
+    return { hint: `前の「${p}」に注目。`, why: `${p} のあとは原形なので have${lw[idx + 1] === 'to' ? '（don\'t / doesn\'t have to 〜 で「〜する必要はない」）' : ''}。` };
+  }
+  if (a === 'have' && ['do', 'does', 'did'].includes(lw[0])) {
+    return { hint: `「${capitalize(lw[0])}」で始まる疑問文。`, why: `${lw[0]} の疑問文なので原形の have（have to 〜 で「〜しなければならない」）。` };
+  }
+  const s = guideSubject(item, idx);
+  const which = a === 'had' ? '過去なので had' : a === 'has' ? '3人称単数なので has' : 'have';
+  if (lw[idx + 1] === 'to') return { hint: `主語は「${s.text}」。`, why: `「〜しなければならない」は have to ＋ 動詞の原形。主語が「${s.text}」で、${which}。` };
+  if (lw.slice(idx + 1).some(t => isPerfectParticiple(t))) return { hint: `主語は「${s.text}」。`, why: `現在完了は have / has ＋ 過去分詞。主語が「${s.text}」なので ${which === 'have' ? 'have' : which}。` };
+  return { hint: `主語は「${s.text}」。`, why: `主語が「${s.text}」なので ${which}。` };
+}
+
+// 1問ぶんのヒントと解説
+function explainItem(stage, item) {
+  const guide = STAGE_GUIDES[stage.key] || {};
+  if (item.type === 'reorder' || item.type === 'translate') {
+    const first = guideClean(item.tokens[0]);
+    return {
+      hint: item.type === 'reorder' ? `最初の語は「${first}」。` : `${item.tokens.length}語の英文。「${first} …」で始めよう。`,
+      // まとまりごとに意味をそえて、英語の順番を見せる
+      why: `${item.pieces.map(p => (p.jp ? `${p.en}（${p.jp}）` : p.en)).join(' → ')}。${guide.form ? `語順は「${guide.form}」。` : ''}`,
+    };
+  }
+  if (item.blankIndex == null) return { hint: '', why: guide.point || '' };
+  const a = item.answer.toLowerCase();
+  const idx = item.blankIndex;
+  const lw = guideLower(item);
+  let r = null;
+  switch (item.blankFamily) {
+    case 'be': r = explainBe(item, a, idx); break;
+    case 'do': {
+      // do が「する」という一般動詞のとき(do my homework など)
+      const aux = idx === 0 || GUIDE_WH_MEANING[lw[idx - 1]] || lw[idx + 1] === 'not' || /n't$/.test(a)
+        || (SUBJECT_PRONOUNS.has(lw[idx + 1]) || DETERMINERS.has(lw[idx + 1])) && item.end === '?';
+      r = aux ? explainDo(item, a, idx) : explainVerb(item, a, idx);
+      break;
+    }
+    case 'have': r = explainHave(item, a, idx); break;
+    case 'modal': r = {
+      hint: '日本語の文の終わり（〜できる・〜しなければならない など）に注目。',
+      why: `「${GUIDE_MODAL_MEANING[a] || ''}」を表すのは ${a}。${a} のあとの動詞はいつも原形。`,
+    }; break;
+    case 'wh': {
+      const howWord = a === 'how' && GUIDE_HOW_MEANING[lw[idx + 1]];
+      const meaning = howWord ? `how ${lw[idx + 1]}：${howWord}` : `${a}：${GUIDE_WH_MEANING[a]}`;
+      const where = idx === 0 ? '疑問詞は文のいちばん前に置く。'
+        : lw[idx + 1] === 'to' ? `${a} to 〜 で「${GUIDE_WHTO_MEANING[a] || GUIDE_WH_MEANING[a]}〜すべきか」${a === 'how' ? '（〜の仕方）' : ''}。`
+        : `文の中に入れる疑問詞は「${a} ＋ 主語 ＋ 動詞」の順。`;
+      r = { hint: '日本語の「何・どこ・いつ・だれ」などに注目。', why: `日本語に合う疑問詞は ${a}（${meaning}）。${where}` };
+      break;
+    }
+    case 'relative': {
+      const noun = phraseBefore(item.tokens, idx - 1);
+      r = { hint: `前の「${noun}」は人？もの？`, why: a === 'who' ? `前の「${noun}」が人なので who。` : a === 'which' ? `前の「${noun}」がもの・動物なので which。` : `「〜の」の意味なので whose。` };
+      break;
+    }
+    case 'conj': r = { hint: '日本語の「〜と（思う）」「〜とき」「もし〜なら」に注目。', why: `「${GUIDE_CONJ_MEANING[a] || ''}」は ${a}。うしろに 主語 ＋ 動詞 の文が続く。` }; break;
+    case 'pronoun': r = explainPronoun(item, a, idx); break;
+    case 'verb': r = explainVerb(item, a, idx); break;
+    case 'noun': r = NOUN_BASE_OF[a] === a
+      ? { hint: '1つ？2つ以上？', why: `1つ（a / one）なので s のつかない ${a}。` }
+      : { hint: '1つ？2つ以上？', why: `2つ以上なので複数形 ${a}。` };
+      break;
+    case 'compare': r = explainCompare(item, a, idx); break;
+  }
+  return r || { hint: '', why: guide.point || '' };
+}
+
+// 文中の *語* を強調にする
+function guideMarkup(text) {
+  return text.replace(/\*([^*]+)\*/g, '<b class="ws-hl">$1</b>');
+}
+function guideBoxHtml(stage) {
+  const g = STAGE_GUIDES[stage.key];
+  if (!g) return '';
+  const form = g.form.split('　／　').map(f => `<div class="ws-form">${f.split(' + ').map(p => `<span>${p}</span>`).join('<i>+</i>')}</div>`).join('');
+  const examples = g.examples.map(([en, jp]) => `<li><span class="ws-ex-en">${guideMarkup(en)}</span><span class="ws-ex-jp">${jp}</span></li>`).join('');
+  const tips = (g.tips || []).map(t => `<li>${t}</li>`).join('');
+  return `<div class="ws-guide">
+    <div class="ws-guide-label">ここがポイント</div>
+    <div class="ws-guide-title">${g.title}</div>
+    <p class="ws-guide-point">${g.point}</p>
+    <div class="ws-forms">${form}</div>
+    <div class="ws-guide-sub">例文</div><ul class="ws-examples">${examples}</ul>
+    ${tips ? `<div class="ws-guide-sub">気をつけよう</div><ul class="ws-tips">${tips}</ul>` : ''}
+  </div>`;
+}
+
+function generateGuideWorksheet() {
+  const stage = currentStage();
+  const st = { order: shuffle(stage.questions.map((_, i) => i)), n: 0 };
+  guideSteps = GUIDE_STEPS.map(step => {
+    const want = Math.max(1, guideCount - (step.less || 0));
+    const items = [];
+    const seen = new Set();
+    for (let tries = 0; items.length < want && tries < want * 4; tries++) {
+      const item = makeUnitQuestion(stage, step.type, st, 1);
+      const key = fullSentence(item);
+      if (seen.has(key) && tries < want * 3) continue;
+      seen.add(key);
+      if (item.type === 'fillin') item.firstLetter = true;
+      item.guide = explainItem(stage, item);
+      items.push(item);
+    }
+    return { ...step, items };
+  });
+  printItems = guideSteps.flatMap(s => s.items);
+  vocabItems = [];
+  readingItems = [];
+}
+
 // ---------- Screen 4: print (worksheet) ----------
 // 問題をまとめて1枚のプリントにする。紙に印刷して解くことも、画面上で解いて
 // まとめてこたえ合わせすることもできる。出題元は「1つの単元」か「テスト範囲(複数単元)」。
@@ -2716,6 +3083,7 @@ function setProgramMode(mode) {
   programMode = mode;
   programModePractice.classList.toggle('active', mode === 'practice');
   programModePrint.classList.toggle('active', mode === 'print');
+  programModeGuide.classList.toggle('active', mode === 'guide');
 }
 
 function renderOptionSwitch(container, options, current, onPick) {
@@ -2751,12 +3119,18 @@ function countQuestions() {
 
 function renderPrintOptions() {
   const isTest = printSource.kind === 'test';
-  printCountRow.style.display = isTest ? 'none' : 'flex';
+  const isGuide = printSource.kind === 'guide';
+  printCountRow.style.display = isTest || isGuide ? 'none' : 'flex';
+  printGuideRow.style.display = isGuide ? 'block' : 'none';
+  renderOptionSwitch(printGuideCountSwitch, Object.entries(GUIDE_COUNTS).map(([n, l]) => [Number(n), l]), guideCount, v => {
+    guideCount = v; generateWorksheet();
+  });
+  printGuideHintCheck.checked = guideShowHints;
   printSourceNote.style.display = isTest ? 'block' : 'none';
   printSourceNote.textContent = isTest ? `${printSource.summary}（${countQuestions()}問）` : '';
   backToProgramFromPrint.innerHTML = isTest ? '&larr; テスト範囲の設定に戻る' : '&larr; 単元選択に戻る';
   // テスト範囲のプリントでは、問題の種類と数は前の画面で決める
-  printTypeRow.style.display = isTest ? 'none' : 'flex';
+  printTypeRow.style.display = isTest || isGuide ? 'none' : 'flex';
   printReorderBox.style.display = printItems.some(it => it.type === 'reorder') ? 'block' : 'none';
 
   renderOptionSwitch(printCountSwitch, PRINT_COUNTS.map(n => [n, `${n}問`]), printCount, v => {
@@ -2784,7 +3158,7 @@ function allocateTypes(weights, total) {
 }
 
 function sourceStages() {
-  if (printSource.kind === 'stage') return [currentStage()];
+  if (printSource.kind !== 'test') return [currentStage()];
   return stages.filter(s => printSource.config.keys.includes(s.key));
 }
 
@@ -2817,6 +3191,13 @@ function grammarSlots() {
 // 表示だけ変える(同じプリントのまま難易度を調整できるように)。
 // 単元ごとに練習画面と同じく、基本文→修飾語つき→複合修飾の順に難しくなる。
 function generateWorksheet() {
+  if (printSource.kind === 'guide') {
+    generateGuideWorksheet();
+    printChunkLevel = 1;
+    renderPrintOptions();
+    renderWorksheet();
+    return;
+  }
   const states = new Map();
   const stateOf = stage => {
     if (!states.has(stage)) states.set(stage, { order: shuffle(stage.questions.map((_, i) => i)), n: 0 });
@@ -3036,7 +3417,34 @@ function groupByType(items, typeDefs) {
 
 const SECTION_NUMERALS = ['Ⅰ', 'Ⅱ', 'Ⅲ', 'Ⅳ'];
 
+function renderGuideWorksheet() {
+  const s = currentStage();
+  const gradeName = (grades.find(g => g.id === s.grade) || {}).name || '';
+  sheetTitle.textContent = `解説つきプリント ${s.label}`;
+  sheetSub.innerHTML = `${gradeName} &middot; ${s.eyebrow}`;
+  sheetTotal.textContent = countQuestions();
+  sheetScore.textContent = '';
+  printScoreBanner.style.display = 'none';
+  sheetInstr.style.display = 'none';
+  sheetItems.innerHTML = guideBoxHtml(s);
+  guideSteps.forEach(step => {
+    sheetItems.appendChild(sectionHead('', step.title, step.instr));
+    step.items.forEach((item, i) => {
+      const el = makeItemEl(item, i + 1);
+      if (guideShowHints && item.guide.hint) {
+        el.querySelector('.ws-body').insertAdjacentHTML('beforeend', `<div class="ws-hintline">ヒント：${item.guide.hint}</div>`);
+      }
+      sheetItems.appendChild(el);
+    });
+  });
+  answerSheetTitle.textContent = `解答と解説 ${s.label}`;
+  answerList.innerHTML = guideSteps.map(step => `<h3>${step.title}</h3><ol>${step.items.map(item =>
+    `<li><b>${answerText(item)}</b><div class="answer-explain">${item.guide.why}</div></li>`).join('')}</ol>`).join('');
+  answerSheet.classList.toggle('include', printIncludeAnswers.checked);
+}
+
 function renderWorksheet() {
+  if (printSource.kind === 'guide') { renderGuideWorksheet(); return; }
   if (printSource.kind === 'stage') {
     const s = currentStage();
     const gradeName = (grades.find(g => g.id === s.grade) || {}).name || '';
@@ -3113,8 +3521,12 @@ function checkWorksheet() {
     if (ok) score++;
     mark.textContent = ok ? '○' : '×';
     mark.className = 'ws-mark ' + (ok ? 'ok' : 'ng');
-    correct.style.display = ok ? 'none' : 'block';
+    // 解説つきプリントは、正解しても解説を見せる
+    const why = item.guide && item.guide.why;
+    correct.className = 'ws-correct';
+    correct.style.display = ok && !why ? 'none' : 'block';
     correct.textContent = ok ? '' : `正解: ${answerText(item)}`;
+    if (why) correct.insertAdjacentHTML('beforeend', `<div class="ws-explain">解説：${why}</div>`);
   });
   sheetScore.textContent = score;
   printScoreBanner.style.display = 'block';
@@ -3130,7 +3542,21 @@ function resetWorksheetAnswers() {
 
 programModePractice.addEventListener('click', () => setProgramMode('practice'));
 programModePrint.addEventListener('click', () => setProgramMode('print'));
+programModeGuide.addEventListener('click', () => setProgramMode('guide'));
 backToProgramFromPrint.addEventListener('click', () => showScreen(printSource.kind === 'test' ? 'test' : 'program'));
+printGuideHintCheck.addEventListener('change', () => { guideShowHints = printGuideHintCheck.checked; renderWorksheet(); });
+// 学年選択画面の「解説つきプリント」: 学年を選ぶと、解説つきプリントの単元一覧を開く
+grades.forEach(g => {
+  const btn = document.createElement('button');
+  btn.textContent = g.name;
+  btn.onclick = (e) => {
+    e.stopPropagation();
+    currentGrade = g.id;
+    setProgramMode('guide');
+    showScreen('program');
+  };
+  guideEntryGrades.appendChild(btn);
+});
 printRegenBtn.addEventListener('click', generateWorksheet);
 printPrintBtn.addEventListener('click', () => window.print());
 printCheckBtn.addEventListener('click', checkWorksheet);
