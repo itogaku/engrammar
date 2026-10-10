@@ -349,6 +349,12 @@
   .ws-gitem:first-child .ws-gtype, .ws-guide + .ws-gitem .ws-gtype { margin-top: 2px; }
   .ws-guide-unit { font-size: 13px; font-weight: 800; margin-left: 8px; }
   .ws-gunit + .ws-gunit { margin-top: 16px; }
+  .ws-round { margin-top: 10px; }
+  .ws-round-head { font-size: 12.5px; color: var(--ink-soft); border-top: 2px solid var(--ink); padding-top: 6px; }
+  .ws-round-head b { display: inline-block; color: var(--ink); font-size: 14px; margin-right: 8px; }
+  .ws-round-ans { display: none; border: 2px dashed var(--amber); border-radius: 12px; padding: 10px 14px; margin: 8px 0 4px; background: var(--amber-tint); }
+  .ws-round-ans.revealed { display: block; }
+  .ws-ans-round { font-size: 13.5px; font-weight: 800; margin: 10px 0 0; border-bottom: 1px solid var(--ink); }
   .group-all-btn { float: right; font-family: inherit; font-size: 12px; font-weight: 700; color: var(--amber); background: var(--panel); border: 1.5px solid var(--amber); border-radius: 999px; padding: 3px 10px; cursor: pointer; text-transform: none; letter-spacing: 0; margin-top: -4px; }
 
   @media print {
@@ -373,7 +379,7 @@
        ページごとに答え合わせするときは、次の問題のページも新しいページから始める */
     .ws-ans-page { display: none !important; }
     .ws-ans-page.include { display: block !important; break-before: page; page-break-before: always; border: none; background: none; padding: 0; margin: 0; }
-    .guide-paged .ws-qpage + .ws-step-check + .ws-ans-page + .ws-qpage { break-before: page; page-break-before: always; }
+    .guide-paged .ws-ans-page + .ws-qpage { break-before: page; page-break-before: always; }
   }
 </style>
 </head>
@@ -485,7 +491,6 @@
         <div class="opt-row"><span class="opt-label">問題数</span><div class="mode-switch" id="printGuideCountSwitch"></div></div>
         <div class="opt-row"><span class="opt-label">答え合わせ</span><div class="mode-switch" id="printGuideCheckSwitch"></div></div>
         <div class="opt-hint" id="printGuideCheckNote"></div>
-        <div class="opt-row"><label class="opt-check"><input type="checkbox" id="printGuideHintCheck" checked> 問題ごとにヒントを表示する</label></div>
       </div>
       <div class="opt-row" id="printTypeRow"><span class="opt-label">文法問題</span><div class="mode-switch multi" id="printTypeSwitch"></div></div>
       <div id="printReorderBox">
@@ -1762,7 +1767,6 @@ const programModeGuide = document.getElementById('programModeGuide');
 const guideEntryGrades = document.getElementById('guideEntryGrades');
 const printGuideRow = document.getElementById('printGuideRow');
 const printGuideCountSwitch = document.getElementById('printGuideCountSwitch');
-const printGuideHintCheck = document.getElementById('printGuideHintCheck');
 const printGuideCheckSwitch = document.getElementById('printGuideCheckSwitch');
 const printGuideCheckNote = document.getElementById('printGuideCheckNote');
 const backToProgramFromPrint = document.getElementById('backToProgramFromPrint');
@@ -2827,24 +2831,27 @@ function generateReadingItems(stageList, cfg) {
 // 問題のページのすぐ次(両面印刷なら裏)に、そのページの単元の答え合わせのページを入れる。
 // 単元の途中ではページを分けず、あまったところはそのページの単元の問題を足してうめる。
 // 問題は修飾語なしの基本文だけで作り、1問ずつヒントと解説を自動でつける。
-const GUIDE_COUNTS = { 1: '少なめ', 2: 'ふつう', 3: '多め' };
-// 1つの単元で出す問題(形式ごとの数)
-const GUIDE_SETS = {
-  1: { choice: 1, reorder: 1, fillin: 1 },
-  2: { choice: 2, reorder: 1, fillin: 1, translate: 1 },
-  3: { choice: 2, reorder: 2, fillin: 2, translate: 1 },
-};
+// 1つの単元の問題は、少しずつ「回」に分ける。1回ぶん解いたら裏で答え合わせして直し、次の回へ進む
+// (答え合わせと直しを何回もくり返せるように)。回が進むほど、選ぶ → 書く → 英文を書く と難しくなる。
+const GUIDE_COUNTS = { 2: '2問', 3: '3問', 4: '4問' }; // 1回の問題数
+const GUIDE_ROUND_TYPES = [
+  ['choice', 'choice', 'fillin', 'choice'],
+  ['fillin', 'reorder', 'choice', 'fillin'],
+  ['reorder', 'fillin', 'translate', 'choice'],
+  ['fillin', 'translate', 'reorder', 'fillin'],
+  ['choice', 'fillin', 'translate', 'reorder'],
+  ['reorder', 'translate', 'fillin', 'choice'],
+];
+const GUIDE_MIN_ROUNDS = 2;
 const GUIDE_TYPE_LABELS = {
   choice: ['えらぼう', '日本語に合うように、（　）に入る語を選ぶ'],
   reorder: ['ならべかえよう', '日本語に合うように、語句をならべかえて英文を書く'],
-  fillin: ['書いてみよう', '（　）に英語を1語書く（最初の文字がヒント）'],
+  fillin: ['書いてみよう', '日本語に合うように、（　）に英語を1語書く'],
   translate: ['英文を書こう', '日本語を英語にする'],
 };
-let guideCount = 2;
-let guideShowHints = true;
+let guideCount = 3;
 let guideCheckMode = 'page'; // 'page'(ページごとに答え合わせ) / 'end'(最後にまとめて)
-let guideUnits = [];         // [{ stage, items }]
-const GUIDE_EXTRA_TYPES = ['choice', 'fillin', 'reorder', 'choice', 'fillin', 'translate']; // ページのあまりに足す問題の形式
+let guideUnits = [];         // [{ stage, rounds, nRounds, lastSize }]
 
 const GUIDE_WH_MEANING = { what: '何', where: 'どこ', when: 'いつ', who: 'だれ', whose: 'だれの', which: 'どちら・どの', how: 'どのように・どう', why: 'なぜ' };
 const GUIDE_HOW_MEANING = { many: 'いくつ（数）', much: 'いくら（値段・量）', long: 'どのくらい（長さ・期間）', old: '何歳', about: '〜はどうですか' };
@@ -3143,42 +3150,25 @@ function generateGuideWorksheet() {
   const order = Object.keys(GUIDE_TYPE_LABELS);
   guideUnits = guideStages().map(stage => {
     const st = { order: shuffle(stage.questions.map((_, i) => i)), n: 0 };
-    const items = [];
     const seen = new Set();
-    Object.entries(GUIDE_SETS[guideCount]).forEach(([type, want]) => {
-      let got = 0;
-      for (let tries = 0; got < want && tries < want * 4; tries++) {
-        const item = makeUnitQuestion(stage, type, st, 1);
-        const key = fullSentence(item);
-        if (seen.has(key) && tries < want * 3) continue;
-        seen.add(key);
-        if (item.type === 'fillin') item.firstLetter = true;
+    // 回ごとの問題(ページのあまりをうめられるように多めに作っておき、使う回数はレイアウトで決める)
+    const rounds = GUIDE_ROUND_TYPES.map(types => {
+      const items = types.slice(0, guideCount).map(type => {
+        let item = null;
+        for (let tries = 0; tries < 4; tries++) {
+          item = makeUnitQuestion(stage, type, st, 1);
+          if (!seen.has(fullSentence(item))) break;
+        }
+        seen.add(fullSentence(item));
         item.guide = explainItem(stage, item);
-        items.push(item);
-        got++;
-      }
+        item.noHint = true; // 解説つきプリントは語数などのヒントを出さない
+        return item;
+      });
+      return items.map((it, i) => [it, i]).sort((a, b) => order.indexOf(a[0].type) - order.indexOf(b[0].type) || a[1] - b[1]).map(([it]) => it);
     });
-    // その形式にできず別の形式になった問題も、形式の順にならべる
-    items.sort((a, b) => order.indexOf(a.type) - order.indexOf(b.type));
-    return { stage, items, st, seen };
+    return { stage, rounds, nRounds: GUIDE_MIN_ROUNDS, lastSize: guideCount };
   });
-  // ページのあまりをうめるための追加の問題(その単元の問題。単元をまたがない)
-  guideUnits.forEach(u => {
-    u.extra = [];
-    for (let i = 0; i < GUIDE_EXTRA_TYPES.length; i++) {
-      let item = null;
-      for (let tries = 0; tries < 4; tries++) {
-        item = makeUnitQuestion(u.stage, GUIDE_EXTRA_TYPES[i], u.st, 1);
-        if (!u.seen.has(fullSentence(item))) break;
-      }
-      u.seen.add(fullSentence(item));
-      if (item.type === 'fillin') item.firstLetter = true;
-      item.guide = explainItem(u.stage, item);
-      u.extra.push(item);
-    }
-    u.used = 0; // 追加の問題をいくつ使うか(レイアウトで決める)
-  });
-  printItems = guideUnits.flatMap(u => u.items);
+  printItems = guideUnits.flatMap(guideUnitRounds).flat();
   vocabItems = [];
   readingItems = [];
 }
@@ -3234,7 +3224,6 @@ function renderPrintOptions() {
   renderOptionSwitch(printGuideCountSwitch, Object.entries(GUIDE_COUNTS).map(([n, l]) => [Number(n), l]), guideCount, v => {
     guideCount = v; generateWorksheet();
   });
-  printGuideHintCheck.checked = guideShowHints;
   renderOptionSwitch(printGuideCheckSwitch, [['page', 'ページごと'], ['end', '最後にまとめて']], guideCheckMode, v => {
     guideCheckMode = v; renderPrintOptions(); renderWorksheet();
   });
@@ -3445,7 +3434,7 @@ function itemBodyHtml(item) {
       return `<div class="ws-sentence">${fullSentence(item)}<span class="ws-hint">（${item.rewriteKind === 'neg' ? '否定文に' : '疑問文に'}）</span></div>
         ${answerLineHtml('書きかえた英文を書こう')}`;
     case 'translate':
-      return `<div class="ws-sentence ws-wordcount">（${item.tokens.length}語）</div>${answerLineHtml('ここに英文を書こう')}`;
+      return `${item.noHint ? '' : `<div class="ws-sentence ws-wordcount">（${item.tokens.length}語）</div>`}${answerLineHtml('ここに英文を書こう')}`;
     case 'vmeaning': case 'rchoice': case 'rtf':
       return optionsHtml(item);
     case 'vword':
@@ -3587,40 +3576,62 @@ function guideAnswerItemHtml(item, num) {
       <div class="ws-ans-why">${item.guide.why}</div>
     </div>`;
 }
-const guideAnswerHeadHtml = range => `<div class="ws-ans-head">答え合わせ<span>${range}</span><span class="ws-ans-note">問題を解き終わってから見よう</span></div>`;
-const GUIDE_ANSWER_FOOT = '<div class="ws-ans-foot">まちがえた問題は、どのルールに合っていなかったかを解説で確かめてから、正しい英文を書き直そう。</div>';
-const guideRewriteHtml = lines => `<div class="ws-rewrite"><div class="ws-rewrite-label">書き直し欄</div>${'<div class="ws-rewrite-line"></div>'.repeat(lines)}</div>`;
+const guideAnswerHeadHtml = range => `<div class="ws-ans-head">答え合わせ<span>${range}</span><span class="ws-ans-note">1回ぶん解いてから、その回だけ見よう</span></div>`;
+const GUIDE_ANSWER_FOOT = '<div class="ws-ans-foot">まちがえた問題は、どのルールに合っていなかったかを解説で確かめて、問題のページで直してから次の回へ進もう。</div>';
 
-// 単元のまとまり: ポイントの箱 → その単元の問題(形式ごとに見出し)。単元の途中でページを分けない。
-function guideUnitItems(u) {
-  const order = Object.keys(GUIDE_TYPE_LABELS);
-  return [...u.items, ...u.extra.slice(0, u.used)].map((it, i) => [it, i])
-    .sort((a, b) => order.indexOf(a[0].type) - order.indexOf(b[0].type) || a[1] - b[1]).map(([it]) => it);
+// 単元のまとまり: ポイントの箱 → 1回目・2回目…の問題。単元の途中でページを分けない。
+// 使う回: nRounds 回(最後の回は lastSize 問)
+function guideUnitRounds(u) {
+  return u.rounds.slice(0, u.nRounds).map((r, i) => (i === u.nRounds - 1 ? r.slice(0, u.lastSize) : r));
 }
-function guideUnitNode(u, mark, startNum) {
+function guideRoundHeadHtml(ri, total, last) {
+  return `<div class="ws-round-head"><b>${ri + 1}回目</b>${ri === 0 ? 'ポイントを読んでから解こう。' : ''}解いたら答え合わせをして、まちがえたところを直してから${last ? 'おしまい' : `${ri + 2}回目へ`}</div>`;
+}
+function guideItemNode(item, num, showType) {
+  const node = document.createElement('div');
+  node.className = 'ws-gitem';
+  if (showType) {
+    const [label, desc] = GUIDE_TYPE_LABELS[item.type] || ['', ''];
+    node.innerHTML = `<div class="ws-gtype"><b>${label}</b>${desc}</div>`;
+  }
+  node.appendChild(makeItemEl(item, num));
+  return node;
+}
+// 問題側の単元のまとまり。onRound(ri, roundBox, items, startNum) で、画面用の答え合わせボタンを足せる
+function guideUnitNode(u, mark, startNum, onRound) {
   const box = document.createElement('div');
   box.className = 'ws-gunit';
   box.innerHTML = guideBoxHtml(u.stage, mark);
-  let lastType = null;
-  guideUnitItems(u).forEach((item, i) => {
-    const node = document.createElement('div');
-    node.className = 'ws-gitem';
-    if (item.type !== lastType) {
-      const [label, desc] = GUIDE_TYPE_LABELS[item.type] || ['', ''];
-      node.innerHTML = `<div class="ws-gtype"><b>${label}</b>${desc}</div>`;
+  let num = startNum;
+  const rounds = guideUnitRounds(u);
+  rounds.forEach((items, ri) => {
+    const roundBox = document.createElement('div');
+    roundBox.className = 'ws-round';
+    roundBox.innerHTML = guideRoundHeadHtml(ri, rounds.length, ri === rounds.length - 1);
+    let lastType = null;
+    const first = num;
+    items.forEach(item => {
+      roundBox.appendChild(guideItemNode(item, num++, item.type !== lastType));
       lastType = item.type;
-    }
-    const el = makeItemEl(item, startNum + i);
-    if (guideShowHints && item.guide.hint) {
-      el.querySelector('.ws-body').insertAdjacentHTML('beforeend', `<div class="ws-hintline">ヒント：${item.guide.hint}</div>`);
-    }
-    node.appendChild(el);
-    box.appendChild(node);
+    });
+    box.appendChild(roundBox);
+    if (onRound) onRound(ri, roundBox, items, first);
   });
   return box;
 }
+function guideRoundAnswerHtml(items, ri, startNum) {
+  return `<div class="ws-ans-round">${ri + 1}回目の答え合わせ</div>` + items.map((item, i) => guideAnswerItemHtml(item, startNum + i)).join('');
+}
 function guideUnitAnswerHtml(u, startNum) {
-  return guideRuleHtml(u.stage) + guideUnitItems(u).map((item, i) => guideAnswerItemHtml(item, startNum + i)).join('');
+  let num = startNum;
+  return guideRuleHtml(u.stage) + guideUnitRounds(u).map((items, ri) => {
+    const html = guideRoundAnswerHtml(items, ri, num);
+    num += items.length;
+    return html;
+  }).join('');
+}
+function guideUnitCount(u) {
+  return guideUnitRounds(u).reduce((a, r) => a + r.length, 0);
 }
 // 単元の高さ(問題側・答え合わせ側)を測る
 function measureGuideUnit(u) {
@@ -3629,12 +3640,12 @@ function measureGuideUnit(u) {
 }
 
 // 単元をまるごと、順にページにつめる。問題のページと答え合わせのページの両方が1ページに
-// 収まるだけ単元を入れ、あまったところは、そのページの単元の追加の問題でうめる。
+// 収まるだけ単元を入れ、あまったところは、そのページの単元の回を足してうめる。
 function layoutGuidePages(units, paged) {
-  units.forEach(u => { u.used = 0; });
+  units.forEach(u => { u.nRounds = GUIDE_MIN_ROUNDS; u.lastSize = guideCount; });
   if (!paged) return [{ units }];
   const headH = measureHeight(document.querySelector('.sheet-head').cloneNode(true));
-  const ansBase = measureHeight(htmlNode(guideAnswerHeadHtml('(1)〜(10)'))) + measureHeight(htmlNode(GUIDE_ANSWER_FOOT + guideRewriteHtml(2)));
+  const ansBase = measureHeight(htmlNode(guideAnswerHeadHtml('(1)〜(10)'))) + measureHeight(htmlNode(GUIDE_ANSWER_FOOT));
   const qOf = (pg, first) => (first ? headH : 0) + pg.reduce((a, u) => a + u.qh, 0) + 16 * (pg.length - 1); // 16: 単元の間のすきま
   const aOf = pg => ansBase + pg.reduce((a, u) => a + u.ah, 0);
   const fits = (pg, first) => qOf(pg, first) <= GUIDE_PAGE_LIMIT && aOf(pg) <= GUIDE_PAGE_LIMIT;
@@ -3642,25 +3653,34 @@ function layoutGuidePages(units, paged) {
   const pages = [];
   let cur = [];
   units.forEach(u => {
-    // 1単元だけでページに入らないときは、問題を減らす
-    while (u.items.length > 1 && !fits([u], !pages.length && !cur.length)) { u.items.pop(); measureGuideUnit(u); }
+    // 1単元だけでページに入らないときは、回や問題を減らす
+    // (1回の問題が1問だけにならないように、2問より少なくなるならその回をなくす)
+    while (!fits([u], !pages.length && !cur.length) && (u.nRounds > 1 || u.lastSize > 1)) {
+      if (u.lastSize > 2 || u.nRounds === 1) u.lastSize--; else { u.nRounds--; u.lastSize = guideCount; }
+      measureGuideUnit(u);
+    }
     if (cur.length && !fits([...cur, u], !pages.length)) { pages.push(cur); cur = []; }
     cur.push(u);
   });
   if (cur.length) pages.push(cur);
-  // あまったところに、そのページの単元の問題を足す(入らなくなるまで順番に)
+  // あまったところに、そのページの単元の回を足す(1回ぶん入らなければ、問題を少なくした回でもよい)
   pages.forEach((pg, pi) => {
-    const open = new Set(pg);
-    for (let k = 0; open.size && k < 40; k++) {
+    const open = new Set(pg.filter(u => u.lastSize === guideCount));
+    for (let k = 0; open.size && k < 60; k++) {
       const u = pg[k % pg.length];
       if (!open.has(u)) continue;
-      if (u.used >= u.extra.length) { open.delete(u); continue; }
-      u.used++;
-      measureGuideUnit(u);
-      if (!fits(pg, pi === 0)) { u.used--; measureGuideUnit(u); open.delete(u); }
+      if (u.nRounds >= u.rounds.length) { open.delete(u); continue; }
+      u.nRounds++;
+      let ok = false;
+      for (u.lastSize = guideCount; u.lastSize >= 2; u.lastSize--) {
+        measureGuideUnit(u);
+        if (fits(pg, pi === 0)) { ok = true; break; }
+      }
+      if (!ok) { u.nRounds--; u.lastSize = guideCount; measureGuideUnit(u); open.delete(u); }
+      else if (u.lastSize < guideCount) open.delete(u);
     }
   });
-  return pages.map(pg => ({ units: pg, ah: aOf(pg) }));
+  return pages.map(pg => ({ units: pg }));
 }
 
 function renderGuideWorksheet() {
@@ -3682,9 +3702,10 @@ function renderGuideWorksheet() {
 
   const paged = guideCheckMode === 'page' && printIncludeAnswers.checked;
   const pages = layoutGuidePages(units, paged);
-  printItems = units.flatMap(guideUnitItems);
+  printItems = units.flatMap(u => guideUnitRounds(u).flat());
   sheetTotal.textContent = countQuestions();
   sheetItems.classList.toggle('guide-paged', paged);
+  const allRounds = units.reduce((a, u) => a + u.nRounds, 0);
   let num = 1;
   pages.forEach((pg, pi) => {
     const page = document.createElement('div');
@@ -3692,40 +3713,43 @@ function renderGuideWorksheet() {
     let html = '';
     const startNum = num;
     pg.units.forEach(u => {
-      page.appendChild(guideUnitNode(u, units.length > 1 ? CIRCLED[units.indexOf(u)] : '', num));
+      // 画面では、1回ごとに答え合わせボタン → その回の答えと解説を、すぐ下に出す
+      page.appendChild(guideUnitNode(u, units.length > 1 ? CIRCLED[units.indexOf(u)] : '', num, (ri, roundBox, items, first) => {
+        const btn = document.createElement('div');
+        btn.className = 'ws-step-check no-print';
+        btn.innerHTML = `<button class="btn btn-primary">${ri + 1}回目の答え合わせ（(${first})〜(${first + items.length - 1})）</button>`;
+        const ans = document.createElement('div');
+        ans.className = 'ws-round-ans no-print';
+        ans.innerHTML = guideRoundAnswerHtml(items, ri, first);
+        roundBox.appendChild(btn);
+        roundBox.appendChild(ans);
+        btn.querySelector('button').onclick = () => {
+          roundBox.querySelectorAll('.ws-item').forEach(markItemRow);
+          ans.classList.add('revealed');
+          roundBox.dataset.checked = '1';
+          let score = 0, total = 0;
+          sheetItems.querySelectorAll('.ws-round[data-checked] .ws-item').forEach(row => {
+            const ok = isCorrect(row._item);
+            if (ok === null) return;
+            total++;
+            if (ok) score++;
+          });
+          const done = sheetItems.querySelectorAll('.ws-round[data-checked]').length;
+          showScore(score, total, done < allRounds ? `（${done}/${allRounds} 回）` : '');
+          ans.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        };
+      }));
       html += guideUnitAnswerHtml(u, num);
-      num += guideUnitItems(u).length;
+      num += guideUnitCount(u);
     });
     sheetItems.appendChild(page);
     const range = `(${startNum})〜(${num - 1})`;
     const mark = pages.length > 1 ? CIRCLED[pi] || '' : '';
-    // 画面では、ページごとの答え合わせボタン → 答え合わせのページを表示
-    const btn = document.createElement('div');
-    btn.className = 'ws-step-check no-print';
-    btn.innerHTML = `<button class="btn btn-primary">答え合わせ${mark}をする（${range}）</button>`;
-    sheetItems.appendChild(btn);
+    // 印刷用の答え合わせのページ(問題のページの次・両面印刷なら裏)
     const ans = document.createElement('div');
     ans.className = 'ws-ans-page' + (printIncludeAnswers.checked ? ' include' : '');
-    // 答え合わせのページのあまりは書き直し欄にする
-    const lines = paged ? Math.max(2, Math.min(10, 2 + Math.floor((GUIDE_PAGE_LIMIT - pg.ah) / 31))) : 3;
-    ans.innerHTML = guideAnswerHeadHtml(`${mark} 問題 ${range}`) + html + GUIDE_ANSWER_FOOT + guideRewriteHtml(lines);
+    ans.innerHTML = guideAnswerHeadHtml(`${mark} 問題 ${range}`) + html + GUIDE_ANSWER_FOOT;
     sheetItems.appendChild(ans);
-    btn.querySelector('button').onclick = () => {
-      page.querySelectorAll('.ws-item').forEach(markItemRow);
-      ans.classList.add('revealed');
-      page.dataset.checked = '1';
-      // これまでに答え合わせしたページの合計
-      let score = 0, total = 0;
-      sheetItems.querySelectorAll('.ws-qpage[data-checked] .ws-item').forEach(row => {
-        const ok = isCorrect(row._item);
-        if (ok === null) return;
-        total++;
-        if (ok) score++;
-      });
-      const done = sheetItems.querySelectorAll('.ws-qpage[data-checked]').length;
-      showScore(score, total, done < pages.length ? `（${done}/${pages.length} ページ）` : '');
-      ans.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    };
   });
 }
 
@@ -3838,7 +3862,6 @@ programModePractice.addEventListener('click', () => setProgramMode('practice'));
 programModePrint.addEventListener('click', () => setProgramMode('print'));
 programModeGuide.addEventListener('click', () => setProgramMode('guide'));
 backToProgramFromPrint.addEventListener('click', () => showScreen(printSource.kind === 'test' ? 'test' : 'program'));
-printGuideHintCheck.addEventListener('change', () => { guideShowHints = printGuideHintCheck.checked; renderWorksheet(); });
 // 学年選択画面の「解説つきプリント」: 学年を選ぶと、解説つきプリントの単元一覧を開く
 grades.forEach(g => {
   const btn = document.createElement('button');
