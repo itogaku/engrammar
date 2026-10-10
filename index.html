@@ -330,6 +330,27 @@
   .ws-rewrite-label { font-size: 12.5px; font-weight: 800; }
   .ws-rewrite-line { border-bottom: 1px solid var(--ink-soft); height: 30px; }
 
+  /* 印刷したときの高さを測るための見えない箱(印刷と同じスタイル) */
+  #guideMeasure { position: absolute; left: -10000px; top: 0; visibility: hidden; pointer-events: none; }
+  .print-like { border: none; border-radius: 0; padding: 0; }
+  .print-like .ws-input { border-bottom: 1px solid #000; background: transparent !important; }
+  .print-like .ws-input::placeholder { color: transparent; }
+  .print-like .ws-mark, .print-like .ws-correct, .print-like .score-banner { display: none !important; }
+  .print-like .ws-opt { border: none; padding: 2px 10px 2px 0; background: transparent !important; font-weight: 400 !important; }
+  .print-like .ws-guide { margin-bottom: 8px; padding: 10px 14px; }
+  .print-like .ws-guide-point { margin-bottom: 6px; line-height: 1.6; }
+  .print-like .ws-examples, .print-like .ws-tips { line-height: 1.5; }
+  .print-like .ws-gitem .ws-item { padding: 8px 0 7px; }
+  .print-like .ws-gitem .t-choice .ws-body { display: flex; flex-wrap: wrap; align-items: baseline; column-gap: 24px; }
+  .print-like .ws-gitem .t-choice .ws-body .ws-sentence { margin-bottom: 0; }
+  .print-like .ws-gitem .t-choice .ws-hintline { flex-basis: 100%; margin-top: 2px; }
+  .ws-gtype { font-size: 12.5px; margin: 10px 0 0; color: var(--ink-soft); }
+  .ws-gtype b { color: var(--ink); margin-right: 8px; border-left: 3px solid var(--ink); padding-left: 6px; }
+  .ws-gitem:first-child .ws-gtype, .ws-guide + .ws-gitem .ws-gtype { margin-top: 2px; }
+  .ws-guide-unit { font-size: 13px; font-weight: 800; margin-left: 8px; }
+  .ws-gtype-review { border-top: 2px solid var(--ink); padding-top: 8px; margin-top: 14px; }
+  .group-all-btn { float: right; font-family: inherit; font-size: 12px; font-weight: 700; color: var(--amber); background: var(--panel); border: 1.5px solid var(--amber); border-radius: 999px; padding: 3px 10px; cursor: pointer; text-transform: none; letter-spacing: 0; margin-top: -4px; }
+
   @media print {
     @page { size: A4; margin: 14mm 14mm; }
     body { background: #fff; padding: 0; display: block; }
@@ -340,21 +361,19 @@
     .ws-input::placeholder { color: transparent; }
     .ws-mark, .ws-correct, .score-banner { display: none !important; }
     .ws-opt { border: none; padding: 2px 10px 2px 0; background: transparent !important; font-weight: 400 !important; }
-    .answer-sheet.include { display: block; break-before: page; page-break-before: always; margin-top: 0; }
-    /* 解説つきプリント: 答え合わせは必ず新しいページから(問題と同じページに解説がのらないように)。
-       STEPごとのときは、問題のページも新しいページから始める */
-    .ws-ans-page { display: none !important; }
-    .ws-ans-page.include { display: block !important; break-before: page; page-break-before: always; border: none; background: none; padding: 0; margin: 0; }
-    .guide-by-step .ws-qpage + .ws-step-check + .ws-ans-page + .ws-qpage { break-before: page; page-break-before: always; }
     .ws-guide { margin-bottom: 8px; padding: 10px 14px; }
     .ws-guide-point { margin-bottom: 6px; line-height: 1.6; }
     .ws-examples, .ws-tips { line-height: 1.5; }
-    .ws-qpage .ws-item { padding: 8px 0 7px; }
-    .ws-qpage .ws-section { margin-top: 10px; }
-    /* 選択問題は、英文と選択肢を1行に */
-    .ws-qpage .t-choice .ws-body { display: flex; flex-wrap: wrap; align-items: baseline; column-gap: 24px; }
-    .ws-qpage .t-choice .ws-body .ws-sentence { margin-bottom: 0; }
-    .ws-qpage .t-choice .ws-hintline { flex-basis: 100%; margin-top: 2px; }
+    .ws-gitem .ws-item { padding: 8px 0 7px; }
+    .ws-gitem .t-choice .ws-body { display: flex; flex-wrap: wrap; align-items: baseline; column-gap: 24px; }
+    .ws-gitem .t-choice .ws-body .ws-sentence { margin-bottom: 0; }
+    .ws-gitem .t-choice .ws-hintline { flex-basis: 100%; margin-top: 2px; }
+    .answer-sheet.include { display: block; break-before: page; page-break-before: always; margin-top: 0; }
+    /* 解説つきプリント: 答え合わせは必ず新しいページから(問題と同じページに解説がのらないように)。
+       ページごとに答え合わせするときは、次の問題のページも新しいページから始める */
+    .ws-ans-page { display: none !important; }
+    .ws-ans-page.include { display: block !important; break-before: page; page-break-before: always; border: none; background: none; padding: 0; margin: 0; }
+    .guide-paged .ws-qpage + .ws-step-check + .ws-ans-page + .ws-qpage { break-before: page; page-break-before: always; }
   }
 </style>
 </head>
@@ -2534,6 +2553,20 @@ function renderProgramList() {
       const header = document.createElement('div');
       header.className = 'program-group-header';
       header.textContent = groupLabel;
+      // 解説つきプリントは、Programの単元(肯定文・否定文・疑問文 など)をまとめて1つのプリントにできる
+      const groupItems = list.filter(x => (x.label.includes(': ') ? x.label.split(': ')[0] : x.label) === groupLabel);
+      if (programMode === 'guide' && groupItems.length > 1) {
+        const all = document.createElement('button');
+        all.className = 'group-all-btn';
+        all.textContent = `${groupItems.length}単元をまとめて作る`;
+        all.onclick = () => {
+          stageIndex = stages.indexOf(groupItems[0]);
+          printSource = { kind: 'guide', keys: groupItems.map(x => x.key) };
+          showScreen('print');
+          generateWorksheet();
+        };
+        header.appendChild(all);
+      }
       programList.appendChild(header);
       lastGroup = groupLabel;
     }
@@ -2552,7 +2585,7 @@ function renderProgramList() {
     card.onclick = () => {
       stageIndex = globalIdx;
       if (programMode === 'print' || programMode === 'guide') {
-        printSource = { kind: programMode === 'guide' ? 'guide' : 'stage' };
+        printSource = programMode === 'guide' ? { kind: 'guide', keys: [s.key] } : { kind: 'stage' };
         showScreen('print');
         generateWorksheet();
         return;
@@ -2789,19 +2822,28 @@ function generateReadingItems(stageList, cfg) {
 }
 
 // ---------- 解説つきプリント(初学者向け) ----------
-// 1つの単元について、「ここがポイント」(guides.js)の説明 → やさしい問題(STEP 1〜4) → 解答と解説 の順に
-// まとめたプリント。問題は修飾語なしの基本文だけで作り、1問ずつヒントと解説を自動でつける。
-const GUIDE_COUNTS = { 2: '少なめ', 3: 'ふつう', 4: '多め' }; // 1つのSTEPの問題数
-let guideCount = 3;
+// 単元ごとに「ここがポイント」(guides.js)の説明 → その単元のやさしい問題、をひとまとまりにして、
+// 複数の単元(肯定文・否定文・疑問文 など)を続けて並べる。印刷では、まとまりをページにつめて流し込み、
+// 問題のページのすぐ次(両面印刷なら裏)に、そのページの問題の答え合わせのページを入れる。
+// 問題は修飾語なしの基本文だけで作り、1問ずつヒントと解説を自動でつける。
+const GUIDE_COUNTS = { 1: '少なめ', 2: 'ふつう', 3: '多め' };
+// 1つの単元で出す問題(形式ごとの数)
+const GUIDE_SETS = {
+  1: { choice: 1, reorder: 1, fillin: 1 },
+  2: { choice: 2, reorder: 1, fillin: 1, translate: 1 },
+  3: { choice: 2, reorder: 2, fillin: 2, translate: 1 },
+};
+const GUIDE_TYPE_LABELS = {
+  choice: ['えらぼう', '日本語に合うように、（　）に入る語を選ぶ'],
+  reorder: ['ならべかえよう', '日本語に合うように、語句をならべかえて英文を書く'],
+  fillin: ['書いてみよう', '（　）に英語を1語書く（最初の文字がヒント）'],
+  translate: ['英文を書こう', '日本語を英語にする'],
+};
+let guideCount = 2;
 let guideShowHints = true;
-let guideCheckMode = 'step'; // 'step'(STEPごとに答え合わせ) / 'end'(最後にまとめて)
-let guideSteps = [];
-const GUIDE_STEPS = [
-  { type: 'choice', title: 'STEP 1　えらんでみよう', instr: '日本語に合うように、（　）に入る語を選びましょう。' },
-  { type: 'reorder', title: 'STEP 2　ならべかえよう', instr: '日本語に合うように、語句をならべかえて英文を書きましょう。' },
-  { type: 'fillin', title: 'STEP 3　書いてみよう', instr: '日本語に合うように、（　）に入る英語を1語書きましょう。最初の文字がヒントです。' },
-  { type: 'translate', title: 'STEP 4　英文を書いてみよう', instr: '日本語を英語にしましょう。', less: 1 },
-];
+let guideCheckMode = 'page'; // 'page'(ページごとに答え合わせ) / 'end'(最後にまとめて)
+let guideUnits = [];         // [{ stage, items }]
+let guideReview = [];        // 最後のページのあまりに入れる「まとめ」の問題の候補(単元をまぜる)
 
 const GUIDE_WH_MEANING = { what: '何', where: 'どこ', when: 'いつ', who: 'だれ', whose: 'だれの', which: 'どちら・どの', how: 'どのように・どう', why: 'なぜ' };
 const GUIDE_HOW_MEANING = { many: 'いくつ（数）', much: 'いくら（値段・量）', long: 'どのくらい（長さ・期間）', old: '何歳', about: '〜はどうですか' };
@@ -3075,14 +3117,15 @@ function explainItem(stage, item) {
 function guideMarkup(text) {
   return text.replace(/\*([^*]+)\*/g, '<b class="ws-hl">$1</b>');
 }
-function guideBoxHtml(stage) {
+function guideBoxHtml(stage, mark = '') {
   const g = STAGE_GUIDES[stage.key];
   if (!g) return '';
+  const unitName = stage.label.includes(': ') ? stage.label.split(': ')[1] : stage.label;
   const form = g.form.split('　／　').map(f => `<div class="ws-form">${f.split(' + ').map(p => `<span>${p}</span>`).join('<i>+</i>')}</div>`).join('');
   const examples = g.examples.map(([en, jp]) => `<li><span class="ws-ex-en">${guideMarkup(en)}</span><span class="ws-ex-jp">${jp}</span></li>`).join('');
   const tips = (g.tips || []).map(t => `<li>${t}</li>`).join('');
   return `<div class="ws-guide">
-    <div class="ws-guide-label">ここがポイント</div>
+    <div class="ws-guide-label">ここがポイント${mark ? ` ${mark}` : ''}</div><span class="ws-guide-unit">${unitName}</span>
     <div class="ws-guide-title">${g.title}</div>
     <p class="ws-guide-point">${g.point}</p>
     <div class="ws-forms">${form}</div>
@@ -3091,25 +3134,50 @@ function guideBoxHtml(stage) {
   </div>`;
 }
 
+function guideStages() {
+  return (printSource.keys || []).map(k => stages.find(s => s.key === k)).filter(Boolean);
+}
+
 function generateGuideWorksheet() {
-  const stage = currentStage();
-  const st = { order: shuffle(stage.questions.map((_, i) => i)), n: 0 };
-  guideSteps = GUIDE_STEPS.map(step => {
-    const want = Math.max(1, guideCount - (step.less || 0));
+  const order = Object.keys(GUIDE_TYPE_LABELS);
+  guideUnits = guideStages().map(stage => {
+    const st = { order: shuffle(stage.questions.map((_, i) => i)), n: 0 };
     const items = [];
     const seen = new Set();
-    for (let tries = 0; items.length < want && tries < want * 4; tries++) {
-      const item = makeUnitQuestion(stage, step.type, st, 1);
-      const key = fullSentence(item);
-      if (seen.has(key) && tries < want * 3) continue;
-      seen.add(key);
-      if (item.type === 'fillin') item.firstLetter = true;
-      item.guide = explainItem(stage, item);
-      items.push(item);
-    }
-    return { ...step, items };
+    Object.entries(GUIDE_SETS[guideCount]).forEach(([type, want]) => {
+      let got = 0;
+      for (let tries = 0; got < want && tries < want * 4; tries++) {
+        const item = makeUnitQuestion(stage, type, st, 1);
+        const key = fullSentence(item);
+        if (seen.has(key) && tries < want * 3) continue;
+        seen.add(key);
+        if (item.type === 'fillin') item.firstLetter = true;
+        item.guide = explainItem(stage, item);
+        items.push(item);
+        got++;
+      }
+    });
+    // その形式にできず別の形式になった問題も、形式の順にならべる
+    items.sort((a, b) => order.indexOf(a.type) - order.indexOf(b.type));
+    return { stage, items, st, seen };
   });
-  printItems = guideSteps.flatMap(s => s.items);
+  // まとめの問題: 単元を順番にまぜて、えらぶ・書くを交互に
+  guideReview = [];
+  const unitOrder = shuffle(guideUnits);
+  for (let i = 0; i < 14; i++) {
+    const u = unitOrder[i % unitOrder.length];
+    const type = i % 2 ? 'fillin' : 'choice';
+    let item = null;
+    for (let tries = 0; tries < 4; tries++) {
+      item = makeUnitQuestion(u.stage, type, u.st, 1);
+      if (!u.seen.has(fullSentence(item))) break;
+    }
+    u.seen.add(fullSentence(item));
+    if (item.type === 'fillin') item.firstLetter = true;
+    item.guide = explainItem(u.stage, item);
+    guideReview.push({ unit: u, item });
+  }
+  printItems = guideUnits.flatMap(u => u.items);
   vocabItems = [];
   readingItems = [];
 }
@@ -3123,6 +3191,7 @@ function setProgramMode(mode) {
   programModePractice.classList.toggle('active', mode === 'practice');
   programModePrint.classList.toggle('active', mode === 'print');
   programModeGuide.classList.toggle('active', mode === 'guide');
+  if (screenProgram.style.display !== 'none') renderProgramList();
 }
 
 function renderOptionSwitch(container, options, current, onPick) {
@@ -3165,12 +3234,12 @@ function renderPrintOptions() {
     guideCount = v; generateWorksheet();
   });
   printGuideHintCheck.checked = guideShowHints;
-  renderOptionSwitch(printGuideCheckSwitch, [['step', 'STEPごと'], ['end', '最後にまとめて']], guideCheckMode, v => {
+  renderOptionSwitch(printGuideCheckSwitch, [['page', 'ページごと'], ['end', '最後にまとめて']], guideCheckMode, v => {
     guideCheckMode = v; renderPrintOptions(); renderWorksheet();
   });
-  printGuideCheckNote.textContent = guideCheckMode === 'step'
-    ? '問題のページの次に、そのSTEPの答え合わせのページが入ります。両面印刷（長辺とじ）にすると、問題の裏が答え合わせになります。'
-    : '問題をすべて解いてから、最後のページでまとめて答え合わせをします。';
+  printGuideCheckNote.textContent = guideCheckMode === 'page'
+    ? '問題のページの次に、そのページの問題の答え合わせが入ります。両面印刷（長辺とじ）にすると、問題の裏が答え合わせになります。'
+    : '問題をすべて解いてから、最後にまとめて答え合わせをします。';
   printCheckBtn.parentElement.style.display = isGuide ? 'none' : '';
   printSourceNote.style.display = isTest ? 'block' : 'none';
   printSourceNote.textContent = isTest ? `${printSource.summary}（${countQuestions()}問）` : '';
@@ -3204,6 +3273,7 @@ function allocateTypes(weights, total) {
 }
 
 function sourceStages() {
+  if (printSource.kind === 'guide') return guideStages();
   if (printSource.kind !== 'test') return [currentStage()];
   return stages.filter(s => printSource.config.keys.includes(s.key));
 }
@@ -3468,30 +3538,99 @@ function guideAnswerSentence(item) {
   if (item.blankIndex == null) return fullSentence(item);
   return endWith(item.tokens.map((t, i) => (i === item.blankIndex ? `<b class="ws-hl">${t}</b>` : t)).join(' '), item.end);
 }
-function guideAnswerHtml(stage, steps) {
+const CIRCLED = '①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑳';
+const GUIDE_PAGE_HEIGHT = 1016; // A4(297mm)から上下の余白(14mm×2)を引いた高さ(CSS px)
+const GUIDE_PAGE_WIDTH = 688;   // A4(210mm)から左右の余白を引いた幅
+const GUIDE_PAGE_LIMIT = GUIDE_PAGE_HEIGHT * 0.965; // 計算のずれを見込んで少し余らせる
+
+// 印刷したときの高さを測る(印刷と同じ幅・同じスタイルの見えない箱に入れて測る)
+function guideMeasureBox() {
+  let m = document.getElementById('guideMeasure');
+  if (!m) {
+    m = document.createElement('div');
+    m.id = 'guideMeasure';
+    m.className = 'sheet print-like';
+    document.body.appendChild(m);
+  }
+  m.style.width = `${GUIDE_PAGE_WIDTH}px`;
+  return m;
+}
+function measureHeight(node) {
+  const m = guideMeasureBox();
+  const wrap = document.createElement('div');
+  wrap.style.display = 'flow-root';
+  wrap.appendChild(node);
+  m.appendChild(wrap);
+  const h = wrap.getBoundingClientRect().height;
+  m.removeChild(wrap);
+  wrap.removeChild(node);
+  return h;
+}
+function htmlNode(html) {
+  const d = document.createElement('div');
+  d.innerHTML = html;
+  return d;
+}
+
+function guideRuleHtml(stage) {
   const g = STAGE_GUIDES[stage.key] || {};
-  const rows = steps.map(step => `
-    <div class="ws-ans-step">${step.title.replace(/\s+/, ' ')}</div>
-    ${step.items.map((item, i) => `
-      <div class="ws-ans-item">
-        <div class="ws-ans-top"><span class="ws-num">(${i + 1})</span>
-          <span class="ws-ans-en">${guideAnswerSentence(item)}</span>
-          <span class="ws-ans-check">○×</span></div>
-        ${item.type === 'choice' ? `<div class="ws-ans-key">正解：${answerText(item)}</div>` : ''}
-        <div class="ws-ans-why">${item.guide.why}</div>
-      </div>`).join('')}`).join('');
-  return `<div class="ws-ans-head">答え合わせ<span class="ws-ans-note">問題を解き終わってから見よう</span><span>${steps.map(st => st.title.split(/\s+/).slice(0, 2).join(' ')).join('・')}</span></div>
-    <div class="ws-ans-rule"><b>ルールの確認</b>${g.point || ''}${g.form ? `<div class="ws-ans-form">${g.form}</div>` : ''}</div>
-    ${rows}
-    <div class="ws-ans-foot">まちがえた問題は、どのルールに合っていなかったかを解説で確かめてから、正しい英文を書き直そう。${steps[steps.length - 1] === guideSteps[guideSteps.length - 1] ? '' : 'わかったら次の STEP へ進もう。'}</div>
-    <div class="ws-rewrite"><div class="ws-rewrite-label">書き直し欄</div>${'<div class="ws-rewrite-line"></div>'.repeat(Math.min(6, steps.reduce((a, st) => a + st.items.length, 0)))}</div>`;
+  const unitName = stage.label.includes(': ') ? stage.label.split(': ')[1] : stage.label;
+  return `<div class="ws-ans-rule"><b>ルールの確認（${unitName}）</b>${g.point || ''}${g.form ? `<div class="ws-ans-form">${g.form}</div>` : ''}</div>`;
+}
+function guideAnswerItemHtml(item, num) {
+  return `<div class="ws-ans-item">
+      <div class="ws-ans-top"><span class="ws-num">(${num})</span>
+        <span class="ws-ans-en">${guideAnswerSentence(item)}</span>
+        <span class="ws-ans-check">○×</span></div>
+      ${item.type === 'choice' ? `<div class="ws-ans-key">正解：${answerText(item)}</div>` : ''}
+      <div class="ws-ans-why">${item.guide.why}</div>
+    </div>`;
+}
+const guideAnswerHeadHtml = range => `<div class="ws-ans-head">答え合わせ<span>${range}</span><span class="ws-ans-note">問題を解き終わってから見よう</span></div>`;
+const GUIDE_ANSWER_FOOT = '<div class="ws-ans-foot">まちがえた問題は、どのルールに合っていなかったかを解説で確かめてから、正しい英文を書き直そう。</div>';
+const guideRewriteHtml = lines => `<div class="ws-rewrite"><div class="ws-rewrite-label">書き直し欄</div>${'<div class="ws-rewrite-line"></div>'.repeat(lines)}</div>`;
+
+// 単元ごとのまとまり(ポイント → 問題)を、ページにつめて流し込む。
+// 問題のページと、その答え合わせのページの両方が1ページに収まるところでページを区切る。
+function layoutGuidePages(blocks, paged) {
+  if (!paged) return [{ blocks }];
+  const headH = measureHeight(document.querySelector('.sheet-head').cloneNode(true));
+  const ansBase = measureHeight(htmlNode(guideAnswerHeadHtml('(1)〜(10)'))) + measureHeight(htmlNode(GUIDE_ANSWER_FOOT + guideRewriteHtml(2)));
+  const pages = [];
+  let cur = null;
+  const newPage = () => ({ blocks: [], qh: pages.length ? 0 : headH, ah: ansBase, units: new Set() });
+  cur = newPage();
+  blocks.forEach((b, i) => {
+    // ポイントの箱だけがページの最後に残らないように、次の1問といっしょに入るかで判断する
+    const qAdd = b.qh + (b.kind === 'point' && blocks[i + 1] ? blocks[i + 1].qh : 0);
+    const ruleAdd = b.kind === 'item' && !cur.units.has(b.unit) ? b.unit.ruleH : 0;
+    const aAdd = b.kind === 'item' ? b.ah + ruleAdd : 0;
+    if (cur.blocks.length && (cur.qh + qAdd > GUIDE_PAGE_LIMIT || cur.ah + aAdd > GUIDE_PAGE_LIMIT)) {
+      pages.push(cur);
+      cur = newPage();
+    }
+    cur.blocks.push(b);
+    cur.qh += b.qh;
+    if (b.kind === 'item') {
+      if (!cur.units.has(b.unit)) cur.ah += b.unit.ruleH;
+      cur.ah += b.ah;
+      cur.units.add(b.unit);
+    }
+  });
+  if (cur.blocks.length) pages.push(cur);
+  return pages;
 }
 
 function renderGuideWorksheet() {
-  const s = currentStage();
-  const gradeName = (grades.find(g => g.id === s.grade) || {}).name || '';
-  sheetTitle.textContent = `解説つきプリント ${s.label}`;
-  sheetSub.innerHTML = `${gradeName} &middot; ${s.eyebrow}`;
+  const units = guideUnits;
+  const first = units[0].stage, last = units[units.length - 1].stage;
+  const gradeName = (grades.find(g => g.id === first.grade) || {}).name || '';
+  const sameGroup = units.every(u => stageGroupLabel(u.stage) === stageGroupLabel(first));
+  const unitName = s => (s.label.includes(': ') ? s.label.split(': ')[1] : s.label);
+  sheetTitle.textContent = units.length === 1 ? `解説つきプリント ${first.label}`
+    : `解説つきプリント ${sameGroup ? stageGroupLabel(first) : `${first.label} 〜 ${last.label}`}`;
+  sheetSub.innerHTML = units.length === 1 ? `${gradeName} &middot; ${first.eyebrow}`
+    : `${gradeName} &middot; ${units.map(u => unitName(u.stage)).join('・')}`;
   sheetTotal.textContent = countQuestions();
   sheetScore.textContent = '';
   printScoreBanner.style.display = 'none';
@@ -3499,38 +3638,98 @@ function renderGuideWorksheet() {
   sheetItems.innerHTML = '';
   answerSheet.classList.remove('include');
   answerList.innerHTML = '';
-  // STEPごと: 問題(表) → 答え合わせ(裏) をくり返す。最後にまとめて: 問題をすべて → 答え合わせ
-  const groups = guideCheckMode === 'step' ? guideSteps.map(st => [st]) : [guideSteps];
-  sheetItems.classList.toggle('guide-by-step', guideCheckMode === 'step');
-  groups.forEach((steps, gi) => {
+
+  // まとまり(ポイントの箱・1問ずつ)を作って、印刷したときの高さを測る
+  const blocks = [];
+  let num = 0;
+  units.forEach((u, ui) => {
+    u.ruleH = measureHeight(htmlNode(guideRuleHtml(u.stage)));
+    const point = htmlNode(guideBoxHtml(u.stage, units.length > 1 ? CIRCLED[ui] : ''));
+    blocks.push({ kind: 'point', unit: u, node: point, qh: measureHeight(point) });
+    let lastType = null;
+    u.items.forEach(item => {
+      num++;
+      const node = document.createElement('div');
+      node.className = 'ws-gitem';
+      if (item.type !== lastType) {
+        const [label, desc] = GUIDE_TYPE_LABELS[item.type] || ['', ''];
+        node.innerHTML = `<div class="ws-gtype"><b>${label}</b>${desc}</div>`;
+        lastType = item.type;
+      }
+      const el = makeItemEl(item, num);
+      if (guideShowHints && item.guide.hint) {
+        el.querySelector('.ws-body').insertAdjacentHTML('beforeend', `<div class="ws-hintline">ヒント：${item.guide.hint}</div>`);
+      }
+      node.appendChild(el);
+      const ans = htmlNode(guideAnswerItemHtml(item, num));
+      blocks.push({ kind: 'item', unit: u, item, num, node, qh: measureHeight(node), ah: measureHeight(ans) });
+    });
+  });
+
+  const paged = guideCheckMode === 'page' && printIncludeAnswers.checked;
+  const pages = layoutGuidePages(blocks, paged);
+  // 最後のページのあまりに、単元をまぜた「まとめ」の問題を入れる(どのルールを使うかを見分ける練習)
+  printItems = units.flatMap(u => u.items);
+  if (paged) {
+    const lastPage = pages[pages.length - 1];
+    const review = { review: true };
+    review.ruleH = measureHeight(htmlNode('<div class="ws-ans-step">まとめ</div>'));
+    for (const r of guideReview) {
+      const node = document.createElement('div');
+      node.className = 'ws-gitem';
+      if (!lastPage.units.has(review)) {
+        node.innerHTML = `<div class="ws-gtype ws-gtype-review"><b>まとめ</b>${units.length > 1 ? 'いろいろな文がまざっています。どのルールを使うか考えて答えよう' : 'もう少し練習しよう'}</div>`;
+      }
+      const el = makeItemEl(r.item, num + 1);
+      if (guideShowHints && r.item.guide.hint) {
+        el.querySelector('.ws-body').insertAdjacentHTML('beforeend', `<div class="ws-hintline">ヒント：${r.item.guide.hint}</div>`);
+      }
+      node.appendChild(el);
+      const qh = measureHeight(node);
+      const ah = measureHeight(htmlNode(guideAnswerItemHtml(r.item, num + 1))) + (lastPage.units.has(review) ? 0 : review.ruleH);
+      if (lastPage.qh + qh > GUIDE_PAGE_LIMIT || lastPage.ah + ah > GUIDE_PAGE_LIMIT) break;
+      num++;
+      lastPage.blocks.push({ kind: 'item', unit: review, item: r.item, num, node, qh, ah });
+      lastPage.qh += qh;
+      lastPage.ah += ah;
+      lastPage.units.add(review);
+      printItems.push(r.item);
+    }
+    sheetTotal.textContent = countQuestions();
+  }
+  sheetItems.classList.toggle('guide-paged', paged);
+  pages.forEach((pg, pi) => {
     const page = document.createElement('div');
     page.className = 'ws-qpage';
-    if (gi === 0) page.innerHTML = guideBoxHtml(s);
-    steps.forEach(step => {
-      page.appendChild(sectionHead('', step.title, step.instr));
-      step.items.forEach((item, i) => {
-        const el = makeItemEl(item, i + 1);
-        if (guideShowHints && item.guide.hint) {
-          el.querySelector('.ws-body').insertAdjacentHTML('beforeend', `<div class="ws-hintline">ヒント：${item.guide.hint}</div>`);
-        }
-        page.appendChild(el);
-      });
-    });
+    pg.blocks.forEach(b => page.appendChild(b.node));
     sheetItems.appendChild(page);
-    // 画面では、このまとまりの答え合わせボタン → 答え合わせのページを表示
+    const items = pg.blocks.filter(b => b.kind === 'item');
+    if (!items.length) return;
+    const range = `問題 (${items[0].num})〜(${items[items.length - 1].num})`;
+    const mark = pages.length > 1 ? CIRCLED[pi] || '' : '';
+    // 画面では、ページごとの答え合わせボタン → 答え合わせのページを表示
     const btn = document.createElement('div');
     btn.className = 'ws-step-check no-print';
-    btn.innerHTML = `<button class="btn btn-primary">${guideCheckMode === 'step' ? `${steps[0].title.split(/\s+/)[0]} ${steps[0].title.split(/\s+/)[1]}` : 'すべて'}の答え合わせをする</button>`;
+    btn.innerHTML = `<button class="btn btn-primary">答え合わせ${mark}をする（${range.replace('問題 ', '')}）</button>`;
     sheetItems.appendChild(btn);
     const ans = document.createElement('div');
     ans.className = 'ws-ans-page' + (printIncludeAnswers.checked ? ' include' : '');
-    ans.innerHTML = guideAnswerHtml(s, steps);
+    const unitsHere = [...new Set(items.map(b => b.unit))];
+    // 答え合わせのページのあまりは書き直し欄にする
+    const used = pg.ah || 0;
+    const lines = paged ? Math.max(2, Math.min(10, 2 + Math.floor((GUIDE_PAGE_LIMIT - used) / 31))) : 3;
+    let html = guideAnswerHeadHtml(`${mark} ${range}`);
+    unitsHere.forEach(u => {
+      html += u.review ? '<div class="ws-ans-step">まとめ</div>' : guideRuleHtml(u.stage);
+      items.filter(b => b.unit === u).forEach(b => { html += guideAnswerItemHtml(b.item, b.num); });
+    });
+    ans.innerHTML = html + GUIDE_ANSWER_FOOT + guideRewriteHtml(lines);
     sheetItems.appendChild(ans);
     btn.querySelector('button').onclick = () => {
       page.querySelectorAll('.ws-item').forEach(markItemRow);
       ans.classList.add('revealed');
       page.dataset.checked = '1';
-      // これまでに答え合わせしたまとまりの合計
+      // これまでに答え合わせしたページの合計
       let score = 0, total = 0;
       sheetItems.querySelectorAll('.ws-qpage[data-checked] .ws-item').forEach(row => {
         const ok = isCorrect(row._item);
@@ -3539,7 +3738,8 @@ function renderGuideWorksheet() {
         if (ok) score++;
       });
       const done = sheetItems.querySelectorAll('.ws-qpage[data-checked]').length;
-      showScore(score, total, done < groups.length ? `（${done}/${groups.length} まで）` : '');
+      const all = sheetItems.querySelectorAll('.ws-qpage').length;
+      showScore(score, total, done < all ? `（${done}/${all} ページ）` : '');
       ans.scrollIntoView({ behavior: 'smooth', block: 'start' });
     };
   });
