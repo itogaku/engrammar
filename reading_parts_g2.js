@@ -2,7 +2,7 @@
 READING_PASSAGES.push(
   {
     level: 'part', grade: 2, program: 1, part: 1, title: 'マイクが引っ越す',
-    text: 'Yui: What\'s up, Ken?\nKen: Nothing special. By the way, Mike is going to move to Canada next week.\nYui: You\'re kidding!\nKen: No. We\'re going to have a farewell party for him. ①<u>Are you going to come?</u>\nYui: Sure.',
+    text: 'Yui: What\'s up, Ken?\nKen: Nothing special. By the way, Mike is going to move to Canada next week.\nYui: You\'re kidding!\nKen: No, I\'m not. We\'re going to have a farewell party for him. ①<u>Are you going to come?</u>\nYui: Sure.',
     questions: [
       { type: 'tf', q: 'マイクはカナダへ引っ越す予定である。', answer: true },
       { type: 'choice', q: 'マイクの引っ越しを聞いた結衣の反応はどれですか。', options: ['喜んだ', '冗談でしょうと驚いた', '知っていた', '怒った'], answer: 1 },
@@ -31,7 +31,7 @@ READING_PASSAGES.push(
     ],
   },
   {
-    level: 'part', grade: 2, program: 2, part: 1, title: 'タンザニアのサッカー',
+    level: 'part', grade: 2, program: 2, part: 1, title: 'タンザニアのサッカー', notes: ['take place　開催される', 'promote　促進する', 'successful　成功した'],
     text: 'Do you know that a soccer event takes place in Tanzania every year? It promotes sports in Africa. For example, children play soccer with famous players there.\n①<u>I think that it\'s a successful event.</u>',
     questions: [
       { type: 'tf', q: 'そのイベントは毎年タンザニアで開かれる。', answer: true },
@@ -41,8 +41,8 @@ READING_PASSAGES.push(
     ],
   },
   {
-    level: 'part', grade: 2, program: 2, part: 2, title: 'ガーナのコーチ',
-    text: 'When Mr. Owusu was a university student, he played soccer professionally in Ghana. He was on the national team. When he stopped playing, he started to coach children.\n①<u>He believes that sports create peace.</u>',
+    level: 'part', grade: 2, program: 2, part: 2, title: 'ガーナのコーチ', notes: ['professionally　プロとして', 'national team　代表チーム', 'coach　指導する'],
+    text: 'When Mr. Owusu was young, he played soccer professionally in Ghana. He was on the national team. When he stopped playing, he started to coach children.\n①<u>He believes that sports create peace.</u>',
     questions: [
       { type: 'tf', q: 'オウスさんはガーナでプロとしてサッカーをしていた。', answer: true },
       { type: 'choice', q: 'オウスさんが選手をやめた後に始めたことは何ですか。', options: ['大学で教えること', '子どもたちのコーチ', '新しいチームを作ること', '本を書くこと'], answer: 1 },
@@ -51,7 +51,7 @@ READING_PASSAGES.push(
     ],
   },
   {
-    level: 'part', grade: 2, program: 2, part: 3, title: 'スポーツから学ぶこと',
+    level: 'part', grade: 2, program: 2, part: 3, title: 'スポーツから学ぶこと', notes: ['sportsmanship　スポーツマンシップ', 'tool　道具', 'education　教育'],
     text: '①<u>If you play sports, you can learn many things.</u> For example, you learn sportsmanship and good manners. In fact, sports are a great tool for education.\nOur team practices every day. If it rains, we play table tennis in the gym.',
     questions: [
       { type: 'tf', q: 'スポーツを通してよいマナーを学ぶことができる。', answer: true },
@@ -71,12 +71,12 @@ READING_PASSAGES.push(
     ],
   },
   {
-    level: 'part', grade: 2, program: 3, part: 2, title: '金魚すくい',
-    text: 'We went to the festival to play games. I tried to scoop up fish with thin paper. It was difficult, but I got one for the first time.\n①<u>I\'m looking forward to the next festival.</u>',
+    level: 'part', grade: 2, program: 3, part: 2, title: '金魚すくい', notes: ['scoop up　すくう', 'goldfish　金魚'],
+    text: 'We went to the festival to play games. I tried to scoop up goldfish with thin paper. It was difficult, but I got one for the first time.\n①<u>I\'m looking forward to the next festival.</u>',
     questions: [
-      { type: 'tf', q: '「私」は初めて魚をすくうことができた。', answer: true },
+      { type: 'tf', q: '「私」は初めて金魚をすくうことができた。', answer: true },
       { type: 'choice', q: '「私」たちが祭りに行った目的は何ですか。', options: ['踊るため', 'ゲームをするため', '花火を見るため', '友達に会うため'], answer: 1 },
-      { type: 'fill', q: '魚をすくう紙はどうでしたか。本文中の英語1語で答えなさい。', answer: 'thin' },
+      { type: 'fill', q: '金魚をすくう紙はどうでしたか。本文中の英語1語で答えなさい。', answer: 'thin' },
       { type: 'ja', q: '下線部①を日本語にしなさい。', answer: '私は次のお祭りを楽しみにしています。' },
     ],
   },
@@ -86,13 +86,13 @@ READING_PASSAGES.push(
     questions: [
       { type: 'tf', q: '妹は家の前でレモネードを売った。', answer: true },
       { type: 'choice', q: '夕方にはどうなっていましたか。', options: ['レモネードがたくさん残っていた', '売るレモネードがなくなった', '雨が降った', 'お店を閉めた'], answer: 1 },
-      { type: 'fill', q: '妹はだれと売りましたか。「ひとりで」を表す英語2語を本文中から抜き出しなさい。', answer: 'by herself' },
+      { type: 'fill', q: '妹がひとりで売ったことを表す英語2語を本文中から抜き出しなさい。', answer: 'by herself' },
       { type: 'ja', q: '下線部①を日本語にしなさい。', answer: 'レモネードを売ることは簡単ではありません。' },
     ],
   },
   {
     level: 'part', grade: 2, program: 4, part: 1, title: 'ハイキングに行こう',
-    text: 'Eric: Why don\'t we go hiking this weekend? It will be clear.\nKen: That sounds wonderful. ①<u>I\'m glad to hear that.</u>\nEric: My uncle is a guide. He can guide us.\nKen: Is it true? We may see deer!',
+    text: 'Eric: Why don\'t we go hiking this weekend? It will be clear.\nKen: That sounds wonderful. ①<u>I\'m glad to hear that.</u>\nEric: My uncle is a guide. He can guide us.\nKen: Really? We may see deer!',
     questions: [
       { type: 'tf', q: '週末は晴れる予定である。', answer: true },
       { type: 'choice', q: 'エリックのおじの仕事は何ですか。', options: ['先生', 'ガイド', '医者', '料理人'], answer: 1 },
@@ -101,8 +101,8 @@ READING_PASSAGES.push(
     ],
   },
   {
-    level: 'part', grade: 2, program: 4, part: 2, title: '森のルール',
-    text: 'Before hiking, the guide told us the rules. "First of all, you must stay on the road. You mustn\'t leave anything in the forest. ①<u>We must protect nature.</u>"',
+    level: 'part', grade: 2, program: 4, part: 2, title: '森のルール', notes: ['trail　山道'],
+    text: 'Before hiking, the guide told us the rules. "First of all, you must stay on the trail. You mustn\'t leave anything in the forest. ①<u>We must protect nature.</u>"',
     questions: [
       { type: 'tf', q: '森に物を置いていってはいけない。', answer: true },
       { type: 'choice', q: '最初に言われたルールは何ですか。', options: ['大きな声を出さない', '道からはずれない', '写真をとらない', '走らない'], answer: 1 },
@@ -111,18 +111,18 @@ READING_PASSAGES.push(
     ],
   },
   {
-    level: 'part', grade: 2, program: 4, part: 3, title: 'ビーバーは技術者',
-    text: 'In the forest, we saw a beaver\'s lodge. Beavers cut down trees and build dams. ①<u>They don\'t have to use tools.</u> They\'re great engineers.\nWe have to go home before five, so we left the forest at four.',
+    level: 'part', grade: 2, program: 4, part: 3, title: 'ビーバーは技術者', notes: ['lodge　巣', 'dam(s)　ダム', 'engineer(s)　技術者'],
+    text: 'In the forest, we saw a beaver\'s lodge. Beavers cut down trees and build dams. They use their teeth. ①<u>They don\'t have to use tools.</u> They\'re great engineers.\nWe had to be home by five, so we left the forest at four.',
     questions: [
       { type: 'tf', q: 'ビーバーは木を切り倒してダムを作る。', answer: true },
       { type: 'choice', q: 'ビーバーについて本文で言っていることはどれですか。', options: ['道具を上手に使う', 'すばらしい技術者だ', '人を怖がらない', '水の中で暮らさない'], answer: 1 },
-      { type: 'fill', q: '「私」たちは何時までに帰らなければなりませんか。本文中の英語1語で答えなさい。', answer: 'five' },
+      { type: 'fill', q: '「私」たちは何時までに帰らなければなりませんでしたか。本文中の英語1語で答えなさい。', answer: 'five' },
       { type: 'ja', q: '下線部①を日本語にしなさい。', answer: '彼らは道具を使う必要がありません。' },
     ],
   },
   {
     level: 'part', grade: 2, program: 5, part: 1, title: 'お店の手伝い',
-    text: 'Last week, I worked at a shop for a day. ①<u>I didn\'t know where to put the goods.</u> The staff told me where to put them.\nThen I dropped a pack of eggs by mistake. The staff kindly said, "Everyone makes mistakes."',
+    text: 'Last week, I worked at a shop for a day. ①<u>I didn\'t know where to put the goods.</u> A staff member told me where to put them.\nThen I dropped a pack of eggs by mistake. A staff member kindly said, "Everyone makes mistakes."',
     questions: [
       { type: 'tf', q: '「私」は卵のパックを落としてしまった。', answer: true },
       { type: 'choice', q: '店員は「私」に何と言いましたか。', options: ['もう来なくていい', 'だれでも間違える', '気をつけなさい', '弁償しなさい'], answer: 1 },
@@ -142,7 +142,7 @@ READING_PASSAGES.push(
   },
   {
     level: 'part', grade: 2, program: 5, part: 3, title: '保育園での体験',
-    text: 'I visited a nursery school. I read a book to the children. Some children fell asleep beside me. ①<u>One girl gave me a thank-you card.</u>\nThis experience showed me my dream. I want to work at a nursery school in the future.',
+    text: 'I visited a nursery school. I read a book to the children. Some children fell asleep beside me. ①<u>One girl gave me a thank-you card.</u>\nNow I have a dream. I want to work at a nursery school in the future.',
     questions: [
       { type: 'tf', q: '「私」は子どもたちに本を読んであげた。', answer: true },
       { type: 'choice', q: '女の子が「私」にくれたものは何ですか。', options: ['花', 'お礼のカード', '絵', 'お菓子'], answer: 1 },
@@ -156,7 +156,7 @@ READING_PASSAGES.push(
     questions: [
       { type: 'tf', q: '雨つぶはハスの葉にくっつく。', answer: false },
       { type: 'choice', q: 'ハスの葉のしくみを使っているものは何ですか。', options: ['かさ', 'ヨーグルトのふた', '靴', '窓'], answer: 1 },
-      { type: 'fill', q: 'ハスの葉はどうならないのですか。「ぬれた」を表す英語1語を本文中から抜き出しなさい。', answer: 'wet' },
+      { type: 'fill', q: '雨つぶが葉から流れ落ちるので、ハスの葉はどうなりませんか。本文中の英語1語で答えなさい。', answer: 'wet' },
       { type: 'ja', q: '下線部①を日本語にしなさい。', answer: '雨つぶはそれにくっつきません。' },
     ],
   },
@@ -177,7 +177,7 @@ READING_PASSAGES.push(
       { type: 'tf', q: 'ロボットのハチは硬貨と同じくらいの大きさである。', answer: true },
       { type: 'choice', q: 'ロボットのハチができることはどれですか。', options: ['花粉を運ぶ', 'はちみつを作る', '人を刺す', '空高く飛ぶ'], answer: 0 },
       { type: 'fill', q: 'ロボットのハチは何の分野で大きな可能性がありますか。本文中の英語1語で答えなさい。', answer: 'agriculture' },
-      { type: 'ja', q: '下線部①を日本語にしなさい。', answer: 'それは硬貨と同じくらいの小ささです。' },
+      { type: 'ja', q: '下線部①を日本語にしなさい。', answer: 'それは硬貨と同じくらい小さいです。' },
     ],
   },
   {
@@ -191,13 +191,13 @@ READING_PASSAGES.push(
     ],
   },
   {
-    level: 'part', grade: 2, program: 7, part: 2, title: 'イルカのねむり方', notes: ['dolphin(s)　イルカ'],
-    text: 'Dolphins are mammals. They are some of the smartest animals in the sea. Here is a surprising fact. When dolphins sleep, half of their brain is awake. The other half sleeps, so they can breathe.\nI think dolphins are the most interesting animals. ①<u>Do you agree?</u>',
+    level: 'part', grade: 2, program: 7, part: 2, title: 'イルカのねむり方', notes: ['dolphin(s)　イルカ', 'mammal(s)　哺乳動物'],
+    text: 'Dolphins are mammals. They are some of the smartest animals in the sea. Here is a surprising fact. When dolphins sleep, only half of their brain sleeps. The other half stays awake, so they can breathe.\nI think dolphins are the most interesting animals. ①<u>Do you agree?</u>',
     questions: [
       { type: 'tf', q: 'イルカは魚の仲間である。', answer: false },
       { type: 'choice', q: 'イルカが眠っているとき、脳はどうなっていますか。', options: ['全部眠っている', '半分は起きている', '全部起きている', '本文に書かれていない'], answer: 1 },
       { type: 'fill', q: '眠っている間も、脳の半分はどんな状態ですか。本文中の英語1語で答えなさい。', answer: 'awake' },
-      { type: 'ja', q: '下線部①を日本語にしなさい。', answer: 'あなたは賛成しますか。' },
+      { type: 'ja', q: '下線部①を日本語にしなさい。', answer: 'あなたもそう思いますか。（あなたは賛成しますか。）' },
     ],
   },
   {
@@ -221,13 +221,13 @@ READING_PASSAGES.push(
     ],
   },
   {
-    level: 'part', grade: 2, program: 8, part: 2, title: '禎子の折り鶴',
-    text: 'Sadako was two years old when an atomic bomb was dropped on Hiroshima. Later, she became sick. She made paper cranes because she wanted to get well. But she passed away when she was twelve.\n①<u>A monument was built for her and other victims.</u>',
+    level: 'part', grade: 2, program: 8, part: 2, title: '禎子の折り鶴', notes: ['atomic bomb　原子爆弾', 'monument　記念碑', 'victim(s)　犠牲者'],
+    text: 'Sadako was two years old when an atomic bomb was dropped on Hiroshima. Later, she became sick. She made paper cranes because she wanted to get well. But she passed away when she was twelve.\n①<u>A monument was built for her and other child victims.</u>',
     questions: [
       { type: 'tf', q: '禎子は12歳のときに亡くなった。', answer: true },
       { type: 'choice', q: '禎子が折り鶴を作ったのはなぜですか。', options: ['友達にあげるため', '元気になりたかったから', '売るため', '学校の宿題だったから'], answer: 1 },
       { type: 'fill', q: '原子爆弾が落とされたとき、禎子は何歳でしたか。本文中の英語1語で答えなさい。', answer: 'two' },
-      { type: 'ja', q: '下線部①を日本語にしなさい。', answer: '彼女と他の犠牲者のために記念碑が建てられました。' },
+      { type: 'ja', q: '下線部①を日本語にしなさい。', answer: '彼女と他の子どもの犠牲者のために記念碑が建てられました。' },
     ],
   },
   {

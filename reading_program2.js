@@ -2,13 +2,13 @@
 READING_PASSAGES.push(
   {
     level: 'program', grade: 1, program: 1, title: '里奈とケント',
-    text: 'Hello, I\'m Rina. I\'m a junior high school student in Japan. I\'m in the brass band. I\'m good at music. I\'m not good at social studies. I\'m cheerful. I\'m not quiet. I\'m a big fan of J-pop.\nKent, you\'re from New York. You\'re polite and honest. You\'re good at math. ①<u>You\'re my good friend.</u> Thank you, Kent. I want to go to New York.',
+    text: 'Hello, I\'m Rina. I\'m a junior high school student in Japan. I\'m in the brass band. I\'m good at music. I\'m not good at social studies. I\'m cheerful. I\'m not quiet. I\'m a big fan of J-pop.\nKent, you\'re from New York. You\'re polite and honest. You\'re good at math. ①<u>You\'re a good friend.</u> Thank you, Kent.',
     questions: [
       { type: 'tf', q: '里奈は社会が得意である。', answer: false },
       { type: 'tf', q: '里奈はJポップの大ファンである。', answer: true },
       { type: 'choice', q: 'ケントについて正しいものはどれですか。', options: ['静かで恥ずかしがり屋', '礼儀正しくて正直', '音楽が得意', '日本出身'], answer: 1 },
       { type: 'fill', q: '里奈が入っている部を、本文中の英語2語で答えなさい。', answer: 'brass band' },
-      { type: 'ja', q: '下線部①を日本語にしなさい。', answer: 'あなたは私のよい友達です。' },
+      { type: 'ja', q: '下線部①を日本語にしなさい。', answer: 'あなたはよい友達です。' },
     ],
   },
   {
@@ -24,18 +24,18 @@ READING_PASSAGES.push(
   },
   {
     level: 'program', grade: 1, program: 3, title: '救助ロボット',
-    text: 'Look at this robot. It\'s a rescue robot. It can find people in the mountains. It can carry heavy things. It can\'t swim, but it can climb trees. Wow!\nI want to make robots. I can\'t make robots. But I can draw robots well. Can you draw robots? ①<u>What can your robot do?</u>',
+    text: 'Look at this robot. It\'s a rescue robot. It can find people in the mountains. It can carry heavy things. It can\'t swim, but it can climb trees. Wow!\nI like robots. I can\'t make robots, but I can draw robots well. Can you draw robots? ①<u>What can your robot do?</u>',
     questions: [
       { type: 'tf', q: 'そのロボットは泳ぐことができる。', answer: false },
       { type: 'choice', q: 'そのロボットができることはどれですか。', options: ['料理をする', '重い物を運ぶ', '空を飛ぶ', '歌を歌う'], answer: 1 },
       { type: 'tf', q: '「私」はロボットの絵を上手にかくことができる。', answer: true },
-      { type: 'fill', q: '「（　）robot」の（　）に入る英語1語を、本文中から抜き出しなさい。', answer: 'rescue' },
+      { type: 'fill', q: 'このロボットは何のためのロボットですか。「（　）robot」の（　）に入る英語1語を、本文中から抜き出しなさい。', answer: 'rescue' },
       { type: 'ja', q: '下線部①を日本語にしなさい。', answer: 'あなたのロボットは何ができますか。' },
     ],
   },
   {
     level: 'program', grade: 1, program: 4, title: 'クイズの時間',
-    text: 'Question time! This is yellow. It\'s long. It\'s a fruit. Is this a banana? ①<u>That\'s right!</u>\nOK. That\'s a man in the picture. Who is he? He is not a teacher. He\'s a programmer. He\'s my father. He\'s good at drones.\nWho is this girl? She\'s a high school student. She\'s my sister.',
+    text: 'Question time! This is yellow. It\'s long. It\'s a fruit. What is this? — Is it a banana? — ①<u>That\'s right!</u>\nOK. Look at this picture. Who is this man? He is not a teacher. He\'s a programmer. He\'s my father. He\'s good at computers.\nWho is this girl? She\'s a high school student. She\'s my sister.',
     questions: [
       { type: 'tf', q: '最初のクイズの答えはバナナである。', answer: true },
       { type: 'choice', q: '写真の男性の職業は何ですか。', options: ['先生', 'プログラマー', '医者', '料理人'], answer: 1 },
@@ -45,36 +45,36 @@ READING_PASSAGES.push(
     ],
   },
   {
-    level: 'program', grade: 1, program: 5, title: 'ジョンとベッキー',
-    text: 'Meet my friend John. He lives in the U.S. He plays ice hockey every weekend. He doesn\'t like math, but he likes science.\nHis sister, Becky, speaks Korean. She draws pictures for a charity. John is proud of his sister. He wants to see her pictures in Japan. ①<u>I\'d like to see her pictures, too.</u>',
+    level: 'program', grade: 1, program: 5, title: 'ジョンとベッキー', notes: ['charity　慈善活動'],
+    text: 'Meet my friend John. He lives in the U.S. He plays ice hockey every weekend. He doesn\'t like math, but he likes science.\nHis sister, Becky, speaks Korean. She draws pictures for a charity. John is proud of his sister. He often shows her pictures to me. They are beautiful. ①<u>I like her pictures, too.</u>',
     questions: [
       { type: 'tf', q: 'ジョンは毎週末アイスホッケーをする。', answer: true },
       { type: 'tf', q: 'ジョンは数学が好きである。', answer: false },
       { type: 'choice', q: 'ベッキーが話せる言語は何ですか。', options: ['中国語', '韓国語', 'フランス語', '日本語'], answer: 1 },
       { type: 'fill', q: 'ジョンが誇りに思っている人を、本文中の英語1語で答えなさい。', answer: 'sister' },
-      { type: 'ja', q: '下線部①を日本語にしなさい。', answer: '私も彼女の絵を見たいです。' },
+      { type: 'ja', q: '下線部①を日本語にしなさい。', answer: '私も彼女の絵が好きです。' },
     ],
   },
   {
     level: 'program', grade: 1, program: 6, title: '好きなキャラクター',
-    text: 'Do you know Luffy? He is a character in ONE PIECE. ①<u>I like him because he is strong and kind.</u> His friends like him, too.\nMy brother has many ONE PIECE books. They are his. They are not mine. I often read them in his room.\nMy favorite food? Chicken. It\'s crispy and juicy.',
+    text: 'Do you know Luffy? He is a character in ONE PIECE. I like him. He is strong and kind. ①<u>His friends like him, too.</u>\nMy brother has many ONE PIECE books. They are his. They are not mine. I often read them in his room.\nMy favorite food? Chicken. It\'s crispy and juicy.',
     questions: [
       { type: 'tf', q: 'ルフィーは「ワンピース」の登場人物である。', answer: true },
       { type: 'choice', q: '「私」がルフィーを好きな理由は何ですか。', options: ['面白いから', '強くて優しいから', '頭がいいから', 'かっこいいから'], answer: 1 },
       { type: 'tf', q: '「ワンピース」の本は「私」のものである。', answer: false },
       { type: 'fill', q: '「私」の好きな食べ物を、本文中の英語1語で答えなさい。', answer: 'Chicken' },
-      { type: 'ja', q: '下線部①を日本語にしなさい。', answer: '彼は強くて優しいので、私は彼が好きです。' },
+      { type: 'ja', q: '下線部①を日本語にしなさい。', answer: '彼の友達も彼が好きです。' },
     ],
   },
   {
     level: 'program', grade: 1, program: 7, title: 'みらい動物園',
-    text: 'Welcome to Mirai Zoo. There are many popular animals here. There is a panda house next to the gate. Pandas eat bamboo. How many pandas are there? There are two.\nThere is a pond, too. You can feed the turtles. The zoo opens at nine o\'clock. ①<u>How do you come here?</u> You can come by bus.',
+    text: 'Welcome to Mirai Zoo. There are many popular animals here. There is a panda house next to the gate. Pandas eat bamboo. How many pandas are there? There are two.\nThere is a pond, too. There are many turtles in it. You can feed them. The zoo opens at nine o\'clock. ①<u>How can I come here?</u> You can come by bus.',
     questions: [
       { type: 'tf', q: '門の隣にパンダの家がある。', answer: true },
       { type: 'choice', q: 'パンダは何頭いますか。', options: ['1頭', '2頭', '3頭', '4頭'], answer: 1 },
       { type: 'tf', q: '動物園は10時に開く。', answer: false },
       { type: 'fill', q: 'えさをあげることができる動物を、本文中の英語1語で答えなさい。', answer: 'turtles' },
-      { type: 'ja', q: '下線部①を日本語にしなさい。', answer: 'あなたはここへどうやって来ますか。' },
+      { type: 'ja', q: '下線部①を日本語にしなさい。', answer: 'ここへはどうやって来ることができますか。' },
     ],
   },
   {
@@ -122,19 +122,19 @@ READING_PASSAGES.push(
     ],
   },
   {
-    level: 'program', grade: 2, program: 2, title: '運動会の思い出',
-    text: 'Do you remember our field day last year? ①<u>When I was running, I was the last runner.</u> I was very sad. But my classmates said, "You can do it!" So I ran hard.\nIf I practice hard, I will run well this year. I think that field day is a special day.',
+    level: 'program', grade: 2, program: 2, title: '運動会の思い出', notes: ['race　競走', 'in last place　最下位で'],
+    text: 'Do you remember our field day last year? ①<u>When I was running in the race, I was in last place.</u> I was very sad. But my classmates said, "You can do it!" So I ran hard.\nIf I practice hard, I will run well this year. I think that field day is a special day.',
     questions: [
-      { type: 'tf', q: '去年の運動会で、「私」は最後を走っていた。', answer: true },
+      { type: 'tf', q: '去年の運動会のレースで、「私」は最下位を走っていた。', answer: true },
       { type: 'choice', q: 'クラスメートは「私」に何と言いましたか。', options: ['もう走らなくていい', 'あなたならできる', '気をつけて', 'ゆっくり走って'], answer: 1 },
       { type: 'tf', q: '「私」は途中で走るのをやめた。', answer: false },
       { type: 'fill', q: '「私」は運動会をどんな日だと思っていますか。本文中の英語1語で答えなさい。', answer: 'special' },
-      { type: 'ja', q: '下線部①を日本語にしなさい。', answer: '私が走っていたとき、私は最後のランナー（最下位）でした。' },
+      { type: 'ja', q: '下線部①を日本語にしなさい。', answer: 'レースで走っていたとき、私は最下位でした。' },
     ],
   },
   {
-    level: 'program', grade: 2, program: 3, title: 'オランダの靴',
-    text: 'My friend from the Netherlands told me about Dutch shoes. Some people use them for work. Others buy them to put in their rooms. They are handmade, so each shoe is different.\nIt is easy to find them in shops there. ①<u>I want to buy one to give to my mother.</u>',
+    level: 'program', grade: 2, program: 3, title: 'オランダの靴', notes: ['wooden shoes　木靴'],
+    text: 'My friend from the Netherlands told me about wooden shoes. Some people use them for work. Others buy them to put in their rooms. They are handmade, so each shoe is different.\nIt is easy to find them in shops there. ①<u>I want to buy one to give to my mother.</u>',
     questions: [
       { type: 'tf', q: '友達はオランダ出身である。', answer: true },
       { type: 'choice', q: '靴が一つ一つ違うのはなぜですか。', options: ['古いから', '手作りだから', '色を選べるから', '大きさがいろいろだから'], answer: 1 },
@@ -156,7 +156,7 @@ READING_PASSAGES.push(
   },
   {
     level: 'program', grade: 2, program: 5, title: '父へのプレゼント',
-    text: 'Alice: ①<u>I don\'t know what to buy for my father\'s birthday.</u>\nYui: Why don\'t you give him a camera? He likes taking pictures.\nAlice: Good idea, but it\'s expensive.\nYui: Then send him a postcard with your pictures. He will become very happy. Give it a try!\nAlice: OK!',
+    text: 'Alice: ①<u>I don\'t know what to buy for my father\'s birthday.</u>\nYui: Why don\'t you give him a camera? He likes taking pictures.\nAlice: Good idea, but it\'s expensive.\nYui: Then send him a postcard with your pictures. He will be very happy. Give it a try!\nAlice: OK!',
     questions: [
       { type: 'tf', q: 'アリスは父の誕生日に何を買えばよいか分からない。', answer: true },
       { type: 'choice', q: '結衣が最初に提案したものは何ですか。', options: ['はがき', 'カメラ', 'ケーキ', '本'], answer: 1 },
@@ -166,8 +166,8 @@ READING_PASSAGES.push(
     ],
   },
   {
-    level: 'program', grade: 2, program: 6, title: '家でできる節電',
-    text: 'How can we use less electricity at home? Oliver says that small efforts are the most important.\nFirst, turn off the lights when you leave a room. Second, close the curtains in summer. Your room will be cooler. An air conditioner uses more energy than an air circulator. ①<u>Using both together is better than using only the air conditioner.</u>\nLet\'s continue these eco-friendly actions.',
+    level: 'program', grade: 2, program: 6, title: '家でできる節電', notes: ['air circulator　サーキュレーター'],
+    text: 'How can we use less electricity at home? Oliver says that small efforts are the most important.\nFirst, turn off the lights when you leave a room. Second, close the curtains in summer. Your room will be cooler. An air conditioner uses more energy than an air circulator. ①<u>Using both together is better than using only the air conditioner.</u> The air conditioner doesn\'t have to work so hard.\nLet\'s continue these eco-friendly actions.',
     questions: [
       { type: 'tf', q: 'オリバーは小さな努力が最も大切だと言っている。', answer: true },
       { type: 'choice', q: '夏にカーテンを閉めるとどうなりますか。', options: ['部屋が明るくなる', '部屋が涼しくなる', '電気代が上がる', '静かになる'], answer: 1 },
@@ -177,22 +177,22 @@ READING_PASSAGES.push(
     ],
   },
   {
-    level: 'program', grade: 2, program: 7, title: 'ハムスターのクリ',
-    text: 'I have a hamster. Its name is Kuri. It sleeps in the daytime and plays at nighttime. Hamsters have strong teeth. ①<u>Kuri likes sunflower seeds the best.</u> He puts the seeds in his cheek pockets.\nMy sister told me how to clean his house. I think hamsters are the most lovely pets.',
+    level: 'program', grade: 2, program: 7, title: 'ハムスターのクリ', notes: ['cage　ケージ'],
+    text: 'I have a hamster. His name is Kuri. He sleeps in the daytime and plays at night. Hamsters have strong teeth. ①<u>Kuri likes sunflower seeds the best.</u> He puts the seeds in his cheek pockets.\nMy sister told me how to clean his cage. I think hamsters are the cutest pets.',
     questions: [
       { type: 'tf', q: 'クリは昼間に遊ぶ。', answer: false },
       { type: 'choice', q: 'クリがいちばん好きなものは何ですか。', options: ['草', 'ヒマワリの種', 'りんご', 'チーズ'], answer: 1 },
       { type: 'fill', q: 'クリは種をどこに入れますか。本文中の英語2語で答えなさい。', answer: 'cheek pockets' },
-      { type: 'tf', q: '姉（妹）が「私」にクリの家のそうじの仕方を教えた。', answer: true },
+      { type: 'tf', q: '姉（妹）が「私」にクリのケージのそうじの仕方を教えた。', answer: true },
       { type: 'ja', q: '下線部①を日本語にしなさい。', answer: 'クリはヒマワリの種がいちばん好きです。' },
     ],
   },
   {
     level: 'program', grade: 2, program: 8, title: '町のマスコット',
-    text: 'This is our town mascot. It was drawn by a high school student. ①<u>It is loved by many people.</u> Badges of the mascot are sold at the town office. They are made of tin.\nThe badges were so popular that all of them were sold in a day. Many children wear them on their bags.',
+    text: 'This is our town mascot. It was drawn by a high school student. ①<u>It is loved by many people.</u> Badges of the mascot are sold at the town office. They are made of wood.\nThe badges are very popular. They were all sold on the first day. Many children wear them on their bags.',
     questions: [
       { type: 'tf', q: 'マスコットは高校生によってかかれた。', answer: true },
-      { type: 'choice', q: 'バッジは何でできていますか。', options: ['木', 'ブリキ', '紙', 'プラスチック'], answer: 1 },
+      { type: 'choice', q: 'バッジは何でできていますか。', options: ['木', '金属', '紙', 'プラスチック'], answer: 0 },
       { type: 'tf', q: 'バッジは人気がなかった。', answer: false },
       { type: 'fill', q: 'バッジが売られている場所を、本文中の英語2語で答えなさい。', answer: 'town office' },
       { type: 'ja', q: '下線部①を日本語にしなさい。', answer: 'それは多くの人に愛されています。' },
@@ -200,11 +200,11 @@ READING_PASSAGES.push(
   },
   {
     level: 'program', grade: 3, program: 1, title: '日本の給食',
-    text: 'Have you ever eaten a Japanese school lunch? I have eaten many kinds of school lunch. My favorite is pork cutlet.\nLast week, a student from Canada joined our class. She has never eaten salted plums. I asked her to try one. It was too sour for her! ①<u>It is difficult for her to eat pickles, too.</u> But she loves Japanese omelets.',
+    text: 'Have you ever eaten a Japanese school lunch? I have eaten many kinds of school lunch. My favorite is pork cutlet.\nLast week, a student from Canada joined our class. She didn\'t know salted plums, so I asked her to try one. It was too sour for her! ①<u>It is difficult for her to eat pickles, too.</u> But she loves Japanese omelets.',
     questions: [
       { type: 'tf', q: 'カナダから来た生徒は、梅干しを食べたことがなかった。', answer: true },
       { type: 'choice', q: '「私」の好きな給食は何ですか。', options: ['ハンバーグ', 'トンカツ', '卵焼き', 'サケ'], answer: 1 },
-      { type: 'tf', q: 'その生徒は漬物が得意である。', answer: false },
+      { type: 'tf', q: 'その生徒にとって漬物を食べるのは簡単である。', answer: false },
       { type: 'fill', q: 'その生徒が大好きなものを、本文中の英語2語で答えなさい。', answer: 'Japanese omelets' },
       { type: 'ja', q: '下線部①を日本語にしなさい。', answer: '彼女にとって漬物を食べることも難しいです。' },
     ],
@@ -222,7 +222,7 @@ READING_PASSAGES.push(
   },
   {
     level: 'program', grade: 3, program: 3, title: '家の前のゴール',
-    text: 'My father bought a basketball hoop for me. He let me put it in front of our house. Every day, I practice throwing the ball into the hoop. My brother helps me practice.\nLast week, I borrowed my friend\'s basketball instead of mine because mine was broken. ①<u>Playing basketball makes me happy.</u>',
+    text: 'My father bought a basketball hoop for me. He let me put it in front of our house. Every day, I practice throwing the ball into the hoop. My brother helps me practice.\nLast week, I borrowed my friend\'s basketball instead of mine because I couldn\'t find mine. ①<u>Playing basketball makes me happy.</u>',
     questions: [
       { type: 'tf', q: '父がバスケットボールのゴールを買ってくれた。', answer: true },
       { type: 'choice', q: '「私」が毎日していることは何ですか。', options: ['走る練習', 'ゴールにボールを投げ入れる練習', 'ボールをみがくこと', '試合を見ること'], answer: 1 },
@@ -232,12 +232,12 @@ READING_PASSAGES.push(
     ],
   },
   {
-    level: 'program', grade: 3, program: 4, title: 'バリアフリーの図書館',
-    text: 'Have you seen barrier-free facilities? This library is one of them. The doors open automatically, so ①<u>people using wheelchairs can enter easily.</u> There are hand rails along the walls. In addition, there is a wide restroom.\nDo you know who these facilities are for? They are for elderly people and people with disabilities. They help everyone, too.',
+    level: 'program', grade: 3, program: 4, title: 'バリアフリーの図書館', notes: ['handrail(s)　手すり'],
+    text: 'Have you seen barrier-free facilities? This library is one of them. The doors open automatically, so ①<u>people using wheelchairs can enter easily.</u> There are handrails along the walls. In addition, there is a large restroom.\nDo you know who these facilities are for? They are for elderly people and people with disabilities. They help everyone, too.',
     questions: [
       { type: 'tf', q: 'その図書館のドアは自動で開く。', answer: true },
-      { type: 'choice', q: '壁に沿って何がありますか。', options: ['本だな', '手すり', 'いす', '絵'], answer: 1 },
-      { type: 'tf', q: 'トイレはせまい。', answer: false },
+      { type: 'choice', q: 'この図書館にあるものとして、本文に書かれていないものはどれですか。', options: ['自動で開くドア', '手すり', '大きなトイレ', 'エレベーター'], answer: 3 },
+      { type: 'tf', q: 'トイレは小さい。', answer: false },
       { type: 'fill', q: 'ドアが自動で開くので、何を使っている人が入りやすいのですか。本文中の英語1語で答えなさい。', answer: 'wheelchairs' },
       { type: 'ja', q: '下線部①を日本語にしなさい。', answer: '車いすを使っている人たちは簡単に入ることができます。' },
     ],
@@ -265,7 +265,7 @@ READING_PASSAGES.push(
     ],
   },
   {
-    level: 'program', grade: 3, program: 7, title: 'ドラえもんの道具', notes: ['Doraemon　ドラえもん'],
+    level: 'program', grade: 3, program: 7, title: 'ドラえもんの道具', notes: ['Doraemon　ドラえもん', 'Hopter　タケコプター', 'Time Cloth　タイムふろしき'],
     text: 'If you could use one of Doraemon\'s tools, which would you choose? If I had a Hopter, I would fly to school every morning.\nMy friend wishes she had a Time Cloth. She says, "If I had one, I would make my old bike new." ①<u>I wish I could meet Doraemon.</u> Which tool would you like?',
     questions: [
       { type: 'tf', q: '「私」はタケコプターがあったら、毎朝学校へ飛んでいきたい。', answer: true },

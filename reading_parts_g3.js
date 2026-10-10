@@ -2,10 +2,10 @@
 READING_PASSAGES.push(
   {
     level: 'part', grade: 3, program: 1, part: 1, title: 'お花見',
-    text: 'My friend Emma visited Japan last spring. ①<u>She wanted me to show her cherry blossoms.</u> We went to a park at noon. The flowers were colorful.\n"I\'m starving," she said. So I asked her to wait, and I bought some rice balls. "Here is your lunch," I said.',
+    text: 'My friend Emma visited Japan last spring. ①<u>She wanted me to show her cherry blossoms.</u> We went to a park at noon. The flowers were beautiful.\n"I\'m starving," she said. So I asked her to wait, and I bought some rice balls. "Here is your lunch," I said.',
     questions: [
       { type: 'tf', q: 'エマは「私」に桜を見せてほしいと思っていた。', answer: true },
-      { type: 'choice', q: '公園に行ったのは何時ですか。', options: ['朝', '正午', '夕方', '夜'], answer: 1 },
+      { type: 'choice', q: '公園に行ったのはいつですか。', options: ['朝', '正午', '夕方', '夜'], answer: 1 },
       { type: 'fill', q: 'エマが「とてもおなかがすいた」という意味で使った英語1語を、本文中から抜き出しなさい。', answer: 'starving' },
       { type: 'ja', q: '下線部①を日本語にしなさい。', answer: '彼女は私に桜を見せてほしいと思っていました。' },
     ],
@@ -52,7 +52,7 @@ READING_PASSAGES.push(
   },
   {
     level: 'part', grade: 3, program: 2, part: 3, title: '画面の見すぎ',
-    text: 'My brother has been looking at his tablet screen for three hours. A bright screen is not good before bed. ①<u>As a result, he can\'t fall asleep easily.</u>\nThus, I have introduced a new rule at home: no screens after nine.',
+    text: 'My brother has been looking at his tablet screen for three hours. He often uses it before bed, and a bright screen is not good for sleep. ①<u>As a result, he can\'t fall asleep easily.</u>\nSo our family has made a new rule: no screens after nine.',
     questions: [
       { type: 'tf', q: '兄（弟）は3時間ずっとタブレットを見ている。', answer: true },
       { type: 'choice', q: '明るい画面を見た結果、どうなりますか。', options: ['目が良くなる', 'なかなか眠れない', '早く起きられる', '勉強がはかどる'], answer: 1 },
@@ -72,11 +72,11 @@ READING_PASSAGES.push(
   },
   {
     level: 'part', grade: 3, program: 3, part: 2, title: 'バスケットボールの始まり',
-    text: 'Basketball was invented in Massachusetts. ①<u>A teacher wanted to make winter classes fun.</u> So he introduced an indoor sport. People call it basketball.\nI wrote a report about it.',
+    text: 'Basketball was invented in Massachusetts. ①<u>A teacher wanted to make winter classes fun.</u> So he introduced an indoor sport. People call it basketball.\nI wrote a report about its history.',
     questions: [
       { type: 'tf', q: 'バスケットボールはマサチューセッツで発明された。', answer: true },
       { type: 'choice', q: 'その先生がしたかったことは何ですか。', options: ['冬の授業を楽しくすること', '新しい学校を作ること', '選手になること', '本を書くこと'], answer: 0 },
-      { type: 'fill', q: '先生が紹介したのはどんなスポーツですか。「屋内の」を表す英語1語を本文中から抜き出しなさい。', answer: 'indoor' },
+      { type: 'fill', q: '先生はどんなスポーツを紹介しましたか。「〜なスポーツ」の形で、本文中の英語1語で答えなさい。', answer: 'indoor' },
       { type: 'ja', q: '下線部①を日本語にしなさい。', answer: 'ある先生は冬の授業を楽しくしたいと思いました。' },
     ],
   },
@@ -112,17 +112,17 @@ READING_PASSAGES.push(
   },
   {
     level: 'part', grade: 3, program: 4, part: 3, title: 'カフェでの出来事',
-    text: 'One day, a customer came into a cafe. ①<u>At first, the waiter didn\'t know what she wanted.</u> Then he realized that she couldn\'t hear.\nHe gave her a notebook. She wrote what she wanted. Writing helped them.',
+    text: 'One day, a customer came into a cafe. ①<u>At first, the waiter didn\'t know what she wanted.</u> Then he realized that she couldn\'t hear.\nHe gave her a notebook. She wrote what she wanted. Writing helped them communicate.',
     questions: [
       { type: 'tf', q: '店員は最初、客が何を欲しいのか分からなかった。', answer: true },
-      { type: 'choice', q: '店員が気づいたことは何ですか。', options: ['客が急いでいること', '客が耳が聞こえないこと', '客が外国人であること', '客がお金を持っていないこと'], answer: 1 },
+      { type: 'choice', q: '店員が気づいたことは何ですか。', options: ['客が急いでいること', '客の耳が聞こえないこと', '客が外国人であること', '客がお金を持っていないこと'], answer: 1 },
       { type: 'fill', q: '店員が客に渡したものを、本文中の英語1語で答えなさい。', answer: 'notebook' },
       { type: 'ja', q: '下線部①を日本語にしなさい。', answer: '最初、店員は彼女が何を欲しいのか分かりませんでした。' },
     ],
   },
   {
     level: 'part', grade: 3, program: 5, part: 1, title: 'チョコレートの始まり',
-    text: 'I made a speech about chocolate. ①<u>People who lived in Mexico long ago used cacao beans as medicine.</u> They crushed the beans and added spices. The drink was so bitter that children didn\'t like it. People regarded it as a special drink.',
+    text: 'I made a speech about chocolate. ①<u>People who lived in Mexico long ago used cacao beans as medicine.</u> They crushed the beans and added spices to make a drink. The drink was so bitter that children didn\'t like it. People regarded it as a special drink.',
     questions: [
       { type: 'tf', q: '昔メキシコの人々はカカオ豆を薬として使った。', answer: true },
       { type: 'choice', q: 'その飲み物はどんな味でしたか。', options: ['とても甘い', 'とても苦い', 'すっぱい', '塩からい'], answer: 1 },
@@ -142,27 +142,27 @@ READING_PASSAGES.push(
   },
   {
     level: 'part', grade: 3, program: 5, part: 3, title: 'チョコレートの暗い面',
-    text: 'Chocolate has a dark side. Some children who work on cacao farms are treated unfairly. They are forced to work hard. ①<u>Fair trade is a movement which helps these farmers.</u>\nWhen you buy chocolate, look for the fair trade mark on the package.',
+    text: 'Chocolate has a dark side. Some children who work on cacao farms are treated unfairly. They are forced to work hard. ①<u>Fair trade is a movement which helps cacao farmers and their children.</u>\nWhen you buy chocolate, look for the fair trade mark on the package.',
     questions: [
       { type: 'tf', q: 'カカオ農園では、不当に扱われている子どもがいる。', answer: true },
-      { type: 'choice', q: 'フェアトレードとは何ですか。', options: ['安いチョコレート', '農家を助ける運動', 'チョコレートの店', '新しいお菓子'], answer: 1 },
-      { type: 'fill', q: 'チョコレートを買うとき、パッケージで何を探すように言っていますか。本文中の英語1語で答えなさい。', answer: 'mark' },
-      { type: 'ja', q: '下線部①を日本語にしなさい。', answer: 'フェアトレードはこれらの農家を助ける運動です。' },
+      { type: 'choice', q: 'フェアトレードとは何ですか。', options: ['安いチョコレート', '農家や子どもたちを助ける運動', 'チョコレートの店', '新しいお菓子'], answer: 1 },
+      { type: 'fill', q: 'チョコレートを買うとき、パッケージで何を探すように言っていますか。本文中の英語3語で答えなさい。', answer: 'fair trade mark' },
+      { type: 'ja', q: '下線部①を日本語にしなさい。', answer: 'フェアトレードはカカオ農家とその子どもたちを助ける運動です。' },
     ],
   },
   {
     level: 'part', grade: 3, program: 6, part: 1, title: '太平洋ごみベルト',
-    text: 'The Great Pacific Garbage Patch is a place in the ocean. It is mostly plastic trash. ①<u>It contains fishing nets which people left behind.</u> Sea animals get caught in them, and some are killed.',
+    text: 'The Great Pacific Garbage Patch is a place in the ocean. Most of the trash there is plastic. ①<u>It contains fishing nets which people left behind.</u> Sea animals get caught in them, and some die.',
     questions: [
-      { type: 'tf', q: '太平洋ごみベルトは主にプラスチックごみである。', answer: true },
+      { type: 'tf', q: '太平洋ごみベルトのごみの大部分はプラスチックである。', answer: true },
       { type: 'choice', q: '海の動物にどんなことが起こっていますか。', options: ['網にからまる', '数が増えている', '陸に上がる', '大きくなる'], answer: 0 },
       { type: 'fill', q: '太平洋ごみベルトがあるのはどこですか。本文中の英語1語で答えなさい。', answer: 'ocean' },
       { type: 'ja', q: '下線部①を日本語にしなさい。', answer: 'それには人々が置き去りにした漁網が含まれています。' },
     ],
   },
   {
-    level: 'part', grade: 3, program: 6, part: 2, title: '海をきれいにする若者',
-    text: 'Boyan Slat was born in the Netherlands. At the age of sixteen, he went diving in Greece. He was shocked by the plastic he saw there.\nLater, he started an NPO called The Ocean Cleanup. ①<u>The system he made collects trash without hurting fish.</u>',
+    level: 'part', grade: 3, program: 6, part: 2, title: '海をきれいにする若者', notes: ['nonprofit organization　非営利団体'],
+    text: 'Boyan Slat was born in the Netherlands. At the age of sixteen, he went diving in Greece. He was shocked by the plastic he saw there.\nLater, he started a nonprofit organization called The Ocean Cleanup. ①<u>The system he made collects trash without hurting fish.</u>',
     questions: [
       { type: 'tf', q: 'ボイヤン・スラットはギリシャで生まれた。', answer: false },
       { type: 'choice', q: 'ボイヤン・スラットがダイビングでショックを受けたのは何を見たからですか。', options: ['魚', 'プラスチック', '船', 'サンゴ'], answer: 1 },
@@ -182,20 +182,20 @@ READING_PASSAGES.push(
   },
   {
     level: 'part', grade: 3, program: 7, part: 1, title: 'AIのある生活',
-    text: 'These days, AI is used in many things, including vacuum cleaners. ①<u>If I were a robot, I could clean my room very fast.</u>\nAI also helps patients. Some patients have weak muscles. AI helps them control machines with their eyes.',
+    text: 'These days, AI is used in many things, including vacuum cleaners. ①<u>If I had an AI vacuum cleaner, I could clean my room very fast.</u>\nAI also helps patients. Some patients have weak muscles. AI helps them control machines with their eyes.',
     questions: [
       { type: 'tf', q: '最近、AIは多くのものに使われている。', answer: true },
       { type: 'choice', q: 'AIは患者をどのように助けていますか。', options: ['薬を作る', '目で機械を操作できるようにする', '料理をする', '病院まで運ぶ'], answer: 1 },
       { type: 'fill', q: 'AIが使われているものの例を、本文中の英語2語で答えなさい。', answer: 'vacuum cleaners' },
-      { type: 'ja', q: '下線部①を日本語にしなさい。', answer: 'もし私がロボットなら、部屋をとても速くそうじできるのに。' },
+      { type: 'ja', q: '下線部①を日本語にしなさい。', answer: 'もし私がAI掃除機を持っていたら、部屋をとても速くそうじできるのに。' },
     ],
   },
   {
-    level: 'part', grade: 3, program: 7, part: 2, title: 'どこでもドアがあったら',
+    level: 'part', grade: 3, program: 7, part: 2, title: 'どこでもドアがあったら', notes: ['Anywhere Door　どこでもドア'],
     text: 'Imagine you had an Anywhere Door. Where would you go? ①<u>If I had one, I would take a class abroad every day.</u> My grandparents live far away, so I would visit them every weekend.\nIt probably won\'t come true, but imagination is important.',
     questions: [
       { type: 'tf', q: '「私」の祖父母は近くに住んでいる。', answer: false },
-      { type: 'choice', q: 'どこでもドアがあったら、「私」は毎日何をしますか。', options: ['外国で授業を受ける', '祖父母に会う', '世界中を旅する', '学校を休む'], answer: 0 },
+      { type: 'choice', q: 'どこでもドアがあったら、「私」は毎日何をしたいと言っていますか。', options: ['外国で授業を受ける', '祖父母に会う', '世界中を旅する', '学校を休む'], answer: 0 },
       { type: 'fill', q: '「私」が大切だと言っているものを、本文中の英語1語で答えなさい。', answer: 'imagination' },
       { type: 'ja', q: '下線部①を日本語にしなさい。', answer: 'もし私がそれを持っていたら、毎日外国で授業を受けるのに。' },
     ],

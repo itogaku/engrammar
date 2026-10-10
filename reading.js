@@ -35,7 +35,7 @@ const READING_PASSAGES = [
     text: 'I\'m in the talent show at school. Look at me. I can dance well. I can\'t sing well.\nMy brother can play the guitar. He can sing well, too. ①<u>We can perform together.</u>\nCan you come to the show? It\'s on Saturday.',
     questions: [
       { type: 'tf', q: '「私」は歌が上手である。', answer: false },
-      { type: 'choice', q: '兄ができることは何ですか。', options: ['ダンス', 'ギターと歌', 'ピアノ', '料理'], answer: 1 },
+      { type: 'choice', q: '兄（弟）ができることは何ですか。', options: ['ダンス', 'ギターと歌', 'ピアノ', '料理'], answer: 1 },
       { type: 'fill', q: 'ショーは何曜日ですか。本文中の英語1語で答えなさい。', answer: 'Saturday' },
       { type: 'ja', q: '下線部①を日本語にしなさい。', answer: '私たちはいっしょに演じる（発表する）ことができます。' },
     ],
@@ -74,11 +74,11 @@ const READING_PASSAGES = [
   },
   {
     grade: 1, program: 7, title: '私の町',
-    text: 'Welcome to our town. There is a big park near my house. There are many trees in the park. There is a small pond, too. ①<u>You can see a lot of birds there.</u>\nThere is a library next to the park. There are a lot of books in it. How do I go to the library? I go there by bike.',
+    text: 'Welcome to our town. There is a big park near my house. There are many trees in the park. There is a small pond, too. ①<u>You can see a lot of birds there.</u>\nThere is a library next to the park. There are a lot of books in it. I go there by bike.',
     questions: [
       { type: 'tf', q: '公園には池がある。', answer: true },
       { type: 'choice', q: '図書館はどこにありますか。', options: ['学校の近く', '公園の隣', '駅の前', '家の隣'], answer: 1 },
-      { type: 'fill', q: '「私」は図書館へ何で行きますか。本文中の英語1語で答えなさい。', answer: 'bike' },
+      { type: 'fill', q: '「私」は図書館へどうやって行きますか。本文中の英語2語で答えなさい。', answer: 'by bike' },
       { type: 'ja', q: '下線部①を日本語にしなさい。', answer: 'そこではたくさんの鳥を見ることができます。' },
     ],
   },
@@ -88,7 +88,7 @@ const READING_PASSAGES = [
     questions: [
       { type: 'choice', q: '父は今何をしていますか。', options: ['本を読んでいる', '昼食を作っている', 'テレビゲームをしている', '寝ている'], answer: 1 },
       { type: 'tf', q: 'シロはテーブルの下で遊んでいる。', answer: true },
-      { type: 'fill', q: '弟がしているものを、本文中の英語2語で答えなさい。', answer: 'video game' },
+      { type: 'fill', q: '兄（弟）がしているものを、本文中の英語2語で答えなさい。', answer: 'video game' },
       { type: 'tf', q: '「私」は手紙を書いている。', answer: false },
       { type: 'ja', q: '下線部①を日本語にしなさい。', answer: '母は本を読んでいます。' },
     ],
@@ -106,7 +106,7 @@ const READING_PASSAGES = [
   },
   {
     grade: 1, program: 10, title: '雪の日',
-    text: 'It was snowy yesterday, so we were at home all day. At three in the afternoon, I was reading a book in my room. ①<u>My sister was watching TV.</u>\nMy father was not at home. He was working at the hospital. What was my mother doing? She was making a cake for us.',
+    text: 'It was snowy yesterday, so my mother, my sister and I were at home all day. At three in the afternoon, I was reading a book in my room. ①<u>My sister was watching TV.</u>\nMy father was not at home. He was working at the hospital. What was my mother doing? She was making a cake for us.',
     questions: [
       { type: 'tf', q: '父は家にいた。', answer: false },
       { type: 'choice', q: '母は何をしていましたか。', options: ['テレビを見ていた', '病院で働いていた', 'ケーキを作っていた', '本を読んでいた'], answer: 2 },
@@ -119,7 +119,7 @@ const READING_PASSAGES = [
     text: 'Next week, my friend Mike is going to leave Japan. He is going to go back to Canada. We are going to have a farewell party for him on Saturday.\nI\'m going to make a card for him. Mike likes playing soccer, so we will play soccer in the park before the party.\nI will miss him, but ①<u>I will keep in touch with him.</u>',
     questions: [
       { type: 'tf', q: 'マイクはアメリカに帰る予定である。', answer: false },
-      { type: 'choice', q: 'お別れ会の前にすることは何ですか。', options: ['カードを書く', 'サッカーをする', '買い物に行く', '料理をする'], answer: 1 },
+      { type: 'choice', q: 'お別れ会の前にすることは何ですか。', options: ['映画を見る', 'サッカーをする', '買い物に行く', '料理をする'], answer: 1 },
       { type: 'fill', q: '「私」がマイクのために作るものを、本文中の英語1語で答えなさい。', answer: 'card' },
       { type: 'tf', q: 'お別れ会は土曜日に開かれる。', answer: true },
       { type: 'ja', q: '下線部①を日本語にしなさい。', answer: '私は彼と連絡をとり続けるつもりです。' },
@@ -147,7 +147,7 @@ const READING_PASSAGES = [
   },
   {
     grade: 2, program: 4, title: '公園のルール',
-    text: 'Welcome to Green Forest Park. There are some rules here.\nFirst, you must not leave garbage in the park. ①<u>You have to take it home.</u> Second, you must not feed the animals. Third, you don\'t have to bring any money. You can come here for free.\nWe are glad to see you here. Please enjoy nature!',
+    text: 'Welcome to Green Forest Park. There are some rules here.\nFirst, you must not leave garbage in the park. ①<u>You have to take it home.</u> Second, you must not feed the animals.\nAlso, you don\'t have to bring any money. You can come here for free.\nWe are glad to see you here. Please enjoy nature!',
     questions: [
       { type: 'tf', q: '公園にごみを置いていってもよい。', answer: false },
       { type: 'tf', q: '動物にえさをあげてはいけない。', answer: true },
@@ -167,17 +167,17 @@ const READING_PASSAGES = [
   },
   {
     grade: 2, program: 6, title: '世界と日本の比べっこ',
-    text: 'Which is bigger, Japan or the U.K.? Japan is bigger than the U.K.\nMany people think that Mt. Fuji is the highest mountain in the world, but that is not true. Mt. Fuji is the highest mountain in Japan. ①<u>Mt. Everest is the highest in the world.</u> It is much higher than Mt. Fuji.\nLake Biwa is the largest lake in Japan.',
+    text: 'Which is bigger, Japan or the U.K.? Japan is bigger than the U.K.\nSome children think that Mt. Fuji is the highest mountain in the world, but that is not true. Mt. Fuji is the highest mountain in Japan. ①<u>Mt. Everest is the highest in the world.</u> It is much higher than Mt. Fuji.\nLake Biwa is the largest lake in Japan.',
     questions: [
-      { type: 'tf', q: '日本はイギリスより大きい。', answer: true },
+      { type: 'tf', q: '富士山が世界で一番高い山だと思っている子どももいる。', answer: true },
       { type: 'tf', q: '富士山は世界で一番高い山である。', answer: false },
-      { type: 'choice', q: '日本で一番大きい湖はどれですか。', options: ['琵琶湖', '富士五湖', '十和田湖', '本文に書かれていない'], answer: 0 },
+      { type: 'fill', q: '「エベレストは富士山より『ずっと』高い」の『ずっと』にあたる英語1語を、本文中から抜き出しなさい。', answer: 'much' },
       { type: 'ja', q: '下線部①を日本語にしなさい。', answer: 'エベレストは世界で一番高い（山です）。' },
     ],
   },
   {
     grade: 2, program: 7, title: 'クラスで人気のスポーツ',
-    text: 'What sport do you like the best? We asked forty students in our class.\nSoccer was the most popular. Fifteen students like soccer the best. Basketball was the second. Ten students like it the best. ①<u>Some students like watching sports better than playing them.</u>\nMy friend Taku knows how to play many sports. He taught me how to play badminton.',
+    text: 'What sport do you like the best? We asked forty students in our class.\nSoccer was the most popular, and fifteen students liked it the best. Basketball was second. Ten students liked it the best. ①<u>Some students like watching sports better than playing them.</u>\nMy friend Taku likes many sports. He knows how to play them all. He taught me how to play badminton.',
     questions: [
       { type: 'choice', q: 'クラスで一番人気のスポーツは何ですか。', options: ['バスケットボール', 'バドミントン', 'サッカー', 'テニス'], answer: 2 },
       { type: 'fill', q: 'サッカーが一番好きな生徒は何人ですか。本文中の英語1語で答えなさい。', answer: 'fifteen' },
@@ -187,7 +187,7 @@ const READING_PASSAGES = [
   },
   {
     grade: 2, program: 8, title: '古い木の建物',
-    text: 'This is an old building in Nara. It was built about 1,300 years ago. The building is made of wood.\nIt is visited by many people every year. ①<u>It is loved by people around the world.</u> Pictures of the building are seen in many books.',
+    text: 'This is an old building in Nara. It was built about 1,300 years ago. The building is made of wood.\nIt is visited by many people every year. ①<u>It is loved by people around the world.</u> Pictures of the building can be found in many books.',
     questions: [
       { type: 'tf', q: 'その建物は約1300年前に建てられた。', answer: true },
       { type: 'choice', q: 'その建物は何でできていますか。', options: ['石', '木', '紙', '本文に書かれていない'], answer: 1 },
@@ -197,7 +197,7 @@ const READING_PASSAGES = [
   },
   {
     grade: 3, program: 1, title: 'オーストラリアの思い出',
-    text: 'Have you ever been to a foreign country? I have been to Australia twice. The first time, I was ten years old. I saw koalas and kangaroos there.\n①<u>It was difficult for me to speak English then.</u> But the people there were very kind. They asked me to talk about Japan. I have never forgotten those days. I want to visit Australia again.',
+    text: 'Have you ever been to a foreign country? I have been to Australia twice. The first time I went there, I was ten years old. I saw koalas and kangaroos there.\n①<u>It was difficult for me to speak English then.</u> But the people there were very kind. They asked me to talk about Japan. I have never forgotten those days. I want to visit Australia again.',
     questions: [
       { type: 'tf', q: '「私」はオーストラリアに3回行ったことがある。', answer: false },
       { type: 'choice', q: '初めてオーストラリアに行ったとき、「私」は何歳でしたか。', options: ['8歳', '10歳', '12歳', '15歳'], answer: 1 },
@@ -217,10 +217,10 @@ const READING_PASSAGES = [
   },
   {
     grade: 3, program: 3, title: 'バスケットボールと仲間',
-    text: 'Basketball makes me happy. Last year, I broke my leg, and I couldn\'t play for a long time. My coach told me that I could play again soon.\nWhen I came back, my teammates helped me practice. ①<u>Their kind messages made me strong.</u> Now I can play basketball with them again.',
+    text: 'Basketball makes me happy. Last year, I broke my leg, and I couldn\'t play for a long time. My coach told me that I could play again someday.\nWhile I couldn\'t play, my teammates sent me kind messages. ①<u>Their kind messages made me strong.</u> When I came back, they helped me practice. Now I can play basketball with them again.',
     questions: [
       { type: 'tf', q: '「私」は去年、足を骨折した。', answer: true },
-      { type: 'choice', q: 'コーチは「私」に何と言いましたか。', options: ['もうプレーできない', 'すぐにまたプレーできる', '別のスポーツをしなさい', 'もっと練習しなさい'], answer: 1 },
+      { type: 'choice', q: 'コーチは「私」に何と言いましたか。', options: ['もうプレーできない', 'いつかまたプレーできる', '別のスポーツをしなさい', 'もっと練習しなさい'], answer: 1 },
       { type: 'fill', q: '「私」を幸せにするものを、本文中の英語1語で答えなさい。', answer: 'basketball' },
       { type: 'ja', q: '下線部①を日本語にしなさい。', answer: '彼らの親切なメッセージ（言葉）が私を強くしました。' },
     ],
@@ -237,7 +237,7 @@ const READING_PASSAGES = [
   },
   {
     grade: 3, program: 5, title: 'ピアノを弾く少年',
-    text: 'Do you know Taro? He is a boy who lives next to my house. ①<u>He is a boy who can play the piano very well.</u>\nYesterday he played a song which was written by his mother. It was a song which made me happy. Everyone who heard the song liked it.',
+    text: 'Do you know Taro? He lives next to my house. ①<u>He is a boy who can play the piano very well.</u>\nYesterday he played a song which was written by his mother. It was a song which made me happy. Everyone who heard the song liked it.',
     questions: [
       { type: 'tf', q: '太郎はピアノを上手に弾くことができる。', answer: true },
       { type: 'choice', q: '太郎が昨日弾いた曲を書いたのはだれですか。', options: ['太郎', '太郎の母', '「私」', '音楽の先生'], answer: 1 },
@@ -257,12 +257,12 @@ const READING_PASSAGES = [
   },
   {
     grade: 3, program: 7, title: 'もし〜だったら',
-    text: 'I like animals very much. I wish I had a dog, but I can\'t have one in my house. If I had a dog, I would walk with it every morning.\nIf I were a bird, I could fly to my grandmother\'s house. She lives far away. ①<u>I wish I could see her more often.</u>',
+    text: 'I like animals very much. I wish I had a dog, but I can\'t have one in my house. If I had a dog, I would walk it every morning.\nIf I were a bird, I could fly to my grandmother\'s house. She lives far away. ①<u>I wish I could see her more often.</u>',
     questions: [
       { type: 'tf', q: '「私」は犬を飼っている。', answer: false },
       { type: 'choice', q: '「私」が鳥だったらしたいことは何ですか。', options: ['空を飛んで学校へ行く', '祖母の家へ飛んでいく', '海を見に行く', '犬と遊ぶ'], answer: 1 },
-      { type: 'fill', q: '犬を飼っていたら毎朝何をしますか。「（　）with it」の（　）に入る英語1語を本文中から抜き出しなさい。', answer: 'walk' },
-      { type: 'ja', q: '下線部①を日本語にしなさい。', answer: '彼女にもっとよく会えたらいいのに。' },
+      { type: 'fill', q: '犬を飼っていたら毎朝何をしますか。「（　）it every morning」の（　）に入る英語1語を本文中から抜き出しなさい。', answer: 'walk' },
+      { type: 'ja', q: '下線部①を日本語にしなさい。', answer: 'もっとたびたび（ひんぱんに）祖母に会えたらいいのに。' },
     ],
   },
 ];
