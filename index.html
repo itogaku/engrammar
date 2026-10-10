@@ -1209,6 +1209,13 @@ const stages = [
     typePlaceholder: "英文を入力してね",
     questions: [
       { jp: "私が家に帰ったとき、雨が降っていました。", pieces: [{en:"It was raining", jp:"雨が降っていました"}, {en:"when", jp:"とき"}, {en:"I came home", jp:"私が家に帰った"}] },
+      { jp: "私が家に帰ったとき、母は料理をしていました。", pieces: [{en:"My mother was cooking", jp:"母は料理をしていました"}, {en:"when", jp:"とき"}, {en:"I came home", jp:"私が家に帰った"}], coreSlotIndex: 0, corePool: [{en:"My brother was sleeping", jp:"兄は眠っていました"}, {en:"My sister was studying", jp:"姉は勉強していました"}] },
+      { jp: "父が帰ってきたとき、私はテレビを見ていました。", pieces: [{en:"I was watching TV", jp:"私はテレビを見ていました"}, {en:"when", jp:"とき"}, {en:"my father came home", jp:"父が帰ってきた"}], coreSlotIndex: 0, corePool: [{en:"I was reading a book", jp:"私は本を読んでいました"}, {en:"I was doing my homework", jp:"私は宿題をしていました"}] },
+      { jp: "私は子どものとき、大阪に住んでいました。", pieces: [{en:"When", jp:"とき"}, {en:"I was a child,", jp:"私が子どもだった"}, {en:"I lived in Osaka", jp:"私は大阪に住んでいました"}] },
+      { jp: "私が起きたとき、雨が降っていました。", pieces: [{en:"When", jp:"とき"}, {en:"I got up,", jp:"私が起きた"}, {en:"it was raining", jp:"雨が降っていました"}] },
+      { jp: "私はひまなとき、本を読みます。", pieces: [{en:"When", jp:"とき"}, {en:"I am free,", jp:"私がひまな"}, {en:"I read books", jp:"私は本を読みます"}], coreSlotIndex: 2, corePool: [{en:"I listen to music", jp:"私は音楽を聞きます"}, {en:"I play video games", jp:"私はテレビゲームをします"}] },
+      { jp: "晴れているとき、私たちはサッカーをします。", pieces: [{en:"When", jp:"とき"}, {en:"it is sunny,", jp:"晴れている"}, {en:"we play soccer", jp:"私たちはサッカーをします"}], coreSlotIndex: 2, corePool: [{en:"we go to the park", jp:"私たちは公園に行きます"}] },
+      { jp: "私は彼に会ったとき、うれしかったです。", pieces: [{en:"I was happy", jp:"私はうれしかったです"}, {en:"when", jp:"とき"}, {en:"I saw him", jp:"私が彼に会った"}] },
     ],
   },
   {
@@ -3153,20 +3160,36 @@ function generateGuideWorksheet() {
     const seen = new Set();
     // 回ごとの問題(ページのあまりをうめられるように多めに作っておき、使う回数はレイアウトで決める)
     const rounds = GUIDE_ROUND_TYPES.map(types => {
+      // 同じ英文はなるべく2回出さない。基本の文が少ない単元では、時・場所の語句を足した文も使い、
+      // それでも足りなければ、同じ英文を別の形式で出す(同じ回の中では出さない)
+      const inRound = new Set();
       const items = types.slice(0, guideCount).map(type => {
-        let item = null;
-        for (let tries = 0; tries < 4; tries++) {
-          item = makeUnitQuestion(stage, type, st, 1);
-          if (!seen.has(fullSentence(item))) break;
+        const accept = item => {
+          seen.add(fullSentence(item));
+          seen.add(`${item.type}|${fullSentence(item)}`);
+          inRound.add(fullSentence(item));
+          item.guide = explainItem(stage, item);
+          item.noHint = true; // 解説つきプリントは語数などのヒントを出さない
+          return item;
+        };
+        for (let tries = 0; tries < 10; tries++) {
+          const item = makeUnitQuestion(stage, type, st, 1);
+          if (!seen.has(fullSentence(item))) return accept(item);
         }
-        seen.add(fullSentence(item));
-        item.guide = explainItem(stage, item);
-        item.noHint = true; // 解説つきプリントは語数などのヒントを出さない
-        return item;
-      });
+        const wide = { order: st.order, n: 6 + Math.floor(Math.random() * 6) };
+        for (let tries = 0; tries < 10; tries++) {
+          const item = makeUnitQuestion(stage, type, wide, 2);
+          if (!seen.has(fullSentence(item))) return accept(item);
+        }
+        for (let tries = 0; tries < 10; tries++) {
+          const item = makeUnitQuestion(stage, type, st, 1);
+          if (!inRound.has(fullSentence(item)) && !seen.has(`${item.type}|${fullSentence(item)}`)) return accept(item);
+        }
+        return null;
+      }).filter(Boolean);
       return items.map((it, i) => [it, i]).sort((a, b) => order.indexOf(a[0].type) - order.indexOf(b[0].type) || a[1] - b[1]).map(([it]) => it);
     });
-    return { stage, rounds, nRounds: GUIDE_MIN_ROUNDS, lastSize: guideCount };
+    return { stage, rounds: rounds.filter(r => r.length >= 2), nRounds: GUIDE_MIN_ROUNDS, lastSize: guideCount };
   });
   printItems = guideUnits.flatMap(guideUnitRounds).flat();
   vocabItems = [];
