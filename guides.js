@@ -275,21 +275,21 @@ const STAGE_GUIDES = {
     point: '過去のことは動詞を過去形にする。多くの動詞は ed をつけるが、形が変わる動詞（不規則動詞）もある。',
     form: '主語 + 動詞の過去形 + 〜　／　did not + 原形　／　Did + 主語 + 原形 ?',
     examples: [['I *played* tennis yesterday.', '私は昨日テニスをしました。'], ['I *did not* play tennis.', '私はテニスをしませんでした。'], ['*Did* you play tennis?', 'あなたはテニスをしましたか。']],
-    tips: ['go → went、see → saw のように形が変わる動詞は1つずつ覚えよう。', '否定文・疑問文では did を使い、動詞は原形にもどす。'],
+    tips: ['go → went、see → saw のように形が変わる動詞は1つずつ覚えよう。', '否定文・疑問文では did を使い、動詞は原形にもどす。', 'ed のつけ方：like → liked、study → studied、stop → stopped。', 'Did you 〜? には Yes, I did. / No, I didn\'t. と答える。'],
   },
   'g1program9-be': {
     title: 'be動詞の過去形（was / were）',
     point: '「〜でした」は be動詞を過去形にする。am / is → was、are → were。',
     form: '主語 + was / were + 〜',
     examples: [['I *was* busy yesterday.', '私は昨日忙しかったです。'], ['*Were* you busy?', 'あなたは忙しかったですか。'], ['We *were not* busy.', '私たちは忙しくありませんでした。']],
-    tips: ['I / he / she → was、you / we / they → were。', '否定文・疑問文の作り方は am / are / is と同じ。'],
+    tips: ['I / he / she → was、you / we / they → were。', '否定文・疑問文の作り方は am / are / is と同じ。', 'was not = wasn\'t、were not = weren\'t'],
   },
   'g1program9-whprog': {
     title: '過去進行形（〜していました）',
     point: '「（そのとき）〜していました」は was / were ＋ 動詞の ing形。疑問詞はいちばん前に置く。',
     form: '疑問詞 + was / were + 主語 + 動詞ing + 〜 ?',
     examples: [['What *was* he *doing* then?', '彼はそのとき何をしていましたか。'], ['— He *was reading* a book.', '— 本を読んでいました。']],
-    tips: ['今のことなら am / are / is、過去なら was / were。'],
+    tips: ['今のことなら am / are / is、過去なら was / were。', 'then（そのとき）や at that time といっしょによく使う。', '答えは He was 〜ing. のように過去進行形で答える。'],
   },
   // ---------- 中2 ----------
   'g2program1-begoingto': {
