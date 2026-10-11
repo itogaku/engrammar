@@ -519,6 +519,10 @@
   .ws-ch-table { margin: 4px 0 2px 0; border-collapse: collapse; font-size: 12px; }
   .ws-ch-table th, .ws-ch-table td { border: 1px solid var(--ink-soft); padding: 2px 8px; }
   .ws-ch-table th { background: var(--paper); }
+
+  .ws-passage-table { margin: 6px 0 4px; }
+  .ws-reading-tips { border: 1.5px solid var(--ink); border-radius: 6px; padding: 10px 14px; margin: 8px 0 14px; font-size: 12.5px; line-height: 1.6; }
+  .ws-reading-tips ol { margin: 0; padding-left: 20px; }
   @media print {
     @page { size: A4; margin: 14mm 14mm; }
     body { background: #fff; padding: 0; display: block; }
@@ -584,6 +588,7 @@
     <div class="card test-card exam-card">
       <div class="exam-head">文法の総まとめ<span>章ごとに「まとめ（重要度★・例文・ポイント）→ 入試レベルの問題（適語選択・適語補充・並べかえ・同意文）」</span></div>
       <div class="exam-rounds" id="examRoundList"></div>
+      <div class="opt-row" id="examLevelRow"><span class="opt-label">レベル</span><div class="mode-switch" id="examChapterLevel"></div></div>
       <label class="opt-check" id="examTextbookRow"><input type="checkbox" id="examWithTextbook" checked> 教科書（SUNSHINE）の例文から作る問題もいっしょに出す</label>
     </div>
     <div class="card test-card exam-card">
@@ -620,6 +625,18 @@
       <div class="exam-head">英文和訳<span>関係代名詞・分詞・間接疑問などをふくむ長めの英文を日本語に</span></div>
       <div class="opt-row"><span class="opt-label">問題数</span><div class="mode-switch" id="examEtojCount"></div></div>
       <button class="btn btn-primary exam-make" id="examEtojBtn">英文和訳のプリントを作る</button>
+    </div>
+    <div class="card test-card exam-card">
+      <div class="exam-head">入試長文<span>物語・説明文・対話文・メール・スピーチ・資料の読み取り（内容一致・指示語・英問英答・文の挿入など）</span></div>
+      <div class="opt-row"><span class="opt-label">レベル</span><div class="chip-switch" id="examReadingLevels"></div></div>
+      <div class="opt-row"><span class="opt-label">題数</span><div class="mode-switch" id="examReadingCount"></div></div>
+      <button class="btn btn-primary exam-make" id="examReadingBtn">入試長文のプリントを作る</button>
+    </div>
+    <div class="card test-card exam-card">
+      <div class="exam-head">入試単語（3年間の重要語）<span>教科書の太字の語から、意味・つづり・例文の穴埋め</span></div>
+      <div class="opt-row"><span class="opt-label">範囲</span><div class="mode-switch" id="examVocabRange"></div></div>
+      <div class="opt-row"><span class="opt-label">問題数</span><div class="mode-switch" id="examVocabCount"></div></div>
+      <button class="btn btn-primary exam-make" id="examVocabBtn">入試単語のプリントを作る</button>
     </div>
     <div class="card test-card exam-card">
       <div class="exam-head">入試形式の総合問題<span>単語・文法・会話表現・重要表現・長文をまとめた1回分（100点）</span></div>
@@ -862,6 +879,9 @@
 <script src="exam_grammar_1.js"></script>
 <script src="exam_grammar_2.js"></script>
 <script src="exam_grammar_3.js"></script>
+<script src="exam_grammar_basic.js"></script>
+<script src="exam_reading_1.js"></script>
+<script src="exam_reading_2.js"></script>
 <script>
 // STAGE type "chunk": 日本語チャンクを英語と同じ語順に並べ替える(単語を知らなくても語順感覚を養う)
 // STAGE type "word": 実際の英単語タイルを並べ替える
@@ -5084,12 +5104,16 @@ function readingPassagesFor(stageList, level = 'both') {
   return READING_PASSAGES.filter(p => keys.has(`${p.grade}|${p.program}`)
     && (level === 'both' || (p.level || 'program') === level));
 }
+const EXAM_READING_LEVELS = { basic: '入門（200〜280語）', standard: '標準（300〜400語）', advanced: '発展（400語〜）' };
 function passageLabel(p) {
+  if (p.id) return `入試長文・${(EXAM_READING_LEVELS[p.level] || '').replace(/（.*/, '')}`;
   return `中${p.grade} P${p.program}${p.level === 'part' ? ` Part ${p.part}` : ''}`;
 }
 
 function generateReadingItems(stageList, cfg, usedBefore = new Set()) {
-  const passages = shuffle(readingPassagesFor(stageList, cfg.readingLevel || 'both'));
+  const passages = shuffle(cfg.examReadingLevels
+    ? (typeof EXAM_READING !== 'undefined' ? EXAM_READING.filter(p => cfg.examReadingLevels.includes(p.level)) : [])
+    : readingPassagesFor(stageList, cfg.readingLevel || 'both'));
   const picked = [...passages.filter(p => !usedBefore.has(p)), ...passages.filter(p => usedBefore.has(p))].slice(0, cfg.readingCount);
   picked.forEach(p => usedBefore.add(p));
   picked
@@ -5101,6 +5125,7 @@ function generateReadingItems(stageList, cfg, usedBefore = new Set()) {
       if (q.type === 'choice') return { ...base, type: 'rchoice', options: q.options, answer: q.options[q.answer] };
       if (q.type === 'tf') return { ...base, type: 'rtf', options: ['○', '×'], answer: q.answer ? '○' : '×' };
       if (q.type === 'fill') return { ...base, type: 'rfill', answer: q.answer };
+      if (q.type === 'ea') return { ...base, type: 'rea', answer: q.answer };
       return { ...base, type: 'rja', answer: q.answer };
     }),
   }));
@@ -5780,7 +5805,7 @@ function shuffledPieces(item) {
 
 const SELECT_TYPES = new Set(['choice', 'usage', 'vmeaning', 'rchoice', 'rtf', 'cdialog', 'xchoice']);
 // 日本語で答える問題は、模範解答を見て自分で採点する
-const SELF_GRADED_TYPES = new Set(['rja', 'entoja', 'vjp', 'cwtrans', 'cwcond', 'cwfree', 'cetoj']);
+const SELF_GRADED_TYPES = new Set(['rja', 'rea', 'entoja', 'vjp', 'cwtrans', 'cwcond', 'cwfree', 'cetoj']);
 
 function answerText(item) {
   if (item.custom && item.custom.answer != null && !SELECT_TYPES.has(item.type)) return escHtml(item.custom.answer);
@@ -5797,7 +5822,7 @@ function answerText(item) {
   if (item.type === 'cform') return item.answers.join('　');
   if (item.type === 'xfill' || item.type === 'xpara') return item.answers.join(' / ');
   if (item.type === 'xorder') return item.answer;
-  if (['form', 'fillin', 'vword', 'vblank', 'vidiom', 'vjp', 'entoja', 'rfill', 'rja'].includes(item.type)) return item.answer;
+  if (['form', 'fillin', 'vword', 'vblank', 'vidiom', 'vjp', 'entoja', 'rfill', 'rja', 'rea'].includes(item.type)) return item.answer;
   if (item.type === 'rewrite') return item.answerSentence;
   if (item.type === 'error') return `${item.wrongWord} → ${item.answer}`;
   if (item.type === 'paraphrase') return item.answer;
@@ -5925,6 +5950,8 @@ function itemBodyHtml(item) {
       return answerLineHtml('本文中の英語で答えよう', 'short');
     case 'rja':
       return answerLineHtml('日本語で書こう');
+    case 'rea':
+      return answerLineHtml('英語で答えよう');
     case 'cdialog':
       return `<div class="ws-dialog">${item.lines.map(([who, text]) => `<b>${who}:</b><span>${text === null ? '<span class="ws-blank">（　　　　　　　　）</span>' : text}</span>`).join('')}</div>${optionsHtml(item)}`;
     case 'cwtrans':
@@ -6301,7 +6328,7 @@ function renderGuideWorksheet() {
 const POINT_WEIGHTS = {
   vmeaning: 1, vjp: 2, vword: 2, vblank: 2, vidiom: 2,
   choice: 2, usage: 2, fillin: 2, form: 2, error: 3, extra: 3, reorder: 3, rewrite: 3, paraphrase: 3, translate: 4, entoja: 4,
-  rchoice: 3, rtf: 2, rfill: 3, rja: 4, cdialog: 3, cphrase: 3, cform: 2, cfree: 3, cwtrans: 4, cwcond: 5, cwfree: 10, cetoj: 4, xchoice: 2, xfill: 3, xorder: 3, xpara: 3,
+  rchoice: 3, rtf: 2, rfill: 3, rja: 4, rea: 4, cdialog: 3, cphrase: 3, cform: 2, cfree: 3, cwtrans: 4, cwcond: 5, cwfree: 10, cetoj: 4, xchoice: 2, xfill: 3, xorder: 3, xpara: 3,
 };
 function assignPoints(items) {
   items.forEach(it => { delete it.points; });
@@ -6373,7 +6400,8 @@ function renderWorksheet() {
         box.className = 'ws-passage';
         const paragraphs = r.passage.text.split('\n').map(p => `<p>${p}</p>`).join('');
         const notes = (r.passage.notes || []).length ? `<div class="ws-notes">（注）${r.passage.notes.join('　')}</div>` : '';
-        box.innerHTML = `<div class="ws-passage-title">${readingItems.length > 1 ? `[${ri + 1}] ` : ''}${r.passage.title}</div>${paragraphs}${notes}`;
+        const table = r.passage.table ? `<table class="ws-ch-table ws-passage-table">${r.passage.table.map((row, k) => `<tr>${row.map(c => k === 0 ? `<th>${c}</th>` : `<td>${c}</td>`).join('')}</tr>`).join('')}</table>` : '';
+        box.innerHTML = `<div class="ws-passage-title">${readingItems.length > 1 ? `[${ri + 1}] ` : ''}${r.passage.title}</div>${paragraphs}${table}${notes}`;
         sheetItems.appendChild(box);
         r.subs.forEach((sub, i) => sheetItems.appendChild(makeItemEl(sub, i + 1)));
       });
@@ -6789,7 +6817,7 @@ const EXAM_ROUNDS = [
   { title: '疑問詞・間接疑問・仮定法', sub: '疑問詞の疑問文・間接疑問・I wish・If I were', match: /^(program1-where|program2-when|g1program3-whatcan|g1program4-who|g1program7-(how|candoq)|g1powerup|g1program8-wh|g1program9-whprog|g3program4-indirect|g3program7-)/ },
 ];
 const EXAM_GRAMMAR_FORMAT = { form: 4, choice: 3, fillin: 2, rewrite: 2, paraphrase: 2, reorder: 2, extra: 2, error: 2, translate: 2, entoja: 1 };
-const examState = { writingKinds: new Set(['translate']), writingCount: 10, freeThemes: new Set(), freeCount: 20, etojCount: 10, dialogCats: new Set(), dialogCount: 10, phraseThemes: new Set(), phraseCount: 20, tableKinds: new Set(['irregular']), tableCount: 20, mockRange: 3 };
+const examState = { readingLevels: new Set(['basic']), readingCount: 1, vocabRange: 3, vocabCount: 30, writingKinds: new Set(['translate']), writingCount: 10, freeThemes: new Set(), freeCount: 20, etojCount: 10, dialogCats: new Set(), dialogCount: 10, phraseThemes: new Set(), phraseCount: 20, tableKinds: new Set(['irregular']), tableCount: 20, mockRange: 3 };
 
 function examRoundKeys(r) { return stages.filter(st => r.match.test(st.key)).map(st => st.key); }
 function emptyCounts(defs) { return Object.fromEntries(Object.keys(defs).map(k => [k, 0])); }
@@ -6824,8 +6852,16 @@ function generateExamItems(cfg, used) {
     take(pool, cfg.phraseCount, ph => `e|cphrase|p${ph.i}`).forEach(ph => out.push(examPhraseItem(ph)));
   }
   if (cfg.chapter && typeof EXAM_GRAMMAR !== 'undefined' && EXAM_GRAMMAR[cfg.chapter]) {
-    const qs = EXAM_GRAMMAR[cfg.chapter].questions.map((q, i) => ({ ...q, i }));
-    take(qs, cfg.chapterCount || qs.length, q => `e|x${q.type}|${cfg.chapter}${q.i}`).forEach(q => out.push(examGrammarItem(cfg.chapter, q)));
+    const ch = EXAM_GRAMMAR[cfg.chapter];
+    const level = cfg.chapterLevel || 'exam';
+    // 基礎問題は b、入試レベルは番号のまま(差しかえ・今後出さないで区別するため)
+    const basic = (ch.basic || []).map((q, i) => ({ ...q, i: 'b' + i }));
+    const exam = ch.questions.map((q, i) => ({ ...q, i }));
+    const qs = level === 'basic' ? basic : level === 'both' ? [...basic, ...exam] : exam;
+    const picked = take(qs, cfg.chapterCount || qs.length, q => `e|x${q.type}|${cfg.chapter}${q.i}`);
+    // 基礎 → 入試の順に並べる(同じ形式の中で)
+    picked.sort((a, b) => (String(a.i)[0] === 'b' ? 0 : 1) - (String(b.i)[0] === 'b' ? 0 : 1));
+    picked.forEach(q => out.push(examGrammarItem(cfg.chapter, q)));
   }
   if (cfg.freePhraseCount && typeof EXAM_FREE_PHRASES !== 'undefined') {
     const pool = EXAM_FREE_PHRASES.map((ph, i) => ({ ...ph, i })).filter(ph => !cfg.freeThemes || !cfg.freeThemes.length || cfg.freeThemes.includes(ph.theme));
@@ -6901,7 +6937,10 @@ function newExamItem(item) {
   }
   if (/^x/.test(item.type)) {
     const ch = cfg.chapter;
-    const pool = shuffle(((EXAM_GRAMMAR[ch] || {}).questions || []).map((q, i) => ({ ...q, i }))
+    const lv = cfg.chapterLevel || 'exam';
+    const all = [...(lv !== 'exam' ? ((EXAM_GRAMMAR[ch] || {}).basic || []).map((q, i) => ({ ...q, i: 'b' + i })) : []),
+      ...(lv !== 'basic' ? ((EXAM_GRAMMAR[ch] || {}).questions || []).map((q, i) => ({ ...q, i })) : [])];
+    const pool = shuffle(all
       .filter(q => 'x' + q.type === item.type && !used.has(`e|${item.type}|${ch}${q.i}`) && !excludedSet.has(`e|${item.type}|${ch}${q.i}`)));
     return pool[0] ? examGrammarItem(ch, pool[0]) : null;
   }
@@ -6932,6 +6971,7 @@ function examSectionTitle() {
 // 文法の総まとめ: 問題の前に、その回の単元のルールを1ページにまとめる
 function renderExamSummary() {
   const cfg = printSource.kind === 'test' ? printSource.config : null;
+  if (cfg && cfg.examReadingLevels && activeRound === 0) { renderReadingTips(); return; }
   if (!cfg || !cfg.examSummary || activeRound > 0) return; // まとめは1周目の前だけ
   if (cfg.chapter && typeof EXAM_GRAMMAR !== 'undefined' && EXAM_GRAMMAR[cfg.chapter]) { renderChapterSummary(EXAM_GRAMMAR[cfg.chapter]); return; }
   const keys = cfg.keys.filter(k => STAGE_GUIDES[k]);
@@ -6946,6 +6986,20 @@ function renderExamSummary() {
   sheetItems.appendChild(box);
 }
 
+// 入試長文の読み方のコツ(長文に慣れていない生徒向け。1周目の最初だけ)
+function renderReadingTips() {
+  const box = document.createElement('div');
+  box.className = 'ws-reading-tips';
+  box.innerHTML = `<div class="ws-es-head">長文の読み方のコツ</div><ol>
+    <li><b>先に設問を読む</b>：何を聞かれるかを知ってから本文を読むと、答えの場所に気づきやすい。</li>
+    <li><b>段落ごとに要点をつかむ</b>：1段落読んだら「だれが・何をした／何について」を一言でメモする。</li>
+    <li><b>指示語（it / this / that / they）は直前を見る</b>：多くは前の文・前の部分をさしている。答えを入れて意味が通るか確かめる。</li>
+    <li><b>接続語に注目</b>：but / however（逆のこと）、because / so（理由・結果）、for example（例）、first / then / finally（順番）。</li>
+    <li><b>知らない単語で止まらない</b>：（注）を見る。前後から意味を予想して読み進める。</li>
+    <li><b>英問英答は質問の形で答える</b>：Do 〜? → Yes, 〜 do. / No, 〜 don't.、Why 〜? → Because 〜.、What did 〜 do? → 〜 + 過去形。</li>
+  </ol>`;
+  sheetItems.appendChild(box);
+}
 function renderChapterSummary(ch) {
   const box = document.createElement('div');
   box.className = 'ws-exam-summary ws-chapter';
@@ -6978,13 +7032,15 @@ const EXAM_CHAPTER_UNITS = {
   prepconj: /^g2program2-/,
 };
 examState.withTextbook = true;
+examState.chapterLevel = 'both';
 function startChapterPrint(key) {
   const ch = EXAM_GRAMMAR[key];
   const re = EXAM_CHAPTER_UNITS[key];
   const keys = re ? stages.filter(st => re.test(st.key)).map(st => st.key) : [];
   const textbook = examState.withTextbook && keys.length ? { form: 2, choice: 2, rewrite: 1, translate: 2 } : {};
-  startExamPrint(`入試対策 第${ch.no}章 ${ch.title}`, examConfig(`入試対策 第${ch.no}章 ${ch.title}`, {
-    keys, chapter: key, examSummary: true, grammarCounts: { ...emptyCounts(QUESTION_TYPES), ...textbook },
+  const lvLabel = { basic: '（基礎）', exam: '（入試）', both: '' }[examState.chapterLevel];
+  startExamPrint(`入試対策 第${ch.no}章 ${ch.title}${lvLabel}`, examConfig(`入試対策 第${ch.no}章 ${ch.title}${lvLabel}`, {
+    keys, chapter: key, examSummary: true, chapterLevel: examState.chapterLevel, grammarCounts: { ...emptyCounts(QUESTION_TYPES), ...textbook },
   }));
 }
 
@@ -6999,6 +7055,8 @@ function renderExamScreen() {
     examRoundList.appendChild(b);
   });
   examTextbookRow.style.display = chapters.length ? '' : 'none';
+  examLevelRow.style.display = chapters.length ? '' : 'none';
+  renderOptionSwitch(examChapterLevel, [['basic', '基礎（苦手な人・はじめの確認）'], ['both', '基礎＋入試'], ['exam', '入試レベルだけ']], examState.chapterLevel, v => { examState.chapterLevel = v; renderExamScreen(); });
   examWithTextbook.checked = examState.withTextbook;
   if (!chapters.length) EXAM_ROUNDS.forEach((r, i) => {
     const b = document.createElement('button');
@@ -7064,6 +7122,24 @@ function renderExamScreen() {
   renderOptionSwitch(examWritingCount, [5, 10, 15].map(n => [n, `${n}問`]), examState.writingCount, v => { examState.writingCount = v; renderExamScreen(); });
   renderOptionSwitch(examFreeCount, [10, 20, 30].map(n => [n, `${n}問`]), examState.freeCount, v => { examState.freeCount = v; renderExamScreen(); });
   renderOptionSwitch(examEtojCount, [5, 10, 15].map(n => [n, `${n}問`]), examState.etojCount, v => { examState.etojCount = v; renderExamScreen(); });
+  const hasExamReading = typeof EXAM_READING !== 'undefined';
+  examReadingLevels.innerHTML = '';
+  Object.entries(EXAM_READING_LEVELS).forEach(([k, label]) => {
+    const b = document.createElement('button');
+    const n = hasExamReading ? EXAM_READING.filter(p => p.level === k).length : 0;
+    b.textContent = `${label} ${n}題`;
+    b.className = examState.readingLevels.has(k) ? 'active' : '';
+    b.onclick = () => {
+      if (examState.readingLevels.has(k) && examState.readingLevels.size === 1) return;
+      if (examState.readingLevels.has(k)) examState.readingLevels.delete(k); else examState.readingLevels.add(k);
+      renderExamScreen();
+    };
+    examReadingLevels.appendChild(b);
+  });
+  examReadingBtn.disabled = !hasExamReading;
+  renderOptionSwitch(examReadingCount, [1, 2, 3].map(n => [n, `${n}題`]), examState.readingCount, v => { examState.readingCount = v; renderExamScreen(); });
+  renderOptionSwitch(examVocabRange, [[1, '中1まで'], [2, '中2まで'], [3, '中3まで']], examState.vocabRange, v => { examState.vocabRange = v; renderExamScreen(); });
+  renderOptionSwitch(examVocabCount, [20, 30, 50].map(n => [n, `${n}問`]), examState.vocabCount, v => { examState.vocabCount = v; renderExamScreen(); });
   renderOptionSwitch(examDialogCount, [10, 15, 20].map(n => [n, `${n}問`]), examState.dialogCount, v => { examState.dialogCount = v; renderExamScreen(); });
   renderOptionSwitch(examPhraseCount, [10, 20, 30].map(n => [n, `${n}問`]), examState.phraseCount, v => { examState.phraseCount = v; renderExamScreen(); });
   renderOptionSwitch(examTableCount, [10, 20, 30].map(n => [n, `${n}問`]), examState.tableCount, v => { examState.tableCount = v; renderExamScreen(); });
@@ -7093,6 +7169,23 @@ examFreeBtn.onclick = () => {
 };
 examEtojBtn.onclick = () => {
   startExamPrint('入試対策 英文和訳', examConfig('入試対策 英文和訳', { etojCount: examState.etojCount }));
+};
+examReadingBtn.onclick = () => {
+  const levels = Object.keys(EXAM_READING_LEVELS).filter(k => examState.readingLevels.has(k));
+  startExamPrint(`入試対策 入試長文（${levels.map(k => EXAM_READING_LEVELS[k].replace(/（.*/, '')).join('・')}）`, examConfig('入試対策 入試長文', {
+    readingCount: examState.readingCount, examReadingLevels: levels,
+  }));
+};
+examVocabBtn.onclick = () => {
+  const g = examState.vocabRange;
+  const n = examState.vocabCount;
+  const keys = stages.filter(st => st.grade <= g).map(st => st.key);
+  // 意味を選ぶ・英語を書く・例文の穴埋め・熟語をバランスよく
+  const vm = Math.round(n * 0.3), vw = Math.round(n * 0.3), vb = Math.round(n * 0.2);
+  startExamPrint(`入試対策 入試単語（中${g}までの重要語）`, examConfig(`入試対策 入試単語（中${g}まで）`, {
+    keys, vocabImportant: true,
+    vocabCounts: { ...emptyCounts(VOCAB_TYPES), vmeaning: vm, vword: vw, vblank: vb, vidiom: n - vm - vw - vb },
+  }));
 };
 examTableBtn.onclick = () => {
   const kinds = [...examState.tableKinds];
