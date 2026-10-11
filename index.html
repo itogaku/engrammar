@@ -505,6 +505,18 @@
   .ws-body > .ws-notes { margin: 2px 0 0 36px; }
   textarea.ws-long { width: 100%; resize: vertical; border: none; line-height: 34px; font-size: 15px; padding: 0 2px;
     background-image: repeating-linear-gradient(transparent, transparent 33px, var(--ink) 33px, var(--ink) 34px); background-attachment: local; }
+
+  .ws-chapter .ws-ch-sec { border-top: 1px dashed var(--line); padding: 8px 0 6px; break-inside: avoid; }
+  .ws-ch-title { font-weight: 800; font-size: 14px; display: flex; align-items: center; gap: 6px; }
+  .ws-ch-no { display: inline-flex; width: 20px; height: 20px; border-radius: 50%; background: var(--ink); color: #fff; font-size: 11.5px; align-items: center; justify-content: center; }
+  .ws-ch-star { margin-left: auto; color: var(--amber); font-size: 12px; letter-spacing: 1px; }
+  .ws-ch-star .dim { color: var(--line); }
+  .ws-ch-key { margin: 4px 0 4px 26px; padding: 4px 10px; border-left: 3px solid var(--amber); background: var(--amber-tint); font-size: 13.5px; display: flex; flex-direction: column; }
+  .ws-ch-key span { font-size: 12px; color: var(--ink-soft); }
+  .ws-ch-points { margin: 2px 0 2px 26px; padding-left: 16px; font-size: 12.5px; line-height: 1.6; }
+  .ws-ch-table { margin: 4px 0 2px 26px; border-collapse: collapse; font-size: 12px; }
+  .ws-ch-table th, .ws-ch-table td { border: 1px solid var(--ink-soft); padding: 2px 8px; }
+  .ws-ch-table th { background: var(--paper); }
   @media print {
     @page { size: A4; margin: 14mm 14mm; }
     body { background: #fff; padding: 0; display: block; }
@@ -534,6 +546,7 @@
     .round-copy + .round-copy { break-before: page; page-break-before: always; }
     .ws-answer textarea.ws-long { resize: none; border-bottom: none; background: repeating-linear-gradient(transparent, transparent 33px, #000 33px, #000 34px) !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     .ws-exam-summary { break-after: page; page-break-after: always; border: 1px solid #000; }
+    .ws-ch-key { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     .ws-es-item { break-inside: avoid; }
     .round-tabs { display: none !important; }
   }
@@ -567,8 +580,9 @@
   <div id="screenExam" style="display:none;">
     <p class="program-note">高校入試に向けて、3年間の内容をまとめて練習するプリントです。どれも「何周するか」や配点・解答ページは次の画面で選べ、できたプリントは問題ごとに直す・変える・消すができます。</p>
     <div class="card test-card exam-card">
-      <div class="exam-head">文法の総まとめ<span>まとめ（ルールの確認）→ 問題（語形変化・適語・書きかえ・同意文・並べ替え・誤文訂正・英訳・和訳）</span></div>
+      <div class="exam-head">文法の総まとめ<span>章ごとに「まとめ（重要度★・例文・ポイント）→ 入試レベルの問題（適語選択・適語補充・並べかえ・同意文）」</span></div>
       <div class="exam-rounds" id="examRoundList"></div>
+      <label class="opt-check" id="examTextbookRow"><input type="checkbox" id="examWithTextbook" checked> 教科書（SUNSHINE）の例文から作る問題もいっしょに出す</label>
     </div>
     <div class="card test-card exam-card">
       <div class="exam-head">会話表現<span>対話の空所に入る応答を選ぶ</span></div>
@@ -843,6 +857,9 @@
 <script src="exam_tables.js"></script>
 <script src="exam_writing.js"></script>
 <script src="exam_reading_sentences.js"></script>
+<script src="exam_grammar_1.js"></script>
+<script src="exam_grammar_2.js"></script>
+<script src="exam_grammar_3.js"></script>
 <script>
 // STAGE type "chunk": 日本語チャンクを英語と同じ語順に並べ替える(単語を知らなくても語順感覚を養う)
 // STAGE type "word": 実際の英単語タイルを並べ替える
@@ -5759,7 +5776,7 @@ function shuffledPieces(item) {
   return item.shuffled[printChunkLevel];
 }
 
-const SELECT_TYPES = new Set(['choice', 'usage', 'vmeaning', 'rchoice', 'rtf', 'cdialog']);
+const SELECT_TYPES = new Set(['choice', 'usage', 'vmeaning', 'rchoice', 'rtf', 'cdialog', 'xchoice']);
 // 日本語で答える問題は、模範解答を見て自分で採点する
 const SELF_GRADED_TYPES = new Set(['rja', 'entoja', 'vjp', 'cwtrans', 'cwcond', 'cwfree', 'cetoj']);
 
@@ -5776,6 +5793,8 @@ function answerText(item) {
   }
   if (item.type === 'cetoj') return `${item.answer}${item.point ? `<span class="ans-why">ポイント：${item.point}</span>` : ''}`;
   if (item.type === 'cform') return item.answers.join('　');
+  if (item.type === 'xfill' || item.type === 'xpara') return item.answers.join(' / ');
+  if (item.type === 'xorder') return item.answer;
   if (['form', 'fillin', 'vword', 'vblank', 'vidiom', 'vjp', 'entoja', 'rfill', 'rja'].includes(item.type)) return item.answer;
   if (item.type === 'rewrite') return item.answerSentence;
   if (item.type === 'error') return `${item.wrongWord} → ${item.answer}`;
@@ -5803,7 +5822,8 @@ function isCorrect(item) {
     const want = item.answer.toLowerCase();
     return words.length > 0 && words[words.length - 1] === want && (words.length === 1 || (words.length === 2 && words[0] === item.wrongWord.toLowerCase()));
   }
-  if (item.type === 'vidiom' || item.type === 'cphrase' || item.type === 'cfree') return normalize(answer.replace(/[／/・]/g, ' ')) === normalize(item.answers.join(' '));
+  if (item.type === 'xorder') return normalize(answer) !== '' && normalize(answer) === normalize(item.answer);
+  if (item.type === 'vidiom' || item.type === 'cphrase' || item.type === 'cfree' || item.type === 'xfill' || item.type === 'xpara') return normalize(answer.replace(/[／/・]/g, ' ')) === normalize(item.answers.join(' '));
   if (item.type === 'cform') {
     // 「was / were」のような答えは、どちらか一方でも両方書いても正解
     const got = normalize(answer.replace(/[／/・,、]/g, ' '));
@@ -5847,6 +5867,8 @@ function itemPromptHtml(item) {
   if (item.type === 'cdialog') return '';
   if (item.type === 'cphrase' || item.type === 'cfree') return item.jp.replace(/\s*(B[:：])\s*/, '<br>$1 ');
   if (item.type === 'cwtrans') return item.jp;
+  if (['xchoice', 'xfill', 'xorder'].includes(item.type)) return item.jp || '';
+  if (item.type === 'xpara') return '';
   if (item.type === 'cwcond' || item.type === 'cwfree') return item.task;
   if (item.type === 'cetoj') return `<span class="ws-en">${item.en}</span>`;
   if (item.type === 'cform') return `<span class="ws-word">${item.word}</span><span class="ws-cmean">（${item.meaning}）</span>`;
@@ -5905,6 +5927,14 @@ function itemBodyHtml(item) {
       return `<div class="ws-dialog">${item.lines.map(([who, text]) => `<b>${who}:</b><span>${text === null ? '<span class="ws-blank">（　　　　　　　　）</span>' : text}</span>`).join('')}</div>${optionsHtml(item)}`;
     case 'cwtrans':
       return answerLineHtml('英文を書こう');
+    case 'xchoice':
+      return `<div class="ws-sentence">${examBlanks(item.en)}</div>${optionsHtml(item)}`;
+    case 'xfill':
+      return `<div class="ws-sentence">${examBlanks(item.en)}</div>${answerLineHtml('（　）に入る語を順に', 'short')}`;
+    case 'xorder':
+      return `<div class="ws-sentence">（ ${item.words.join(' / ')} ）</div>${answerLineHtml('並べかえた英文を書こう')}`;
+    case 'xpara':
+      return `<div class="ws-sentence">${item.en1}</div><div class="ws-sentence">${examBlanks(item.en2)}</div>${answerLineHtml('（　）に入る語を順に', 'short')}`;
     case 'cwcond': case 'cwfree':
       return `${item.conditions && item.conditions.length ? `<div class="ws-conditions">【条件】${item.conditions.join('／')}</div>` : ''}<div class="ws-answer"><textarea class="ws-input ws-long" rows="${item.type === 'cwfree' ? 5 : 2}" placeholder="英文を書こう"></textarea><span class="ws-mark"></span></div>`;
     case 'cetoj':
@@ -6269,7 +6299,7 @@ function renderGuideWorksheet() {
 const POINT_WEIGHTS = {
   vmeaning: 1, vjp: 2, vword: 2, vblank: 2, vidiom: 2,
   choice: 2, usage: 2, fillin: 2, form: 2, error: 3, extra: 3, reorder: 3, rewrite: 3, paraphrase: 3, translate: 4, entoja: 4,
-  rchoice: 3, rtf: 2, rfill: 3, rja: 4, cdialog: 3, cphrase: 3, cform: 2, cfree: 3, cwtrans: 4, cwcond: 5, cwfree: 10, cetoj: 4,
+  rchoice: 3, rtf: 2, rfill: 3, rja: 4, cdialog: 3, cphrase: 3, cform: 2, cfree: 3, cwtrans: 4, cwcond: 5, cwfree: 10, cetoj: 4, xchoice: 2, xfill: 3, xorder: 3, xpara: 3,
 };
 function assignPoints(items) {
   items.forEach(it => { delete it.points; });
@@ -6733,6 +6763,10 @@ const EXAM_TYPES = {
   cdialog: { label: '会話表現', instr: '対話が成り立つように、（　）に入る最も適切なものをア〜エから選びなさい。' },
   cphrase: { label: '重要表現', instr: '日本語に合うように、（　）に適切な英語を1語ずつ入れなさい。' },
   cform: { label: '語形変化', instr: '次の語の変化形を書きなさい。' },
+  xchoice: { label: '適語選択', instr: '（　）に入る最も適切なものをア〜エから選びなさい。' },
+  xfill: { label: '適語補充', instr: '日本語に合うように、（　）に適切な語を1語ずつ入れなさい。' },
+  xorder: { label: '並べかえ', instr: '日本語に合うように、（　）内の語句を並べかえて英文を書きなさい。' },
+  xpara: { label: '同意文', instr: '2つの文がほぼ同じ意味になるように、（　）に適切な語を1語ずつ入れなさい。' },
   cfree: { label: '英作文の表現', instr: '日本語に合うように、（　）に適切な英語を1語ずつ入れなさい。' },
   cetoj: { label: '英文和訳', instr: '次の英文を日本語にしなさい。' },
   cwtrans: { label: '和文英訳', instr: '次の日本語を英語にしなさい。' },
@@ -6787,6 +6821,10 @@ function generateExamItems(cfg, used) {
     const pool = EXAM_PHRASES.map((ph, i) => ({ ...ph, i })).filter(ph => !cfg.phraseThemes || !cfg.phraseThemes.length || cfg.phraseThemes.includes(ph.theme));
     take(pool, cfg.phraseCount, ph => `e|cphrase|p${ph.i}`).forEach(ph => out.push(examPhraseItem(ph)));
   }
+  if (cfg.chapter && typeof EXAM_GRAMMAR !== 'undefined' && EXAM_GRAMMAR[cfg.chapter]) {
+    const qs = EXAM_GRAMMAR[cfg.chapter].questions.map((q, i) => ({ ...q, i }));
+    take(qs, cfg.chapterCount || qs.length, q => `e|x${q.type}|${cfg.chapter}${q.i}`).forEach(q => out.push(examGrammarItem(cfg.chapter, q)));
+  }
   if (cfg.freePhraseCount && typeof EXAM_FREE_PHRASES !== 'undefined') {
     const pool = EXAM_FREE_PHRASES.map((ph, i) => ({ ...ph, i })).filter(ph => !cfg.freeThemes || !cfg.freeThemes.length || cfg.freeThemes.includes(ph.theme));
     take(pool, cfg.freePhraseCount, ph => `e|cfree|f${ph.i}`).forEach(ph => out.push(examPhraseItem(ph, 'f', 'cfree')));
@@ -6832,6 +6870,16 @@ function examTableItem(t) {
   const [word, meaning, ...forms] = t.row;
   return { section: 'exam', type: 'cform', key: `${t.k}${t.i}`, kind: t.k, word, meaning, cols: table.cols, answers: forms };
 }
+function examBlanks(text) {
+  return String(text).replace(/\(\s*\)|（\s*）/g, '<span class="ws-blank">（　　　　）</span>');
+}
+function examGrammarItem(chapter, q) {
+  const base = { section: 'exam', type: 'x' + q.type, key: `${chapter}${q.i}`, jp: q.jp, why: q.point };
+  if (q.type === 'choice') return { ...base, en: q.en, options: q.options, answer: q.options[q.answer] };
+  if (q.type === 'fill') return { ...base, en: q.en, answers: q.answers };
+  if (q.type === 'order') return { ...base, words: shuffle([...q.words]), answer: q.answer };
+  return { ...base, en1: q.en1, en2: q.en2, answers: q.answers };
+}
 function examEtojItem(x) {
   return { section: 'exam', type: 'cetoj', key: `t${x.i}`, en: x.en, answer: x.jp, point: x.point, hint: x.hint };
 }
@@ -6848,6 +6896,12 @@ function newExamItem(item) {
   if (item.type === 'cfree') {
     const pool = shuffle(EXAM_FREE_PHRASES.map((ph, i) => ({ ...ph, i })).filter(ph => (!cfg.freeThemes || !cfg.freeThemes.length || cfg.freeThemes.includes(ph.theme)) && !used.has(`e|cfree|f${ph.i}`) && !excludedSet.has(`e|cfree|f${ph.i}`)));
     return pool[0] ? examPhraseItem(pool[0], 'f', 'cfree') : null;
+  }
+  if (/^x/.test(item.type)) {
+    const ch = cfg.chapter;
+    const pool = shuffle(((EXAM_GRAMMAR[ch] || {}).questions || []).map((q, i) => ({ ...q, i }))
+      .filter(q => 'x' + q.type === item.type && !used.has(`e|${item.type}|${ch}${q.i}`) && !excludedSet.has(`e|${item.type}|${ch}${q.i}`)));
+    return pool[0] ? examGrammarItem(ch, pool[0]) : null;
   }
   if (item.type === 'cetoj') {
     const pool = shuffle(EXAM_ETOJ.map((x, i) => ({ ...x, i })).filter(x => !used.has(`e|cetoj|t${x.i}`) && !excludedSet.has(`e|cetoj|t${x.i}`)));
@@ -6870,12 +6924,14 @@ function examSectionTitle() {
   const types = [...new Set(examItems.map(it => it.type))];
   if (types.length === 1) return EXAM_TYPES[types[0]].label;
   if (types.every(t => /^cw/.test(t))) return '英作文';
+  if (types.every(t => /^x/.test(t))) return '入試レベルの問題';
   return '表現・会話';
 }
 // 文法の総まとめ: 問題の前に、その回の単元のルールを1ページにまとめる
 function renderExamSummary() {
   const cfg = printSource.kind === 'test' ? printSource.config : null;
   if (!cfg || !cfg.examSummary) return;
+  if (cfg.chapter && typeof EXAM_GRAMMAR !== 'undefined' && EXAM_GRAMMAR[cfg.chapter]) { renderChapterSummary(EXAM_GRAMMAR[cfg.chapter]); return; }
   const keys = cfg.keys.filter(k => STAGE_GUIDES[k]);
   const box = document.createElement('div');
   box.className = 'ws-exam-summary';
@@ -6888,9 +6944,61 @@ function renderExamSummary() {
   sheetItems.appendChild(box);
 }
 
+function renderChapterSummary(ch) {
+  const box = document.createElement('div');
+  box.className = 'ws-exam-summary ws-chapter';
+  const star = n => '★'.repeat(n) + '<span class="dim">' + '★'.repeat(3 - n) + '</span>';
+  box.innerHTML = `<div class="ws-es-head">第${ch.no}章 ${ch.title} ― まとめ</div>` + ch.sections.map((sec, i) => `
+    <div class="ws-ch-sec">
+      <div class="ws-ch-title"><span class="ws-ch-no">${i + 1}</span>${sec.title}<span class="ws-ch-star">${star(sec.stars || 2)}</span></div>
+      ${sec.key ? `<div class="ws-ch-key"><b>${sec.key[0]}</b><span>${sec.key[1]}</span></div>` : ''}
+      <ul class="ws-ch-points">${(sec.points || []).map(pt => `<li>${pt}</li>`).join('')}</ul>
+      ${sec.table ? `<table class="ws-ch-table">${sec.table.map((row, r) => `<tr>${row.map(c => r === 0 ? `<th>${c}</th>` : `<td>${c}</td>`).join('')}</tr>`).join('')}</table>` : ''}
+    </div>`).join('');
+  sheetItems.appendChild(box);
+}
+// 文法の章 → 教科書(SUNSHINE)の単元(例文から作る問題もいっしょに出す)
+const EXAM_CHAPTER_UNITS = {
+  verbs: /^(getready|program1-(aff|neg|q)|program2-(aff|neg|q)|g1program4-(aff|neg|q)|g1program5-|g1program8-(aff|neg|q)|g1program9-(general|be))/,
+  future: /^(g1program3-(aff|neg|q)|g2program1-(begoingto|will)|g2program4-(must|haveto))/,
+  imperative: /^program2-(imperative|lets)/,
+  questions: /^(program1-where|program2-when|g1program3-whatcan|g1program4-who|g1program7-how|g1powerup|g1program8-wh|g3program4-indirect)/,
+  nouns: /^(program2-plural|g1program6-)/,
+  infinitive: /^(g2program3-|g2program4-emotion|g2program5-whto|g2program7-howto|g3program1-(itisfor|asktell))/,
+  gerund: /^g2program1-(enjoystop|likegerund|subjgerund)/,
+  participle: /^g3program4-(presentp|pastp)/,
+  compare: /^(g2program6-|g2program7-(better|best))/,
+  passive: /^g2program8-/,
+  perfect: /^(g3program1-experience|g3program2-)/,
+  relative: /^(g3program5-|g3program6-)/,
+  subjunctive: /^g3program7-/,
+  svoc: /^(g2program5-(svc|svoo)|g3program3-)/,
+  prepconj: /^g2program2-/,
+};
+examState.withTextbook = true;
+function startChapterPrint(key) {
+  const ch = EXAM_GRAMMAR[key];
+  const re = EXAM_CHAPTER_UNITS[key];
+  const keys = re ? stages.filter(st => re.test(st.key)).map(st => st.key) : [];
+  const textbook = examState.withTextbook && keys.length ? { form: 2, choice: 2, rewrite: 1, translate: 2 } : {};
+  startExamPrint(`入試対策 第${ch.no}章 ${ch.title}`, examConfig(`入試対策 第${ch.no}章 ${ch.title}`, {
+    keys, chapter: key, examSummary: true, grammarCounts: { ...emptyCounts(QUESTION_TYPES), ...textbook },
+  }));
+}
+
 function renderExamScreen() {
   examRoundList.innerHTML = '';
-  EXAM_ROUNDS.forEach((r, i) => {
+  const chapters = typeof EXAM_GRAMMAR !== 'undefined' ? Object.entries(EXAM_GRAMMAR).sort((a, b) => a[1].no - b[1].no) : [];
+  chapters.forEach(([key, ch]) => {
+    const b = document.createElement('button');
+    b.className = 'exam-round';
+    b.innerHTML = `<b>第${ch.no}章</b>${ch.title}<small>${ch.sub || ''}</small>`;
+    b.onclick = () => startChapterPrint(key);
+    examRoundList.appendChild(b);
+  });
+  examTextbookRow.style.display = chapters.length ? '' : 'none';
+  examWithTextbook.checked = examState.withTextbook;
+  if (!chapters.length) EXAM_ROUNDS.forEach((r, i) => {
     const b = document.createElement('button');
     b.className = 'exam-round';
     b.innerHTML = `<b>第${i + 1}回</b>${r.title}<small>${r.sub}</small>`;
@@ -6959,6 +7067,7 @@ function renderExamScreen() {
   renderOptionSwitch(examTableCount, [10, 20, 30].map(n => [n, `${n}問`]), examState.tableCount, v => { examState.tableCount = v; renderExamScreen(); });
   renderOptionSwitch(examMockRange, [[1, '中1まで'], [2, '中2まで'], [3, '中3まで']], examState.mockRange, v => { examState.mockRange = v; renderExamScreen(); });
 }
+examWithTextbook.onchange = () => { examState.withTextbook = examWithTextbook.checked; };
 examDialogBtn.onclick = () => {
   const cats = [...examState.dialogCats];
   startExamPrint(`入試対策 会話表現${cats.length ? `（${cats.map(c => EXAM_DIALOG_CATS[c]).join('・')}）` : ''}`, examConfig('入試対策 会話表現', { dialogCount: examState.dialogCount, dialogCats: cats }));
