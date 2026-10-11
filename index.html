@@ -5815,7 +5815,7 @@ function itemPromptHtml(item) {
   }
   if (item.section === 'reading') return item.q;
   if (item.type === 'cdialog') return '';
-  if (item.type === 'cphrase') return item.jp;
+  if (item.type === 'cphrase') return item.jp.replace(/\s*(B[:：])\s*/, '<br>$1 ');
   if (item.type === 'cform') return `<span class="ws-word">${item.word}</span><span class="ws-cmean">（${item.meaning}）</span>`;
   if (item.type === 'entoja') return `<span class="ws-en">${fullSentence(item)}</span>`;
   const tags = item.jpTags.map(t => `<span class="ws-tag">＋${t}</span>`).join('');
@@ -6757,7 +6757,7 @@ function examPhraseItem(ph) {
     if (!blankIdx.has(i)) return t;
     const tail = (t.match(/[.,!?]+$/) || [''])[0];
     return `<span class="ws-blank">（　　　　）</span>${tail}`;
-  }).join(' ');
+  }).join(' ').replace(/ ([AB]:) /g, '<br>$1 '); // 対話の例文は話し手ごとに改行
   return { section: 'exam', type: 'cphrase', key: `p${ph.i}`, jp: ph.jp, en: ph.en, sentenceHtml, answers: ph.blanks, phrase: ph.phrase, meaning: ph.meaning };
 }
 function examTableItem(t) {
@@ -6868,6 +6868,7 @@ examMockBtn.onclick = () => {
   const g = examState.mockRange;
   const keys = stages.filter(st => st.grade <= g).map(st => st.key);
   const lastProgram = stages.filter(st => st.grade === g).map(st => st.key);
+  printRounds = 1; // 総合問題は1回分(類題が必要なら次の画面で周数をふやせる)
   startExamPrint(`入試形式の総合問題（中${g}までの全範囲）`, examConfig(`入試形式 総合問題（中${g}まで）`, {
     keys, readingKeys: lastProgram,
     vocabCounts: { ...emptyCounts(VOCAB_TYPES), vmeaning: 3, vword: 3 },
