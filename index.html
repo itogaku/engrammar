@@ -463,6 +463,20 @@
   .edit-hint { font-size: 12.5px; color: var(--ink-soft); background: var(--panel); border: 1.5px dashed var(--line); border-radius: 8px; padding: 8px 12px; margin: 0 0 10px; line-height: 1.6; }
   .edit-hint b { color: var(--teal); }
   .ws-editor-actions .btn { flex: none; padding: 5px 14px; font-size: 13px; }
+
+  .reg-card { display: flex; flex-direction: column; gap: 10px; }
+  .reg-row { display: flex; gap: 10px; align-items: baseline; }
+  .reg-label { font-size: 12px; color: var(--ink-soft); letter-spacing: .08em; min-width: 5.5em; flex-shrink: 0; }
+  .reg-chips { display: flex; flex-wrap: wrap; gap: 6px; flex: 1; }
+  .reg-chip { display: inline-flex; align-items: center; border: 1.5px solid var(--line); background: var(--panel); border-radius: 999px; overflow: hidden; }
+  .reg-chip button { font-family: inherit; border: 0; background: transparent; cursor: pointer; font-size: 13px; color: var(--ink); padding: 3px 4px 3px 12px; }
+  .reg-chip .reg-del { color: var(--ink-soft); padding: 3px 10px 3px 6px; font-size: 12px; }
+  .reg-chip .reg-del:hover { color: var(--amber); }
+  .reg-chip.active { border-color: var(--teal); background: var(--teal-tint); }
+  .reg-chip.active button:first-child { font-weight: 700; }
+  .reg-add { font-family: inherit; font-size: 12.5px; border: 1.5px dashed var(--line); background: transparent; color: var(--teal); border-radius: 999px; padding: 3px 12px; cursor: pointer; font-weight: 700; }
+  .reg-add:disabled { opacity: .4; cursor: default; }
+  .reg-card .test-save-form { margin-top: 0; }
   @media print {
     @page { size: A4; margin: 14mm 14mm; }
     body { background: #fff; padding: 0; display: block; }
@@ -513,7 +527,7 @@
       <button data-tab="print">単元プリント<small>単元ごとに</small></button>
       <button data-tab="guide">解説つき<small>はじめて学ぶ人</small></button>
       <button data-tab="practice">画面で練習<small>並べ替え</small></button>
-      <button data-tab="history">履歴<small>同じ・類題</small></button>
+      <button data-tab="history">履歴<small>印刷したもの</small></button>
     </div>
   </nav>
 
@@ -534,10 +548,23 @@
   <div id="screenTest" style="display:none;">
     <p class="program-note">テスト範囲の単元を選んで、単語・文法・長文をまとめたプリントを作ります。上の学年を切りかえると、学年をまたいで選べます。</p>
 
-    <div class="card test-card" id="testSavedCard">
-      <div class="test-label">保存した範囲</div>
-      <div id="testSavedList"></div>
+    <div class="card test-card reg-card" id="testSavedCard">
+      <div class="reg-row">
+        <span class="reg-label">テスト範囲</span>
+        <div class="reg-chips" id="testRangeChips"></div>
+      </div>
+      <div class="reg-row">
+        <span class="reg-label">形式</span>
+        <div class="reg-chips" id="testFormatChips"></div>
+      </div>
+      <div class="test-save-form" id="testSaveForm" style="display:none;">
+        <input type="text" class="type-input" id="testNameInput">
+        <button class="btn btn-primary" id="testSaveConfirmBtn">登録</button>
+        <button class="btn btn-ghost" id="testSaveCancelBtn">やめる</button>
+      </div>
+      <div class="test-empty">範囲（単元）と形式（問題の種類と数・長文・何周するか など）を別々に登録できます。「範囲 × 形式」を選ぶだけで、いつも同じ形式の定期テストが作れます。</div>
     </div>
+    <div id="testSavedList" style="display:none;"></div>
 
     <div class="card test-card">
       <div class="mode-switch tabs" id="testGradeSwitch" style="display:none;"></div>
@@ -573,17 +600,13 @@
         <span class="test-avail" id="testReadingNote"></span>
       </div>
       <div class="mode-switch test-reading-level" id="testReadingLevelSwitch"></div>
-      <div class="test-empty">Part単位は教科書の各 Part までの文法・単語だけ、Program単位は Program 全体の内容で書いたオリジナルの文章です（1題に4〜5問）。</div>
+      <div class="test-empty">Part単位は教科書の各 Part までの文法・単語だけ、Program単位は Program 全体の内容で書いたオリジナルの文章です（中1は約100〜160語、中2は約110〜220語、中3は約140〜280語。1題に6〜8問）。</div>
     </div>
 
     <div class="test-actions">
-      <button class="btn btn-ghost" id="testSaveBtn">この範囲を保存</button>
       <button class="btn btn-primary" id="testMakeBtn">プリントを作る</button>
     </div>
-    <div class="test-save-form" id="testSaveForm" style="display:none;">
-      <input type="text" class="type-input" id="testNameInput" placeholder="範囲の名前（例：2学期中間テスト）">
-      <button class="btn btn-primary" id="testSaveConfirmBtn">保存</button>
-    </div>
+    <button style="display:none;" id="testSaveBtn"></button>
     <p class="test-note">問題の種類ごとに数を決められます（0問の種類は出ません。すべて0問の大問はプリントに入りません）。和訳・意味を書く問題は、模範解答を見て自己採点します。</p>
   </div>
 
@@ -3495,6 +3518,9 @@ const testShuffleCheck = document.getElementById('testShuffleCheck');
 const testSaveBtn = document.getElementById('testSaveBtn');
 const testSaveForm = document.getElementById('testSaveForm');
 const testNameInput = document.getElementById('testNameInput');
+const testRangeChips = document.getElementById('testRangeChips');
+const testFormatChips = document.getElementById('testFormatChips');
+const testSaveCancelBtn = document.getElementById('testSaveCancelBtn');
 const testSaveConfirmBtn = document.getElementById('testSaveConfirmBtn');
 const testMakeBtn = document.getElementById('testMakeBtn');
 
@@ -6145,7 +6171,7 @@ function assignPoints(items) {
 
 function renderWorksheet() {
   document.getElementById('sheet').classList.toggle('teacher', printTeacherCheck.checked);
-  sheetNo.textContent = `No.${printSeed}${printEdited ? '（編集あり）' : ''}`;
+  sheetNo.textContent = '';
   if (printSource.kind === 'guide') { allWorksheetItems().forEach(it => { delete it.points; }); renderGuideWorksheet(); addEditControls(); return; }
   renderRoundTabs();
   const roundLabel = roundCount() > 1 ? `（${activeRound + 1}周目）` : '';
@@ -6295,13 +6321,12 @@ function loadPrintHistory() {
   try { return JSON.parse(localStorage.getItem(PRINT_HISTORY_KEY) || '[]'); } catch (_) { return []; }
 }
 function savePrintHistory() {
-  if (printEdited) return; // 編集したプリントは番号から作り直せないので履歴に入れない
   const entry = {
     seed: printSeed, title: sheetTitle.textContent, sub: sheetSub.textContent, date: new Date().toISOString().slice(0, 10),
     source: JSON.parse(JSON.stringify(printSource)), stageIndex,
     settings: { printCount, printTypes: [...printTypes], printChunkLevel, printGlossMode, points: printPointsCheck.checked, rounds: printRounds },
   };
-  const list = loadPrintHistory().filter(e => !(e.seed === entry.seed && e.title === entry.title));
+  const list = loadPrintHistory().filter(e => !(e.title === entry.title && e.sub === entry.sub));
   list.unshift(entry);
   try { localStorage.setItem(PRINT_HISTORY_KEY, JSON.stringify(list.slice(0, 30))); } catch (_) {}
 }
@@ -6321,21 +6346,16 @@ function openFromHistory(entry, sameQuestions) {
 function renderPrintHistory() {
   const list = loadPrintHistory();
   printHistoryCard.style.display = 'block';
-  printHistoryEmpty.textContent = list.length ? '「同じプリント」で同じ問題をもう一度作れます（再印刷・解答の確認に）。「類題」は同じ設定で問題だけを変えます（再テストに）。' : 'まだ印刷したプリントはありません。プリントを印刷すると、ここから同じプリントや類題をすぐに作れます。';
+  printHistoryEmpty.textContent = list.length ? '「同じ設定で作る」で、同じ範囲・同じ形式の新しい問題をすぐに作れます。' : 'まだ印刷したプリントはありません。印刷すると、ここから同じ設定のプリントをすぐに作れます。';
   printHistoryList.innerHTML = '';
   list.slice(0, 10).forEach(e => {
     const row = document.createElement('div');
     row.className = 'test-saved-row';
-    row.innerHTML = `<div class="test-saved-name">${e.title}<span>${e.date}・No.${e.seed}</span></div>`;
-    const same = document.createElement('button');
-    same.className = 'btn btn-ghost btn-small';
-    same.textContent = '同じプリント';
-    same.onclick = () => openFromHistory(e, true);
+    row.innerHTML = `<div class="test-saved-name">${e.title}<span>${e.date}</span></div>`;
     const similar = document.createElement('button');
     similar.className = 'btn btn-ghost btn-small';
-    similar.textContent = '類題';
+    similar.textContent = '同じ設定で作る';
     similar.onclick = () => openFromHistory(e, false);
-    row.appendChild(same);
     row.appendChild(similar);
     printHistoryList.appendChild(row);
   });
@@ -6615,6 +6635,94 @@ function applySavedRange(r) {
   testState.name = r.name;
 }
 
+// ---------- テスト範囲・形式の登録 ----------
+// 範囲(単元)と形式(問題の種類と数・長文・並び順・何周するか・配点)を別々に登録し、組み合わせて使う
+const TEST_FORMAT_STORAGE_KEY = 'engrammar_test_formats';
+function loadTestFormats() {
+  try { return JSON.parse(localStorage.getItem(TEST_FORMAT_STORAGE_KEY) || '[]'); } catch (_) { return []; }
+}
+function saveTestFormats(list) {
+  try { localStorage.setItem(TEST_FORMAT_STORAGE_KEY, JSON.stringify(list)); } catch (_) {}
+}
+// 以前の「保存した範囲」は形式もいっしょに入っていたので、形式としても使えるようにする
+(function migrateSavedRanges() {
+  const formats = loadTestFormats();
+  const add = loadTestRanges().filter(r => r.grammarCounts && !formats.some(f => f.name === r.name))
+    .map(r => ({ name: r.name, mode: r.mode, shuffle: r.shuffle, grammarCounts: r.grammarCounts, vocabCounts: r.vocabCounts || {},
+      vocabImportant: r.vocabImportant, readingCount: r.readingCount, readingLevel: r.readingLevel }));
+  if (add.length) saveTestFormats([...formats, ...add]);
+})();
+function applyRangeOnly(r) {
+  testState.keys = new Set(r.keys.filter(k => stages.some(s => s.key === k)));
+  if (r.perUnit) testState.perUnit = { ...r.perUnit };
+  testState.name = r.name;
+}
+function currentFormat(name) {
+  return {
+    name, mode: testState.mode, shuffle: testState.shuffle,
+    grammarCounts: { ...testState.grammarCounts }, vocabCounts: { ...testState.vocabCounts },
+    vocabImportant: testState.vocabImportant, readingCount: testState.readingCount, readingLevel: testState.readingLevel,
+    rounds: printRounds, points: printPointsCheck.checked, answers: printIncludeAnswers.checked,
+  };
+}
+function applyFormat(f) {
+  testState.mode = f.mode === 'perUnit' ? 'perUnit' : 'byType';
+  testState.shuffle = f.shuffle !== false;
+  testState.grammarCounts = { ...Object.fromEntries(Object.keys(QUESTION_TYPES).map(k => [k, 0])), ...f.grammarCounts };
+  testState.vocabCounts = { ...Object.fromEntries(Object.keys(VOCAB_TYPES).map(k => [k, 0])), ...f.vocabCounts };
+  testState.vocabImportant = !!f.vocabImportant;
+  testState.readingCount = f.readingCount ?? 1;
+  testState.readingLevel = f.readingLevel || 'both';
+  if (f.rounds) printRounds = f.rounds;
+  if (f.points != null) printPointsCheck.checked = f.points;
+  if (f.answers != null) printIncludeAnswers.checked = f.answers;
+  testState.formatName = f.name;
+}
+let regSaving = null; // 'range' / 'format'
+function sameKeys(r) {
+  return r.keys.length === testState.keys.size && r.keys.every(k => testState.keys.has(k));
+}
+function sameFormat(f) {
+  const c = currentFormat(f.name);
+  return ['grammarCounts', 'vocabCounts'].every(k => Object.keys({ ...c[k], ...f[k] }).every(t => (c[k][t] || 0) === (f[k][t] || 0)))
+    && c.readingCount === (f.readingCount ?? 1) && c.readingLevel === (f.readingLevel || 'both') && c.mode === (f.mode || 'byType');
+}
+function renderRegChips(container, list, activeName, onUse, onSave, addLabel, kind) {
+  container.innerHTML = '';
+  list.forEach((r, ri) => {
+    const chip = document.createElement('span');
+    chip.className = 'reg-chip' + ((kind === 'range' ? sameKeys(r) : sameFormat(r)) ? ' active' : '');
+    const use = document.createElement('button');
+    use.textContent = r.name;
+    use.title = kind === 'range' ? `${r.keys.length}単元` : '';
+    use.onclick = () => onUse(r);
+    const del = document.createElement('button');
+    del.className = 'reg-del';
+    del.textContent = '×';
+    del.title = '登録を消す';
+    del.onclick = () => {
+      if (!confirm(`「${r.name}」の登録を消しますか？`)) return;
+      onSave(list.filter((_, i) => i !== ri));
+      renderTestScreen();
+    };
+    chip.appendChild(use);
+    chip.appendChild(del);
+    container.appendChild(chip);
+  });
+  const add = document.createElement('button');
+  add.className = 'reg-add';
+  add.textContent = '＋ ' + addLabel;
+  add.disabled = kind === 'range' && testState.keys.size === 0;
+  add.onclick = () => {
+    regSaving = kind;
+    testSaveForm.style.display = 'flex';
+    testNameInput.placeholder = kind === 'range' ? '範囲の名前（例：2年 2学期中間）' : '形式の名前（例：〇〇中の定期テスト）';
+    testNameInput.value = kind === 'range' ? (testState.name || '') : (testState.formatName || '');
+    testNameInput.focus();
+  };
+  container.appendChild(add);
+}
+
 // 種類ごとの問題数の入力欄
 function renderTypeCounts(container, defs, counts, max, availOf) {
   container.innerHTML = '';
@@ -6635,31 +6743,17 @@ function renderTypeCounts(container, defs, counts, max, availOf) {
 }
 
 function renderTestScreen() {
-  // 保存した範囲
-  const saved = loadTestRanges();
-  testSavedCard.style.display = saved.length ? 'block' : 'none';
-  testSavedList.innerHTML = '';
-  saved.forEach((r, ri) => {
-    const row = document.createElement('div');
-    row.className = 'test-saved-row';
-    row.innerHTML = `<div class="test-saved-name">${r.name}<span>${r.keys.length}単元</span></div>`;
-    const use = document.createElement('button');
-    use.className = 'btn btn-ghost btn-small';
-    use.textContent = '使う';
-    use.onclick = () => {
-      applySavedRange(r);
-      const first = selectedTestStages()[0];
-      if (first) testState.grade = first.grade;
-      renderTestScreen();
-    };
-    const del = document.createElement('button');
-    del.className = 'btn btn-ghost btn-small danger';
-    del.textContent = '削除';
-    del.onclick = () => { saveTestRanges(saved.filter((_, i) => i !== ri)); renderTestScreen(); };
-    row.appendChild(use);
-    row.appendChild(del);
-    testSavedList.appendChild(row);
-  });
+  // 登録したテスト範囲と形式
+  renderRegChips(testRangeChips, loadTestRanges(), testState.name, r => {
+    applyRangeOnly(r);
+    const first = selectedTestStages()[0];
+    if (first) { testState.grade = first.grade; currentGrade = first.grade; renderNav('test'); }
+    renderTestScreen();
+  }, list => saveTestRanges(list), '今の範囲を登録', 'range');
+  renderRegChips(testFormatChips, loadTestFormats(), testState.formatName, f => {
+    applyFormat(f);
+    renderTestScreen();
+  }, list => saveTestFormats(list), '今の形式を登録', 'format');
 
   // 学年タブ
   renderOptionSwitch(testGradeSwitch, grades.map(g => [g.id, g.name]), testState.grade, v => {
@@ -6737,7 +6831,6 @@ function renderTestScreen() {
   renderOptionSwitch(testReadingLevelSwitch, Object.entries(READING_LEVEL_LABELS), testState.readingLevel, v => {
     testState.readingLevel = v; renderTestScreen();
   });
-  testSaveForm.style.display = 'none';
   updateTestMakeButton();
 }
 
@@ -6771,7 +6864,6 @@ function updateTestMakeButton() {
   testMakeBtn.disabled = !ok;
   const label = [questions ? `${questions}問` : '', passages ? `長文${passages}題` : ''].filter(Boolean).join('＋');
   testMakeBtn.textContent = ok ? `${label}のプリントを作る` : 'プリントを作る';
-  testSaveBtn.disabled = testState.keys.size === 0;
 }
 
 function rangeSummary(selected) {
@@ -6788,24 +6880,21 @@ testReadingInput.addEventListener('input', () => {
 });
 testShuffleCheck.addEventListener('change', () => { testState.shuffle = testShuffleCheck.checked; });
 testClearBtn.addEventListener('click', () => { testState.keys.clear(); testState.name = ''; renderTestScreen(); });
-testSaveBtn.addEventListener('click', () => {
-  testSaveForm.style.display = 'flex';
-  testNameInput.value = testState.name || '';
-  testNameInput.focus();
-});
+// 単元を選び直したら、登録した範囲の名前は外す(名前と中身がずれないように)
 testSaveConfirmBtn.addEventListener('click', () => {
   const name = testNameInput.value.trim();
   if (!name) { testNameInput.focus(); return; }
-  const list = loadTestRanges().filter(r => r.name !== name);
-  list.push({
-    name, keys: [...testState.keys], mode: testState.mode, perUnit: testState.perUnit, shuffle: testState.shuffle,
-    grammarCounts: { ...testState.grammarCounts }, vocabCounts: { ...testState.vocabCounts },
-    vocabImportant: testState.vocabImportant, readingCount: testState.readingCount, readingLevel: testState.readingLevel,
-  });
-  saveTestRanges(list);
-  testState.name = name;
+  if (regSaving === 'format') {
+    saveTestFormats([...loadTestFormats().filter(f => f.name !== name), currentFormat(name)]);
+    testState.formatName = name;
+  } else {
+    saveTestRanges([...loadTestRanges().filter(r => r.name !== name), { name, keys: [...testState.keys], perUnit: { ...testState.perUnit } }]);
+    testState.name = name;
+  }
+  testSaveForm.style.display = 'none';
   renderTestScreen();
 });
+testSaveCancelBtn.addEventListener('click', () => { testSaveForm.style.display = 'none'; });
 testNameInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') testSaveConfirmBtn.click(); });
 testMakeBtn.addEventListener('click', () => {
   const selected = selectedTestStages();

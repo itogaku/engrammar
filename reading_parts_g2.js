@@ -14,7 +14,7 @@ READING_PASSAGES.push(
   },
   {
     level: 'part', grade: 2, program: 1, part: 2, title: '連絡してね',
-    text: 'Mike: Ken, I\'m going to leave Japan tomorrow. I\'m a bit worried about my new school.\nKen: Why?\nMike: I have no friends there. The school and the town will be new for me.\nKen: Don\'t worry. You\'re kind and funny. ①<u>You\'ll make new friends soon.</u>\nMike: I hope so. I won\'t forget you.\nKen: I won\'t forget you, either. Please text me. Let\'s keep in touch.\nMike: Of course. I\'ll take a lot of pictures of my new town and show them to you.\nKen: Thanks. Will you come back to Japan again?\nMike: Yes, I will. I\'ll visit you next summer. Then let\'s play soccer together again.\nKen: That will be great. I\'ll practice hard every day.\nMike: Well, it\'s late. I\'ll go home now.\nKen: OK. Take care, Mike.\nMike: Sure. Take care.',
+    text: 'Mike: Ken, I\'m going to leave Japan tomorrow. I\'m a bit worried about my new school.\nKen: Why?\nMike: I have no friends there. The school and the town will be new for me.\nKen: Don\'t worry. You\'re kind and funny. ①<u>You\'ll make new friends soon.</u>\nMike: I hope so. I won\'t forget you.\nKen: I won\'t forget you, either. Please text me. Let\'s keep in touch.\nMike: Of course. I\'ll take a lot of pictures of my new town and show them to you.\nKen: Thanks. Will you come back to Japan?\nMike: Yes, I will. I\'ll visit you next summer. Then let\'s play soccer together again.\nKen: That will be great. I\'ll practice hard every day.\nMike: Well, it\'s late. I\'ll go home now.\nKen: OK. Take care, Mike.\nMike: Sure. Take care.',
     questions: [
       { type: 'tf', q: 'マイクは新しい学校について少し心配している。', answer: true },
       { type: 'choice', q: '健がマイクに頼んだことは何ですか。', options: ['手紙を書くこと', 'メッセージを送ること', '日本に戻ること', '写真を送ること'], answer: 1 },
@@ -51,7 +51,7 @@ READING_PASSAGES.push(
   },
   {
     level: 'part', grade: 2, program: 2, part: 2, title: 'ガーナのコーチ', notes: ['professionally　プロとして', 'national team　代表チーム', 'coach　指導する'],
-    text: 'Mr. Owusu is from Ghana. When he was young, he played soccer professionally in Ghana. He was on the national team. He played in many big games, and a lot of people knew him.\nWhen he stopped playing, he started coaching children. He also went to South Sudan. There, some children didn\'t like children from other groups. They didn\'t talk with them. But when they played soccer together, they enjoyed it very much. After the game, they talked together and had fun.\nNow Mr. Owusu coaches students at a university, too. He often says, "On the soccer field, we are all friends." ①<u>He believes that sports create peace.</u>\nI think so, too. When I play soccer with my friends, we always smile.',
+    text: 'Mr. Owusu is from Ghana. When he was young, he played soccer professionally in Ghana. He was on the national team. He played in many big games, and a lot of people knew him.\nWhen he stopped playing, he started coaching children. He also went to South Sudan. There, some children didn\'t like children from other groups. They didn\'t talk with them. But when they played soccer together, they enjoyed it very much. After the game, they talked together and had fun.\nNow Mr. Owusu coaches children in Ghana again. He often says, "On the soccer field, we are all friends." ①<u>He believes that sports create peace.</u>\nI think so, too. When I play soccer with my friends, we always smile.',
     questions: [
       { type: 'tf', q: 'オウスさんはガーナでプロとしてサッカーをしていた。', answer: true },
       { type: 'choice', q: 'オウスさんが選手をやめた後に始めたことは何ですか。', options: ['大学で教えること', '子どもたちのコーチ', '新しいチームを作ること', '本を書くこと'], answer: 1 },
@@ -87,19 +87,19 @@ READING_PASSAGES.push(
   },
   {
     level: 'part', grade: 2, program: 3, part: 2, title: '金魚すくい', notes: ['scoop up　すくう', 'goldfish　金魚'],
-    text: 'Last Saturday, Emily and I went to the summer festival. There were a lot of people there.\nFirst, we went to a food shop to buy corn dogs. Then we bought cotton candy. It was very sweet.\nAfter that, we went to the festival to play games. I tried to scoop up goldfish with thin paper. It was difficult. I tried three times, but I didn\'t get any. Emily was good at it. She got two goldfish. She said, "Don\'t move the paper fast." I tried again. It was difficult, but I got one for the first time. I was so happy.\nThen we went to the park to see the dance. Many people danced together, and we danced, too.\nNow my goldfish lives in my room. ①<u>I\'m looking forward to the next festival.</u>',
+    text: 'Last Saturday, Emily and I went to the summer festival to play games. There were a lot of people there.\nFirst, we bought corn dogs at a food shop. Then we bought cotton candy. It was very sweet.\nAfter that, we played some games. I tried to scoop up goldfish with thin paper. It was difficult. I tried three times, but I didn\'t get any. Emily was good at it. She got two goldfish. She said, "Don\'t move the paper fast." I tried again. It was difficult, but I got one for the first time. I was so happy.\nThen we went to the park to see the dance. Many people danced together, and we danced, too.\nNow my goldfish lives in my room. ①<u>I\'m looking forward to the next festival.</u>',
     questions: [
       { type: 'tf', q: '「私」は初めて金魚をすくうことができた。', answer: true },
       { type: 'choice', q: '「私」たちが祭りに行った目的は何ですか。', options: ['踊るため', 'ゲームをするため', '花火を見るため', '友達に会うため'], answer: 1 },
       { type: 'fill', q: '金魚をすくう紙はどうでしたか。本文中の英語1語で答えなさい。', answer: 'thin' },
       { type: 'tf', q: 'エミリーは金魚を1匹もすくえなかった。', answer: false },
-      { type: 'choice', q: '「私」たちが祭りで最初にしたことは何ですか。', options: ['綿あめを買った', 'アメリカンドッグを買いに行った', '金魚すくいをした', '踊りを見た'], answer: 1 },
+      { type: 'choice', q: '「私」たちが祭りで最初にしたことは何ですか。', options: ['綿あめを買った', 'アメリカンドッグを買った', '金魚すくいをした', '踊りを見た'], answer: 1 },
       { type: 'ja', q: '下線部①を日本語にしなさい。', answer: '私は次のお祭りを楽しみにしています。' },
     ],
   },
   {
     level: 'part', grade: 2, program: 3, part: 3, title: 'レモネード屋さん',
-    text: 'My little sister, Momo, is eight years old. Last Sunday, she sold lemonade by herself in front of our house. She wanted to buy a birthday present for our mother.\nIn the morning, she made lemonade. She had a lot of cups to sell. She also wrote "Lemonade 50 yen" on a big paper.\n①<u>It is not easy to sell lemonade.</u> At first, people didn\'t stop at her shop. But Momo smiled and said "Hello!" to everyone. Then Mr. Green came and bought a cup. "It\'s delicious!" he said. He told his friends about it, and many people came to buy her lemonade.\nIn the evening, she had no lemonade to sell. She bought some flowers for our mother with the money. Our mother was very happy. Good job, Momo!',
+    text: 'My little sister, Momo, is eight years old. Last Sunday, she sold lemonade by herself in front of our house. She wanted to buy a birthday present for our mother.\nIn the morning, she made lemonade. She had a lot of cups to sell. She also wrote "Lemonade 50 yen" on a big card.\n①<u>It is not easy to sell lemonade.</u> At first, people didn\'t stop at her shop. But Momo smiled and said "Hello!" to everyone. Then Mr. Green came and bought a cup. "It\'s delicious!" he said. He told his friends about it, and many people came to buy her lemonade.\nIn the evening, she had no lemonade to sell. She bought some flowers for our mother with the money. Our mother was very happy. Good job, Momo!',
     questions: [
       { type: 'tf', q: '妹は家の前でレモネードを売った。', answer: true },
       { type: 'choice', q: '夕方にはどうなっていましたか。', options: ['レモネードがたくさん残っていた', '売るレモネードがなくなった', '雨が降った', 'お店を閉めた'], answer: 1 },
@@ -123,7 +123,7 @@ READING_PASSAGES.push(
   },
   {
     level: 'part', grade: 2, program: 4, part: 2, title: '森のルール', notes: ['trail　山道'],
-    text: 'On Saturday, Eric and I went hiking in Green Forest Park. Eric\'s uncle was our guide.\nBefore hiking, the guide told us the rules. "First of all, you must stay on the trail. There are a lot of small flowers near the trail. You mustn\'t walk on them. You mustn\'t leave anything in the forest. You must take your garbage home. And you mustn\'t give food to the animals. ①<u>We must protect nature.</u>"\nWe walked for two hours. At the top of the mountain, we ate lunch. We could see the lake. It was breathtaking.\nAfter lunch, I found a water bottle on the trail. A hiker left it there. I put it in my bag. Eric\'s uncle said, "Thank you, Ken. You\'re a good hiker."',
+    text: 'On Saturday, Eric and I went hiking in Green Forest Park. Eric\'s uncle was our guide.\nBefore hiking, the guide told us the rules. "First of all, you must stay on the trail. There are a lot of small flowers near the trail. You mustn\'t walk on them. You mustn\'t leave anything in the forest. You must take your garbage home. And you mustn\'t give food to the animals. ①<u>We must protect nature.</u>"\nWe walked for two hours. At the top of the mountain, we ate lunch. We could see the lake. It was breathtaking.\nAfter lunch, I found a water bottle on the trail. Maybe a hiker left it there. I put it in my bag. Eric\'s uncle said, "Thank you, Ken. You\'re a good hiker."',
     questions: [
       { type: 'tf', q: '森に物を置いていってはいけない。', answer: true },
       { type: 'choice', q: '最初に言われたルールは何ですか。', options: ['大きな声を出さない', '道からはずれない', '写真をとらない', '走らない'], answer: 1 },
@@ -159,7 +159,7 @@ READING_PASSAGES.push(
   },
   {
     level: 'part', grade: 2, program: 5, part: 2, title: '待合室の男の子',
-    text: 'Last week, I worked at a hospital for two days. I helped the staff there. I carried things and cleaned some rooms.\nIn the waiting room, a little boy looked lonely. He was sitting by himself. His mother was talking with a doctor. ①<u>I decided to speak to him.</u> "Hi. What\'s your name?" I said. "I\'m Taku," he answered. He was six years old.\nWe talked about his favorite game. He told me everything about it. I didn\'t know the game, but I listened to him carefully. Then he became happy. He smiled and said, "Let\'s play the game together next time." When his mother came back, he said to me, "Thank you. Bye!"\nI didn\'t do anything special. I only listened to him. I learned that a good listener can help people.',
+    text: 'This summer, I worked at a hospital for two days. I helped the staff there. I carried things and cleaned some rooms.\nIn the waiting room, a little boy looked lonely. He was sitting by himself. His mother was talking with a doctor. ①<u>I decided to speak to him.</u> "Hi. What\'s your name?" I said. "I\'m Taku," he answered. He was six years old.\nWe talked about his favorite game. He told me everything about it. I didn\'t know the game, but I listened to him carefully. Then he became happy. He smiled and said, "Let\'s play the game together next time." When his mother came back, he said to me, "Thank you. Bye!"\nI didn\'t do anything special. I only listened to him. I learned that a good listener can help people.',
     questions: [
       { type: 'tf', q: '男の子はさびしそうに見えた。', answer: true },
       { type: 'choice', q: '「私」と男の子は何について話しましたか。', options: ['学校', '好きなゲーム', '家族', '天気'], answer: 1 },
