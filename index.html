@@ -437,6 +437,24 @@
   .test-check { border-radius: 4px; }
   .practice-opt { margin-bottom: 8px; }
   .practice-opt + .card, .practice-opt + div { margin-top: 14px; }
+
+  /* 上のナビ */
+  .topnav { display: flex; flex-direction: column; gap: 10px; margin-bottom: 18px; }
+  .nav-grades { display: flex; gap: 6px; flex-wrap: wrap; }
+  .nav-grades button { font-family: inherit; font-size: 14px; font-weight: 700; padding: 5px 16px; border-radius: 999px; border: 1.5px solid var(--line); background: var(--panel); color: var(--ink); cursor: pointer; }
+  .nav-grades button.active { background: var(--ink); border-color: var(--ink); color: var(--paper); }
+  .topnav .mode-switch.tabs { margin-bottom: 0; }
+  .program-note { font-size: 13px; color: var(--ink-soft); line-height: 1.6; margin: 0 0 12px; }
+  @media (max-width: 560px) { .topnav .mode-switch.tabs button { font-size: 11.5px; padding: 9px 1px; white-space: nowrap; letter-spacing: -0.02em; } .topnav .mode-switch.tabs button small { display: none; } }
+  /* 問題の編集ボタン */
+  .ws-top { position: relative; }
+  .ws-edit { margin-left: auto; display: inline-flex; gap: 4px; flex-shrink: 0; }
+  .ws-pts + .ws-edit { margin-left: 8px; }
+  .ws-edit button, .ws-add { font-family: inherit; font-size: 11.5px; padding: 1px 8px; border-radius: 4px; border: 1px solid var(--teal); background: var(--teal-tint); color: var(--teal); cursor: pointer; line-height: 1.6; }
+  .ws-edit button.danger { border-color: var(--amber); background: var(--panel); color: var(--amber); }
+  .ws-add { display: inline-block; margin: 4px 0 10px; background: var(--panel); }
+  .ws-passage-change { float: right; margin: 0 0 6px 8px; }
+  .sheet.teacher .ws-edit, .sheet.teacher .ws-add { display: none; }
   @media print {
     @page { size: A4; margin: 14mm 14mm; }
     body { background: #fff; padding: 0; display: block; }
@@ -480,36 +498,33 @@
     <p class="app-desc" id="headerDesc">SUNSHINE の単語・文法・長文で、定期テスト対策プリントを作ろう。</p>
   </header>
 
-  <!-- Screen 1: grade select -->
-  <div id="screenGrade">
-    <button class="test-entry" id="openTestBtn">
-      <div>
-        <div class="g-name">定期テストを作る</div>
-        <div class="g-sub">テスト範囲の単元を選んで、単語・文法・長文の問題をまとめたプリントを作ります</div>
-      </div>
-      <div class="g-arrow">&rarr;</div>
-    </button>
-    <div class="test-entry guide-entry">
-      <div>
-        <div class="g-name">解説つきプリントを作る（はじめて学ぶ人向け）</div>
-        <div class="g-sub">1つの単元を「ポイントの説明と確認の問題 → くわしい解説 → 練習問題 → 解答」の4ページで学べるプリントです。学年を選んでください。</div>
-        <div class="guide-entry-grades" id="guideEntryGrades"></div>
-      </div>
+  <nav class="topnav no-print">
+    <div class="nav-grades" id="navGrades"></div>
+    <div class="mode-switch tabs" id="navTabs">
+      <button data-tab="test">定期テスト<small>範囲を選んで</small></button>
+      <button data-tab="print">単元プリント<small>単元ごとに</small></button>
+      <button data-tab="guide">解説つき<small>はじめて学ぶ人</small></button>
+      <button data-tab="practice">画面で練習<small>並べ替え</small></button>
+      <button data-tab="history">履歴<small>同じ・類題</small></button>
     </div>
-    <div class="card test-card" id="printHistoryCard" style="display:none; margin-top:16px;">
+  </nav>
+
+  <!-- 履歴(印刷したプリント・出さない問題) -->
+  <div id="screenGrade">
+    <div class="card test-card" id="printHistoryCard">
       <div class="test-label">印刷したプリント</div>
-      <div class="test-empty">「同じプリント」で同じ問題をもう一度作れます（再印刷・解答の確認に）。「類題」は同じ設定で問題だけを変えます（再テストに）。</div>
+      <div class="test-empty" id="printHistoryEmpty"></div>
       <div id="printHistoryList"></div>
     </div>
-    <div class="grade-heading">単元ごとにプリントを作る</div>
-    <div class="grade-list" id="gradeList"></div>
+    <div class="card test-card" id="excludedCard">
+      <div class="test-label">出さないようにした問題</div>
+      <div class="test-empty" id="excludedInfo"></div>
+    </div>
   </div>
 
   <!-- Screen 5: test range -->
   <div id="screenTest" style="display:none;">
-    <button class="back-link" id="backToGradeFromTest">&larr; 学年選択に戻る</button>
-    <h2 class="section-title">定期テストを作る</h2>
-    <p class="app-desc">テスト範囲の単元を選んでください。学年をまたいで選ぶこともできます。</p>
+    <p class="program-note">テスト範囲の単元を選んで、単語・文法・長文をまとめたプリントを作ります。上の学年を切りかえると、学年をまたいで選べます。</p>
 
     <div class="card test-card" id="testSavedCard">
       <div class="test-label">保存した範囲</div>
@@ -517,7 +532,7 @@
     </div>
 
     <div class="card test-card">
-      <div class="mode-switch tabs" id="testGradeSwitch"></div>
+      <div class="mode-switch tabs" id="testGradeSwitch" style="display:none;"></div>
       <div class="test-unit-list" id="testUnitList"></div>
       <div class="test-summary-row">
         <span id="testSelectedSummary"></span>
@@ -566,8 +581,8 @@
 
   <!-- Screen 2: program select -->
   <div id="screenProgram" style="display:none;">
-    <button class="back-link" id="backToGrade">&larr; 学年選択に戻る</button>
-    <div class="mode-switch tabs" id="programModeSwitch">
+    <div class="program-note" id="programNote"></div>
+    <div class="mode-switch tabs" id="programModeSwitch" style="display:none;">
       <button id="programModePrint" class="active">プリント<small>単元ごとの問題</small></button>
       <button id="programModeGuide">解説つき<small>はじめて学ぶ人向け</small></button>
       <button id="programModePractice">画面で練習<small>並べ替え</small></button>
@@ -647,7 +662,7 @@
 
   <!-- Screen 3: practice -->
   <div id="screenPractice" style="display:none;">
-    <button class="back-link" id="backToProgram">&larr; Program選択に戻る</button>
+    <button class="back-link" id="backToProgram">&larr; 単元一覧に戻る</button>
 
     <div class="eyebrow" id="stageEyebrow"></div>
     <p class="stage-desc" id="stageDesc"></p>
@@ -693,7 +708,7 @@
       <div class="done-actions">
         <button class="btn btn-primary" id="doneContinueBtn">もっと練習する</button>
         <button class="btn btn-ghost" id="doneNextBtn" style="display:none;">次の項目へ &rarr;</button>
-        <button class="btn btn-ghost" id="doneBackBtn">Program選択に戻る</button>
+        <button class="btn btn-ghost" id="doneBackBtn">単元一覧に戻る</button>
       </div>
     </div>
 
@@ -3330,7 +3345,7 @@ const stages = [
   },
 ];
 
-let currentGrade = null;
+let currentGrade = 1;
 let stageIndex = 0;
 let sessionCount = 0;     // このステージに入ってから出題した問題数(上限なし)
 let sessionOrder = [];    // ベース例文の出題順(ステージに入るたびシャッフルし直す)
@@ -3410,15 +3425,12 @@ const PRINT_COUNTS = [5, 10, 15, 20];
 const screenGrade = document.getElementById('screenGrade');
 const screenProgram = document.getElementById('screenProgram');
 const screenPractice = document.getElementById('screenPractice');
-const gradeList = document.getElementById('gradeList');
 const programList = document.getElementById('programList');
-const backToGrade = document.getElementById('backToGrade');
 const backToProgram = document.getElementById('backToProgram');
 const screenPrint = document.getElementById('screenPrint');
 const programModePractice = document.getElementById('programModePractice');
 const programModePrint = document.getElementById('programModePrint');
 const programModeGuide = document.getElementById('programModeGuide');
-const guideEntryGrades = document.getElementById('guideEntryGrades');
 const printGuideRow = document.getElementById('printGuideRow');
 const backToProgramFromPrint = document.getElementById('backToProgramFromPrint');
 const printCountSwitch = document.getElementById('printCountSwitch');
@@ -3456,10 +3468,8 @@ const testReadingLevelSwitch = document.getElementById('testReadingLevelSwitch')
 const printSourceNote = document.getElementById('printSourceNote');
 const sheetInstr = document.getElementById('sheetInstr');
 const screenTest = document.getElementById('screenTest');
-const openTestBtn = document.getElementById('openTestBtn');
 const printHistoryCard = document.getElementById('printHistoryCard');
 const printHistoryList = document.getElementById('printHistoryList');
-const backToGradeFromTest = document.getElementById('backToGradeFromTest');
 const testSavedCard = document.getElementById('testSavedCard');
 const testSavedList = document.getElementById('testSavedList');
 const testGradeSwitch = document.getElementById('testGradeSwitch');
@@ -4590,7 +4600,7 @@ function makeUnitQuestion(stage, type, st, maxTier = 3) {
     const tier = ['entoja', 'reorder', 'extra'].includes(type) ? 1 : maxTier;
     const q = getSessionQuestion(stage, st.n++, st.order, tier);
     item = buildQuestion(stage, q, type);
-    if (item.type === type) return item;
+    if (item.type === type && !isExcluded(item)) return item;
   }
   return item;
 }
@@ -4639,28 +4649,6 @@ function instructionForMode() {
 }
 
 // ---------- Screen 1: grade select ----------
-function renderGradeList() {
-  gradeList.innerHTML = '';
-  grades.forEach(g => {
-    const card = document.createElement('button');
-    card.className = 'grade-card';
-    const total = stages.filter(s => s.grade === g.id).length;
-    const clearedCount = stages.filter(s => s.grade === g.id && clearedStages.has(s.key)).length;
-    card.innerHTML = `
-      <div>
-        <div class="g-name">${g.name}</div>
-        <div class="g-sub">${g.sub}${clearedCount > 0 ? ` &middot; クリア ${clearedCount}/${total}` : ''}</div>
-      </div>
-      <div class="g-arrow">&rarr;</div>
-    `;
-    card.onclick = () => {
-      currentGrade = g.id;
-      showScreen('program');
-    };
-    gradeList.appendChild(card);
-  });
-}
-
 // ---------- Screen 2: program select ----------
 function renderProgramList() {
   programList.innerHTML = '';
@@ -4725,12 +4713,12 @@ function showScreen(name) {
   screenPrint.style.display = name === 'print' ? 'block' : 'none';
   screenTest.style.display = name === 'test' ? 'block' : 'none';
   if (name === 'test') renderTestScreen();
-  if (name === 'grade') { renderGradeList(); renderPrintHistory(); }
+  if (name === 'grade') { renderPrintHistory(); renderExcludedInfo(); }
+  renderNav(name);
   if (name === 'program') renderProgramList();
   if (name === 'practice') { mainCard.style.display = 'block'; doneCard.style.display = 'none'; }
 }
 
-backToGrade.addEventListener('click', () => showScreen('grade'));
 backToProgram.addEventListener('click', () => showScreen('program'));
 
 // ---------- 単語問題・長文問題 ----------
@@ -4933,7 +4921,7 @@ function generateVocabItems(stageList, cfg, usedBefore = new Set()) {
     const cands = shuffle(vocabTypePool(stageList, type, cfg.vocabImportant));
     for (const v of [...cands.filter(c => !usedBefore.has(c.word)), ...cands.filter(c => usedBefore.has(c.word))]) {
       if (want <= 0) break;
-      if (used.has(v.word)) continue;
+      if (used.has(v.word) || excludedSet.has(`v|${type}|${v.word}`)) continue;
       const item = buildVocabQuestion(v, type, pool);
       if (!item) continue;
       items.push(item);
@@ -5481,6 +5469,11 @@ function grammarSlots() {
 // 表示だけ変える(同じプリントのまま難易度を調整できるように)。
 // 単元ごとに練習画面と同じく、基本文→修飾語つき→複合修飾の順に難しくなる。
 let printSeed = 0;
+let printStates = new Map();   // 単元ごとの出題順(差しかえ・追加でも同じ文が重ならないように続きから使う)
+function printStateOf(stage) {
+  if (!printStates.has(stage)) printStates.set(stage, { order: shuffle(stage.questions.map((_, i) => i)), n: 0 });
+  return printStates.get(stage);
+}
 function generateWorksheet(seed) {
   // プリント番号(乱数の種)。番号を指定すると同じ問題を作り直せる
   printSeed = typeof seed === 'number' ? seed : 100000 + Math.floor(Math.random() * 900000);
@@ -5492,11 +5485,9 @@ function generateWorksheet(seed) {
     renderWorksheet();
     return;
   }
-  const states = new Map();
-  const stateOf = stage => {
-    if (!states.has(stage)) states.set(stage, { order: shuffle(stage.questions.map((_, i) => i)), n: 0 });
-    return states.get(stage);
-  };
+  printStates = new Map();
+  printEdited = false;
+  const stateOf = printStateOf;
   const isTest = printSource.kind === 'test';
   const stageList = sourceStages();
   // くり返しの回ごとに、同じ形式・同じ範囲で別の問題を作る(文は回をまたいで重ならないように順に使う)
@@ -6056,7 +6047,7 @@ function assignPoints(items) {
 
 function renderWorksheet() {
   document.getElementById('sheet').classList.toggle('teacher', printTeacherCheck.checked);
-  sheetNo.textContent = `No.${printSeed}`;
+  sheetNo.textContent = `No.${printSeed}${printEdited ? '（編集あり）' : ''}`;
   if (printSource.kind === 'guide') { allWorksheetItems().forEach(it => { delete it.points; }); renderGuideWorksheet(); return; }
   renderRoundTabs();
   const roundLabel = roundCount() > 1 ? `（${activeRound + 1}周目）` : '';
@@ -6120,6 +6111,7 @@ function renderWorksheet() {
   });
   answerList.innerHTML = answersHtml;
   answerSheet.classList.toggle('include', printIncludeAnswers.checked);
+  addEditControls();
 }
 
 // 1問に○×をつける(自己採点の問題は null)
@@ -6190,18 +6182,6 @@ programModePractice.addEventListener('click', () => setProgramMode('practice'));
 programModePrint.addEventListener('click', () => setProgramMode('print'));
 programModeGuide.addEventListener('click', () => setProgramMode('guide'));
 backToProgramFromPrint.addEventListener('click', () => showScreen(printSource.kind === 'test' ? 'test' : 'program'));
-// 学年選択画面の「解説つきプリント」: 学年を選ぶと、解説つきプリントの単元一覧を開く
-grades.forEach(g => {
-  const btn = document.createElement('button');
-  btn.textContent = g.name;
-  btn.onclick = (e) => {
-    e.stopPropagation();
-    currentGrade = g.id;
-    setProgramMode('guide');
-    showScreen('program');
-  };
-  guideEntryGrades.appendChild(btn);
-});
 printRegenBtn.addEventListener('click', generateWorksheet);
 printPrintBtn.addEventListener('click', () => { savePrintHistory(); buildRoundsPrint(); window.print(); });
 window.addEventListener('beforeprint', () => { if (screenPrint.style.display !== 'none') buildRoundsPrint(); });
@@ -6217,6 +6197,7 @@ function loadPrintHistory() {
   try { return JSON.parse(localStorage.getItem(PRINT_HISTORY_KEY) || '[]'); } catch (_) { return []; }
 }
 function savePrintHistory() {
+  if (printEdited) return; // 編集したプリントは番号から作り直せないので履歴に入れない
   const entry = {
     seed: printSeed, title: sheetTitle.textContent, sub: sheetSub.textContent, date: new Date().toISOString().slice(0, 10),
     source: JSON.parse(JSON.stringify(printSource)), stageIndex,
@@ -6241,7 +6222,8 @@ function openFromHistory(entry, sameQuestions) {
 }
 function renderPrintHistory() {
   const list = loadPrintHistory();
-  printHistoryCard.style.display = list.length ? 'block' : 'none';
+  printHistoryCard.style.display = 'block';
+  printHistoryEmpty.textContent = list.length ? '「同じプリント」で同じ問題をもう一度作れます（再印刷・解答の確認に）。「類題」は同じ設定で問題だけを変えます（再テストに）。' : 'まだ印刷したプリントはありません。プリントを印刷すると、ここから同じプリントや類題をすぐに作れます。';
   printHistoryList.innerHTML = '';
   list.slice(0, 10).forEach(e => {
     const row = document.createElement('div');
@@ -6267,6 +6249,218 @@ printIncludeAnswers.addEventListener('change', () => {
   if (printSource.kind === 'guide') { renderWorksheet(); return; }
   answerSheet.classList.toggle('include', printIncludeAnswers.checked);
 });
+
+
+// ---------- 上のナビ(学年 + 機能のタブ) ----------
+// 中学社会のサイトと同じく、学年と機能をいつでも切りかえられるようにする
+const NAV_STORAGE_KEY = 'engrammar_nav';
+let navTab = 'test';
+function loadNav() {
+  try {
+    const v = JSON.parse(localStorage.getItem(NAV_STORAGE_KEY) || '{}');
+    if (v.grade) { currentGrade = v.grade; testState.grade = v.grade; }
+    return ['test', 'print', 'guide', 'practice', 'history'].includes(v.tab) ? v.tab : 'test';
+  } catch (_) { return 'test'; }
+}
+function saveNav() {
+  try { localStorage.setItem(NAV_STORAGE_KEY, JSON.stringify({ tab: navTab, grade: currentGrade })); } catch (_) {}
+}
+function tabOfScreen(name) {
+  if (name === 'test') return 'test';
+  if (name === 'grade') return 'history';
+  if (name === 'practice') return 'practice';
+  if (name === 'print') return printSource.kind === 'test' ? 'test' : printSource.kind === 'guide' ? 'guide' : 'print';
+  return programMode;
+}
+const PROGRAM_NOTES = {
+  print: '単元を選ぶと、その単元のプリントを作ります。問題の種類・数・何周するかは次の画面で選べます。',
+  guide: '1つの単元を「ポイントの説明と確認の問題 → くわしい解説と解答 → 練習問題 → 解答」の4ページで学ぶプリントです。Programの見出しの「まとめて作る」で、複数の単元を続けて作れます。',
+  practice: '画面で並べ替えの練習をします。単元ごとに一定数正解するとクリア（✓）になります。',
+};
+function renderNav(screenName) {
+  navTab = tabOfScreen(screenName);
+  saveNav();
+  navTabs.querySelectorAll('button').forEach(b => b.classList.toggle('active', b.dataset.tab === navTab));
+  const showGrades = navTab !== 'history' && screenName !== 'print' && screenName !== 'practice';
+  navGrades.style.display = showGrades ? '' : 'none';
+  const g = navTab === 'test' ? testState.grade : currentGrade;
+  navGrades.innerHTML = '';
+  grades.forEach(gr => {
+    const btn = document.createElement('button');
+    btn.textContent = gr.name;
+    btn.className = gr.id === g ? 'active' : '';
+    btn.onclick = () => { currentGrade = gr.id; testState.grade = gr.id; openTab(navTab); };
+    navGrades.appendChild(btn);
+  });
+  programNote.textContent = PROGRAM_NOTES[programMode] || '';
+}
+function openTab(tab) {
+  navTab = tab;
+  if (tab === 'test') showScreen('test');
+  else if (tab === 'history') showScreen('grade');
+  else { setProgramMode(tab); showScreen('program'); }
+  window.scrollTo(0, 0);
+}
+navTabs.querySelectorAll('button').forEach(b => { b.onclick = () => openTab(b.dataset.tab); });
+
+// ---------- 問題の編集(変える・消す・今後出さない・追加) ----------
+// プリントの画面で1問ずつ差しかえたり消したりできる(印刷には出ない)。「今後出さない」にした問題は
+// ブラウザに保存して、次からのプリントにも出さない(履歴のタブで元に戻せる)。
+const EXCLUDED_STORAGE_KEY = 'engrammar_excluded';
+let excludedSet = new Set();
+try { excludedSet = new Set(JSON.parse(localStorage.getItem(EXCLUDED_STORAGE_KEY) || '[]')); } catch (_) {}
+function saveExcluded() {
+  try { localStorage.setItem(EXCLUDED_STORAGE_KEY, JSON.stringify([...excludedSet])); } catch (_) {}
+}
+function excludeKey(item) {
+  if (item.section === 'vocab') return `v|${item.type}|${item.word}`;
+  if (item.section === 'reading') return null;
+  return item.stageKey && item.jp ? `g|${item.stageKey}|${item.jp}` : null;
+}
+function isExcluded(item) {
+  const k = excludeKey(item);
+  return !!k && excludedSet.has(k);
+}
+function renderExcludedInfo() {
+  excludedInfo.innerHTML = excludedSet.size
+    ? `${excludedSet.size}問を出さないようにしています。 `
+    : '「今後出さない」にした問題はありません。プリントの画面で、問題ごとのボタンから設定できます。';
+  if (excludedSet.size) {
+    const btn = document.createElement('button');
+    btn.className = 'btn btn-ghost btn-small';
+    btn.textContent = 'すべて元に戻す';
+    btn.onclick = () => { excludedSet.clear(); saveExcluded(); renderExcludedInfo(); };
+    excludedInfo.appendChild(btn);
+  }
+}
+let printEdited = false;
+function itemList(item) {
+  if (vocabItems.includes(item)) return vocabItems;
+  if (printItems.includes(item)) return printItems;
+  const r = readingItems.find(x => x.subs.includes(item));
+  return r ? r.subs : null;
+}
+function newGrammarItem(type, preferKey) {
+  const used = new Set(printItems.map(it => `${it.stageKey}|${it.jp}`));
+  const list = sourceStages();
+  const prefer = list.find(st => st.key === preferKey);
+  const pool = prefer ? [prefer, ...shuffle(list.filter(st => st !== prefer))] : shuffle(list);
+  for (const st of pool) {
+    for (let k = 0; k < Math.min(st.questions.length, 8); k++) {
+      const it = makeUnitQuestion(st, type, printStateOf(st));
+      if (it.type === type && !used.has(`${it.stageKey}|${it.jp}`) && !isExcluded(it)) return it;
+    }
+  }
+  return null;
+}
+function newVocabItem(type) {
+  const cfg = printSource.config, stageList = sourceStages();
+  const pool = vocabPool(stageList, cfg.vocabImportant);
+  const used = new Set(vocabItems.map(v => v.word));
+  for (const v of shuffle(vocabTypePool(stageList, type, cfg.vocabImportant))) {
+    if (used.has(v.word) || excludedSet.has(`v|${type}|${v.word}`)) continue;
+    const it = buildVocabQuestion(v, type, pool);
+    if (it) return it;
+  }
+  return null;
+}
+function newItemLike(item) {
+  if (item.section === 'vocab') return newVocabItem(item.type);
+  if (item.section === 'reading') return null;
+  return newGrammarItem(item.type, item.stageKey);
+}
+function editedRender() {
+  printEdited = true;
+  renderWorksheet();
+}
+function replaceItem(item) {
+  const list = itemList(item);
+  const next = newItemLike(item);
+  if (!list || !next) { alert('この範囲では、ほかに出せる問題がありません。'); return false; }
+  list[list.indexOf(item)] = next;
+  editedRender();
+  return true;
+}
+function removeItem(item) {
+  const list = itemList(item);
+  if (!list) return;
+  list.splice(list.indexOf(item), 1);
+  // 小問がなくなった長文は長文ごと消す
+  const emptyIdx = readingItems.findIndex(r => !r.subs.length);
+  if (emptyIdx >= 0) readingItems.splice(emptyIdx, 1);
+  editedRender();
+}
+function excludeItem(item) {
+  const k = excludeKey(item);
+  if (!k) return;
+  excludedSet.add(k);
+  saveExcluded();
+  const list = itemList(item);
+  const next = newItemLike(item);
+  if (next) { list[list.indexOf(item)] = next; editedRender(); } else removeItem(item);
+}
+function addItemOfType(section, type) {
+  const list = section === 'vocab' ? vocabItems : printItems;
+  const next = section === 'vocab' ? newVocabItem(type) : newGrammarItem(type);
+  if (!next) { alert('この範囲では、ほかに出せる問題がありません。'); return; }
+  let at = -1;
+  list.forEach((it, i) => { if (it.type === type) at = i; });
+  list.splice(at + 1, 0, next);
+  editedRender();
+}
+function replacePassage(r) {
+  const cfg = { ...printSource.config, readingCount: 1 };
+  const current = readingItems.map(x => x.passage);
+  const [next] = generateReadingItems(sourceStages(), cfg, new Set(current));
+  if (!next || current.includes(next.passage)) { alert('この範囲では、ほかに出せる長文がありません。'); return; }
+  readingItems[readingItems.indexOf(r)] = next;
+  editedRender();
+}
+// 画面のプリントに編集ボタンをつける(単元プリント・定期テスト。印刷には出ない)
+function addEditControls() {
+  if (printSource.kind === 'guide') return;
+  const rows = [...sheetItems.querySelectorAll('.ws-item')];
+  rows.forEach(row => {
+    const item = row._item;
+    const bar = document.createElement('div');
+    bar.className = 'ws-edit no-print';
+    const mk = (label, cls, fn) => {
+      const b = document.createElement('button');
+      b.textContent = label;
+      if (cls) b.className = cls;
+      b.onclick = fn;
+      bar.appendChild(b);
+    };
+    if (item.section !== 'reading') mk('変える', '', () => replaceItem(item));
+    mk('消す', '', () => removeItem(item));
+    if (excludeKey(item)) mk('今後出さない', 'danger', () => excludeItem(item));
+    row.querySelector('.ws-top').appendChild(bar);
+  });
+  // 形式ごとに「1問追加」(長文は長文ごと差しかえ)
+  const lastOfType = new Map();
+  rows.forEach(row => {
+    const it = row._item;
+    if (it.section !== 'reading') lastOfType.set(`${it.section === 'vocab' ? 'vocab' : 'grammar'}|${it.type}`, row);
+  });
+  lastOfType.forEach((row, key) => {
+    const [section, type] = key.split('|');
+    const defs = section === 'vocab' ? VOCAB_TYPES : QUESTION_TYPES;
+    const b = document.createElement('button');
+    b.className = 'ws-add no-print';
+    b.textContent = `＋ ${defs[type].label}を1問追加`;
+    b.onclick = () => addItemOfType(section, type);
+    row.after(b);
+  });
+  sheetItems.querySelectorAll('.ws-passage').forEach((box, i) => {
+    const r = readingItems[i];
+    if (!r) return;
+    const b = document.createElement('button');
+    b.className = 'ws-add ws-passage-change no-print';
+    b.textContent = 'この長文を変える';
+    b.onclick = () => replacePassage(r);
+    box.prepend(b);
+  });
+}
 
 // ---------- Screen 5: test range ----------
 // テスト範囲(複数の単元、学年をまたいでもよい)を選び、出題数の決め方と順番を指定して
@@ -6367,7 +6561,7 @@ function renderTestScreen() {
 
   // 学年タブ
   renderOptionSwitch(testGradeSwitch, grades.map(g => [g.id, g.name]), testState.grade, v => {
-    testState.grade = v; renderTestScreen();
+    testState.grade = v; currentGrade = v; renderTestScreen(); renderNav('test');
   });
 
   // 単元の一覧(Programごとにまとめて選べる)
@@ -6527,8 +6721,6 @@ testMakeBtn.addEventListener('click', () => {
   showScreen('print');
   generateWorksheet();
 });
-openTestBtn.addEventListener('click', () => showScreen('test'));
-backToGradeFromTest.addEventListener('click', () => showScreen('grade'));
 
 // ---------- practice screen logic ----------
 function renderExerciseSwitch(s) {
@@ -6855,7 +7047,7 @@ typeInput.addEventListener('keydown', (e) => {
   if (e.key === 'Enter' && !answered) checkAnswer();
 });
 
-showScreen('grade');
+openTab(loadNav());
 </script>
 </body>
 </html>
