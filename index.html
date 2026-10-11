@@ -506,15 +506,17 @@
   textarea.ws-long { width: 100%; resize: vertical; border: none; line-height: 34px; font-size: 15px; padding: 0 2px;
     background-image: repeating-linear-gradient(transparent, transparent 33px, var(--ink) 33px, var(--ink) 34px); background-attachment: local; }
 
+  .ws-ch-grid { display: grid; grid-template-columns: 1fr 1fr; column-gap: 16px; }
+  @media (max-width: 640px) { .ws-ch-grid { grid-template-columns: 1fr; } }
   .ws-chapter .ws-ch-sec { border-top: 1px dashed var(--line); padding: 8px 0 6px; break-inside: avoid; }
   .ws-ch-title { font-weight: 800; font-size: 14px; display: flex; align-items: center; gap: 6px; }
   .ws-ch-no { display: inline-flex; width: 20px; height: 20px; border-radius: 50%; background: var(--ink); color: #fff; font-size: 11.5px; align-items: center; justify-content: center; }
   .ws-ch-star { margin-left: auto; color: var(--amber); font-size: 12px; letter-spacing: 1px; }
   .ws-ch-star .dim { color: var(--line); }
-  .ws-ch-key { margin: 4px 0 4px 26px; padding: 4px 10px; border-left: 3px solid var(--amber); background: var(--amber-tint); font-size: 13.5px; display: flex; flex-direction: column; }
+  .ws-ch-key { margin: 4px 0 4px 0; padding: 4px 10px; border-left: 3px solid var(--amber); background: var(--amber-tint); font-size: 13.5px; display: flex; flex-direction: column; }
   .ws-ch-key span { font-size: 12px; color: var(--ink-soft); }
-  .ws-ch-points { margin: 2px 0 2px 26px; padding-left: 16px; font-size: 12.5px; line-height: 1.6; }
-  .ws-ch-table { margin: 4px 0 2px 26px; border-collapse: collapse; font-size: 12px; }
+  .ws-ch-points { margin: 2px 0 2px 0; padding-left: 16px; font-size: 12.5px; line-height: 1.6; }
+  .ws-ch-table { margin: 4px 0 2px 0; border-collapse: collapse; font-size: 12px; }
   .ws-ch-table th, .ws-ch-table td { border: 1px solid var(--ink-soft); padding: 2px 8px; }
   .ws-ch-table th { background: var(--paper); }
   @media print {
@@ -6930,7 +6932,7 @@ function examSectionTitle() {
 // 文法の総まとめ: 問題の前に、その回の単元のルールを1ページにまとめる
 function renderExamSummary() {
   const cfg = printSource.kind === 'test' ? printSource.config : null;
-  if (!cfg || !cfg.examSummary) return;
+  if (!cfg || !cfg.examSummary || activeRound > 0) return; // まとめは1周目の前だけ
   if (cfg.chapter && typeof EXAM_GRAMMAR !== 'undefined' && EXAM_GRAMMAR[cfg.chapter]) { renderChapterSummary(EXAM_GRAMMAR[cfg.chapter]); return; }
   const keys = cfg.keys.filter(k => STAGE_GUIDES[k]);
   const box = document.createElement('div');
@@ -6948,13 +6950,13 @@ function renderChapterSummary(ch) {
   const box = document.createElement('div');
   box.className = 'ws-exam-summary ws-chapter';
   const star = n => '★'.repeat(n) + '<span class="dim">' + '★'.repeat(3 - n) + '</span>';
-  box.innerHTML = `<div class="ws-es-head">第${ch.no}章 ${ch.title} ― まとめ</div>` + ch.sections.map((sec, i) => `
+  box.innerHTML = `<div class="ws-es-head">第${ch.no}章 ${ch.title} ― まとめ</div><div class="ws-ch-grid">` + ch.sections.map((sec, i) => `
     <div class="ws-ch-sec">
       <div class="ws-ch-title"><span class="ws-ch-no">${i + 1}</span>${sec.title}<span class="ws-ch-star">${star(sec.stars || 2)}</span></div>
       ${sec.key ? `<div class="ws-ch-key"><b>${sec.key[0]}</b><span>${sec.key[1]}</span></div>` : ''}
       <ul class="ws-ch-points">${(sec.points || []).map(pt => `<li>${pt}</li>`).join('')}</ul>
       ${sec.table ? `<table class="ws-ch-table">${sec.table.map((row, r) => `<tr>${row.map(c => r === 0 ? `<th>${c}</th>` : `<td>${c}</td>`).join('')}</tr>`).join('')}</table>` : ''}
-    </div>`).join('');
+    </div>`).join('') + '</div>';
   sheetItems.appendChild(box);
 }
 // 文法の章 → 教科書(SUNSHINE)の単元(例文から作る問題もいっしょに出す)
