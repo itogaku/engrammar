@@ -73,7 +73,7 @@ EXAM_GRAMMAR.relative = {
         '先行詞が人なら who、もの・動物なら which、どちらにも that が使える。',
         '主格は〈先行詞 + 関係代名詞 + 動詞〉の形。動詞は先行詞に合わせる(a boy who lives / boys who live)。',
       ],
-      table: [['先行詞', '主格', '目的格'], ['人', 'who / that', 'that'], ['もの・動物', 'which / that', 'which / that'], ['人 + もの・動物', 'that', 'that']] },
+      table: [['先行詞', '主格', '目的格'], ['人', 'who / that', 'that(who / whom も使う)'], ['もの・動物', 'which / that', 'which / that'], ['人 + もの・動物', 'that', 'that']] },
     { title: '目的格の関係代名詞', stars: 3, key: ['This is the bike my grandfather gave me.', 'これは祖父が私にくれた自転車です。'],
       points: [
         '目的格は〈先行詞 + 関係代名詞 + 主語 + 動詞〉の形。先行詞がもの → which / that、人 → that。',
@@ -174,8 +174,8 @@ EXAM_GRAMMAR.subjunctive = {
     { type: 'fill', jp: 'もし雪が降れば、スキーができるのに。', en: 'If it ( ), we could ski.', answers: ['snowed'], point: '仮定法: If + 過去形' },
     { type: 'fill', jp: 'もう寝る時間ですよ。', en: 'It\'s ( ) you went to bed.', answers: ['time'], point: 'It\'s time + 主語 + 過去形' },
 
-    { type: 'order', jp: 'もし彼の住所を知っていれば、手紙を書くのに。', words: ['his address', 'knew', 'if', 'I', 'I', 'would', 'write', 'to him'], answer: 'If I knew his address, I would write to him.', point: 'If + 過去形, 主語 + would + 原形' },
-    { type: 'order', jp: 'もし私があなたなら、そのコンサートに行くでしょう。', words: ['were', 'I', 'you', 'if', 'would', 'I', 'go to', 'the concert'], answer: 'If I were you, I would go to the concert.', point: 'If I were you, I would 〜' },
+    { type: 'order', jp: 'もし彼の住所を知っていれば、手紙を書くのに。(if で始めて)', words: ['his address', 'knew', 'if', 'I', 'I', 'would', 'write', 'to him'], answer: 'If I knew his address, I would write to him.', point: 'If + 過去形, 主語 + would + 原形' },
+    { type: 'order', jp: 'もし私があなたなら、そのコンサートに行くでしょう。(if で始めて)', words: ['were', 'I', 'you', 'if', 'would', 'I', 'go to', 'the concert'], answer: 'If I were you, I would go to the concert.', point: 'If I were you, I would 〜' },
     { type: 'order', jp: '空を飛べたらいいのに。', words: ['wish', 'could', 'I', 'I', 'fly', 'in the sky'], answer: 'I wish I could fly in the sky.', point: 'I wish I could 〜' },
     { type: 'order', jp: '彼はまるで自分が先生であるかのように話します。', words: ['talks', 'he', 'as if', 'he', 'a teacher', 'were'], answer: 'He talks as if he were a teacher.', point: 'as if + 主語 + were' },
     { type: 'order', jp: 'もし姉にもっと時間があれば、私と遊んでくれるのに。', words: ['had', 'my sister', 'more time', 'if', 'she', 'would', 'play', 'with me'], answer: 'If my sister had more time, she would play with me.', point: 'If + 過去形, 主語 + would + 原形' },
@@ -190,13 +190,13 @@ EXAM_GRAMMAR.subjunctive = {
 EXAM_GRAMMAR.svoc = {
   no: 14, title: 'SVOO・SVOC の文', sub: 'tell 人 that / what 〜・make A B・let 人 〜',
   sections: [
-    { title: 'SVO + that 〜', stars: 2, key: ['My mother often tells me that reading is important.', '母はよく私に、読書は大切だと言います。'],
+    { title: 'SVOO(tell 人 that 〜)', stars: 2, key: ['My mother often tells me that reading is important.', '母はよく私に、読書は大切だと言います。'],
       points: [
         'SVOO の基本: give / show / tell + 人 + もの。〈もの + to + 人〉に書きかえられる(buy, make は for)。',
         '〈tell / show / teach + 人 + that 〜〉で「人に〜ということを言う・示す・教える」。that は省略できる。',
         '文の動詞が過去形なら、that のあとの動詞もふつう過去形にする(He told me that he was busy.)。',
       ] },
-    { title: 'SVO + what 〜（間接疑問）', stars: 3, key: ['Please tell me where the station is.', '駅がどこにあるか教えてください。'],
+    { title: 'SVOO(tell 人 疑問詞 〜)', stars: 3, key: ['Please tell me where the station is.', '駅がどこにあるか教えてください。'],
       points: [
         '〈tell / show / ask + 人 + 疑問詞 〜〉で「人に〜かを言う・示す・たずねる」。',
         '疑問詞のあとは〈主語 + 動詞〉の語順(間接疑問)。× where is the station',
@@ -301,8 +301,8 @@ EXAM_GRAMMAR.prepconj = {
 
     { type: 'order', jp: '私は学校と駅の間で彼に会いました。', words: ['met', 'I', 'him', 'between', 'the school', 'and', 'the station'], answer: 'I met him between the school and the station.', point: 'between A and B' },
     { type: 'order', jp: '私たちはバスか電車のどちらかで行けます。', words: ['go', 'we', 'either', 'can', 'by bus', 'or', 'by train'], answer: 'We can go either by bus or by train.', point: 'either A or B' },
-    { type: 'order', jp: 'もし明日晴れたら、ピクニックに行きましょう。', words: ['it', 'is', 'if', 'sunny', 'tomorrow', 'let\'s', 'go on', 'a picnic'], answer: 'If it is sunny tomorrow, let\'s go on a picnic.', point: '条件の if のあとは未来でも現在形' },
-    { type: 'order', jp: 'あなたのおかげで、私は試験に合格しました。', words: ['passed', 'I', 'to', 'you', 'thanks', 'the exam'], answer: 'Thanks to you, I passed the exam.', point: 'thanks to 〜 =「〜のおかげで」' },
+    { type: 'order', jp: 'もし明日晴れたら、ピクニックに行きましょう。(if で始めて)', words: ['it', 'is', 'if', 'sunny', 'tomorrow', 'let\'s', 'go on', 'a picnic'], answer: 'If it is sunny tomorrow, let\'s go on a picnic.', point: '条件の if のあとは未来でも現在形' },
+    { type: 'order', jp: 'あなたのおかげで、私は試験に合格しました。(thanks で始めて)', words: ['passed', 'I', 'to', 'you', 'thanks', 'the exam'], answer: 'Thanks to you, I passed the exam.', point: 'thanks to 〜 =「〜のおかげで」' },
     { type: 'order', jp: '彼は医者ではなく看護師です。', words: ['a doctor', 'is', 'he', 'but', 'not', 'a nurse'], answer: 'He is not a doctor but a nurse.', point: 'not A but B =「A ではなく B」' },
 
     { type: 'para', en1: 'This question is so difficult that I can\'t answer it.', en2: 'This question is ( ) difficult for me ( ) answer.', answers: ['too', 'to'], point: 'so 〜 that 主語 can\'t … = too 〜 to …' },

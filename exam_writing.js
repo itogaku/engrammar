@@ -3,18 +3,18 @@ const EXAM_WRITING = [
   // ===== 和文英訳: 日本語を英語に。point は使う文法 =====
   // --- 現在完了(継続) ---
   { kind: 'translate', jp: '私の兄は5年間ずっとこの町に住んでいます。', answers: ["My brother has lived in this town for five years.", "My brother has been living in this town for five years."], point: '現在完了(継続)・for 〜' },
-  { kind: 'translate', jp: 'あなたはどのくらいの間ピアノを習っているのですか。', answers: ["How long have you been learning the piano?", "How long have you learned the piano?"], point: '現在完了(継続)・How long 〜?' },
+  { kind: 'translate', jp: 'あなたはどのくらいの間ピアノを習っているのですか。', answers: ["How long have you been learning the piano?", "How long have you learned the piano?", "How long have you been taking piano lessons?"], point: '現在完了(継続)・How long 〜?' },
   { kind: 'translate', jp: '私たちは小学生のころからずっと友達です。', answers: ["We have been friends since we were elementary school students.", "We've been friends since we were in elementary school."], point: '現在完了(継続)・since 〜' },
   // --- 現在完了(経験) ---
   { kind: 'translate', jp: '私は一度も富士山に登ったことがありません。', answers: ["I have never climbed Mt. Fuji.", "I've never climbed Mt. Fuji."], point: '現在完了(経験)・never' },
-  { kind: 'translate', jp: 'あなたは今までに外国へ行ったことがありますか。', answers: ["Have you ever been to a foreign country?", "Have you ever been abroad?"], point: '現在完了(経験)・have been to 〜' },
+  { kind: 'translate', jp: 'あなたは今までに外国へ行ったことがありますか。', answers: ["Have you ever been to a foreign country?", "Have you ever been abroad?", "Have you ever been to any foreign countries?"], point: '現在完了(経験)・have been to 〜' },
   { kind: 'translate', jp: '私はその映画を3回見たことがあります。', answers: ["I have seen the movie three times.", "I've seen that movie three times."], point: '現在完了(経験)・〜 times' },
   // --- 現在完了(完了) ---
   { kind: 'translate', jp: '私はちょうど宿題を終えたところです。', answers: ["I have just finished my homework.", "I've just finished my homework."], point: '現在完了(完了)・just' },
   { kind: 'translate', jp: 'あなたはもう昼食を食べましたか。', answers: ["Have you eaten lunch yet?", "Have you had lunch yet?"], point: '現在完了(完了)・疑問文の yet' },
   { kind: 'translate', jp: '電車はまだ駅に着いていません。', answers: ["The train hasn't arrived at the station yet.", "The train has not arrived at the station yet."], point: '現在完了(完了)・否定文の yet' },
   // --- 受け身 ---
-  { kind: 'translate', jp: 'この寺は約600年前に建てられました。', answers: ["This temple was built about 600 years ago."], point: '受け身(過去)' },
+  { kind: 'translate', jp: 'この寺は約600年前に建てられました。', answers: ["This temple was built about 600 years ago.", "This temple was built about six hundred years ago."], point: '受け身(過去)' },
   { kind: 'translate', jp: '英語は世界中で話されています。', answers: ["English is spoken all over the world.", "English is spoken around the world."], point: '受け身(現在)' },
   { kind: 'translate', jp: 'この本はたくさんの子どもたちに読まれています。', answers: ["This book is read by a lot of children.", "This book is read by many children."], point: '受け身・by 〜' },
   { kind: 'translate', jp: 'このお祭りは毎年8月に開かれます。（「開く・開催する」は hold を使う）', answers: ["This festival is held every August.", "This festival is held in August every year."], point: '受け身(hold - held - held)' },
@@ -30,7 +30,7 @@ const EXAM_WRITING = [
   // --- 不定詞 ---
   { kind: 'translate', jp: '私の夢は医者になることです。', answers: ["My dream is to be a doctor.", "My dream is to become a doctor."], point: '不定詞(名詞的用法)' },
   { kind: 'translate', jp: '私は写真を撮るためにその公園へ行きました。', answers: ["I went to the park to take pictures.", "I went to that park to take photos."], point: '不定詞(副詞的用法・目的)' },
-  { kind: 'translate', jp: '私はその知らせを聞いて驚きました。', answers: ["I was surprised to hear the news."], point: '不定詞(副詞的用法・感情の原因)' },
+  { kind: 'translate', jp: '私はその知らせを聞いて驚きました。', answers: ["I was surprised to hear the news.", "I was surprised to hear that news."], point: '不定詞(副詞的用法・感情の原因)' },
   { kind: 'translate', jp: '私は今日やるべきことがたくさんあります。', answers: ["I have a lot of things to do today.", "I have many things to do today."], point: '不定詞(形容詞的用法)' },
   { kind: 'translate', jp: '私たちにとって毎日運動することは大切です。', answers: ["It is important for us to exercise every day.", "It's important for us to get exercise every day."], point: 'It is 〜 for 人 to …' },
   { kind: 'translate', jp: '英語で手紙を書くことは私には難しいです。', answers: ["It is difficult for me to write a letter in English.", "It's hard for me to write letters in English."], point: 'It is 〜 for 人 to …' },
@@ -42,10 +42,10 @@ const EXAM_WRITING = [
   { kind: 'translate', jp: '私の趣味は古い切手を集めることです。', answers: ["My hobby is collecting old stamps.", "My hobby is to collect old stamps."], point: '動名詞(補語)' },
   { kind: 'translate', jp: '私をパーティーに招待してくれてありがとう。', answers: ["Thank you for inviting me to the party.", "Thanks for inviting me to the party."], point: 'Thank you for 〜ing(前置詞＋動名詞)' },
   { kind: 'translate', jp: '英語の歌を歌うことは楽しいです。（動名詞を主語にする）', answers: ["Singing English songs is fun."], point: '動名詞(主語)・単数扱い' },
-  { kind: 'translate', jp: '彼はさよならを言わずに部屋を出ていきました。', answers: ["He left the room without saying goodbye."], point: 'without 〜ing' },
+  { kind: 'translate', jp: '彼はさよならを言わずに部屋を出ていきました。', answers: ["He left the room without saying goodbye.", "He went out of the room without saying goodbye."], point: 'without 〜ing' },
   { kind: 'translate', jp: '私はまたあなたに会えるのを楽しみにしています。', answers: ["I'm looking forward to seeing you again.", "I am looking forward to seeing you again."], point: 'look forward to 〜ing' },
   // --- 分詞 ---
-  { kind: 'translate', jp: 'ベンチに座っている女の子は私の妹です。', answers: ["The girl sitting on the bench is my sister.", "The girl who is sitting on the bench is my sister."], point: '現在分詞の後置修飾' },
+  { kind: 'translate', jp: 'ベンチに座っている女の子は私の妹です。', answers: ["The girl sitting on the bench is my sister.", "The girl who is sitting on the bench is my sister.", "The girl sitting on the bench is my little sister.", "The girl sitting on the bench is my younger sister."], point: '現在分詞の後置修飾' },
   { kind: 'translate', jp: 'これはオーストラリアで撮られた写真です。', answers: ["This is a picture taken in Australia.", "This is a photo taken in Australia."], point: '過去分詞の後置修飾' },
   { kind: 'translate', jp: '彼はフランス製の車を持っています。（「〜製の」は「〜で作られた」と考える）', answers: ["He has a car made in France."], point: '過去分詞の後置修飾(made in 〜)' },
   // --- 関係代名詞 ---
@@ -64,7 +64,7 @@ const EXAM_WRITING = [
   { kind: 'translate', jp: 'もし時間があれば、あなたを手伝うのに。（実際には時間がない）', answers: ["If I had time, I would help you.", "If I had time, I could help you."], point: '仮定法過去(If I had 〜, I would …)' },
   { kind: 'translate', jp: '私に兄がいればいいのに。', answers: ["I wish I had an older brother.", "I wish I had a big brother."], point: '仮定法(I wish I had 〜)' },
   // --- 接続詞 ---
-  { kind: 'translate', jp: '私が家に帰ったとき、母は料理をしていました。', answers: ["When I got home, my mother was cooking.", "My mother was cooking when I came home."], point: '接続詞 when・過去進行形' },
+  { kind: 'translate', jp: '私が家に帰ったとき、母は料理をしていました。', answers: ["When I got home, my mother was cooking.", "My mother was cooking when I came home.", "When I came home, my mother was cooking."], point: '接続詞 when・過去進行形' },
   { kind: 'translate', jp: '明日晴れたら、私たちは海へ行くつもりです。', answers: ["If it is sunny tomorrow, we are going to go to the sea.", "If it's sunny tomorrow, we will go to the beach."], point: '接続詞 if(未来のことも現在形で表す)' },
   { kind: 'translate', jp: '私はとても疲れていたので、早く寝ました。', answers: ["I went to bed early because I was very tired.", "I was very tired, so I went to bed early."], point: '接続詞 because / so' },
   { kind: 'translate', jp: '私は彼が正しいと思います。', answers: ["I think he is right.", "I think that he's right."], point: '接続詞 that(省略可)' },
@@ -79,7 +79,7 @@ const EXAM_WRITING = [
   { kind: 'translate', jp: 'この近くにコンビニエンスストアはありますか。', answers: ["Is there a convenience store near here?", "Is there a convenience store around here?"], point: 'Is there 〜?' },
   // --- SVOO / SVOC ---
   { kind: 'translate', jp: '祖母が私にこのセーターを作ってくれました。', answers: ["My grandmother made me this sweater.", "My grandmother made this sweater for me."], point: 'SVOO(make 人 物 = make 物 for 人)' },
-  { kind: 'translate', jp: 'その知らせは彼女を悲しませました。（the news を主語にする）', answers: ["The news made her sad."], point: 'SVOC(make 人 〜)' },
+  { kind: 'translate', jp: 'その知らせは彼女を悲しませました。（the news を主語にする）', answers: ["The news made her sad.", "The news made her feel sad."], point: 'SVOC(make 人 〜)' },
   { kind: 'translate', jp: '私たちはその犬をポチと名づけました。', answers: ["We named the dog Pochi.", "We named that dog Pochi."], point: 'SVOC(name A B)' },
   { kind: 'translate', jp: '私にあなたの自転車を使わせてください。', answers: ["Please let me use your bike.", "Please let me use your bicycle."], point: 'let 人＋動詞の原形' },
   // --- tell 人 that ---
@@ -123,7 +123,7 @@ const EXAM_WRITING = [
   { kind: 'condition', task: '道に迷っていたときに案内してくれた人に、お礼を言う英文を1文で書きなさい。', conditions: ['for を使う'], answers: ["Thank you for helping me.", "Thank you very much for your help.", "Thanks for showing me the way."], point: 'Thank you for 〜' },
   // --- ゲストに質問する ---
   { kind: 'condition', task: 'カナダ出身のゲストが学校に来た。ゲストにカナダについて質問する英文を1文で書きなさい。', conditions: ['疑問文で書く', '5語以上'], answers: ["What is your favorite place in Canada?", "What do people in Canada usually eat for breakfast?", "Is it very cold in Canada in winter?"], point: '疑問詞を使った疑問文' },
-  { kind: 'condition', task: '有名なテニス選手が学校に来た。その選手がいつテニスを始めたのかをたずねる英文を1文で書きなさい。', conditions: ['tennis を使う'], answers: ["When did you start playing tennis?", "How old were you when you started tennis?", "When did you begin to play tennis?"], point: '過去の疑問文・start 〜ing / begin to 〜' },
+  { kind: 'condition', task: '有名なテニス選手が学校に来た。その選手がいつテニスを始めたのかをたずねる英文を1文で書きなさい。', conditions: ['tennis を使う'], answers: ["When did you start playing tennis?", "How old were you when you started playing tennis?", "When did you begin to play tennis?"], point: '過去の疑問文・start 〜ing / begin to 〜' },
   { kind: 'condition', task: '日本に来たばかりの留学生に、日本でいちばん驚いたことは何かをたずねる英文を1文で書きなさい。', conditions: ['5語以上', '疑問文で書く'], answers: ["What surprised you the most in Japan?", "What was the most surprising thing in Japan?"], point: '疑問詞が主語の疑問文・最上級' },
   // --- メッセージカード・メール ---
   { kind: 'condition', task: '転校していく友達に、メッセージカードを書く。友達に伝える英文を2文で書きなさい。', conditions: ['2文で書く'], answers: ["Good luck at your new school. Let's meet again someday.", "I will miss you very much. Please write to me soon."], point: "メッセージの定番表現(Good luck / Let's 〜 / Please 〜)" },

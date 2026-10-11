@@ -18,10 +18,10 @@ EXAM_GRAMMAR.verbs = {
       points: [
         'ふつうは語尾に -ed をつける。e で終わる語は -d だけ(use → used)。',
         '〈子音字+y〉は y を i にかえて -ied(study → studied)。〈母音字+y〉はそのまま -ed(play → played)。',
-        '〈短母音+子音字〉で終わる語は子音字を重ねて -ed(stop → stopped, plan → planned)。',
+        '〈アクセントのある短母音+子音字1つ〉で終わる語は子音字を重ねて -ed(stop → stopped, plan → planned)。visit → visited のように最後にアクセントがない語は重ねない。',
         '否定文・疑問文は did を使い、動詞は原形にもどす(didn\'t visit / Did you visit 〜?)。',
       ],
-      table: [['語尾', 'つけ方', '例'], ['ふつう', '-ed', 'help → helped'], ['e で終わる', '-d', 'live → lived'], ['子音字+y', 'y → i +ed', 'try → tried'], ['短母音+子音字', '子音字を重ねて -ed', 'drop → dropped']] },
+      table: [['語尾', 'つけ方', '例'], ['ふつう', '-ed', 'help → helped'], ['e で終わる', '-d', 'live → lived'], ['子音字+y', 'y → i +ed', 'try → tried'], ['(アクセントのある)短母音+子音字', '子音字を重ねて -ed', 'drop → dropped']] },
     { title: '不規則動詞の過去形・過去分詞', stars: 3,
       key: ['I bought this watch at the store near the station.', '私はこの腕時計を駅の近くの店で買いました。'],
       points: [
@@ -58,7 +58,7 @@ EXAM_GRAMMAR.verbs = {
     { type: 'fill', jp: 'その赤ちゃんは2時間前に泣きやみました。', en: 'The baby ( ) ( ) two hours ago.', answers: ['stopped', 'crying'], point: 'stop 〜ing「〜するのをやめる」/ stop → stopped' },
     { type: 'fill', jp: 'あなたはそのとき何を読んでいましたか。', en: 'What ( ) you ( ) then?', answers: ['were', 'reading'], point: '疑問詞 + 過去進行形の疑問文' },
 
-    { type: 'order', jp: '私たちが駅に着いたとき、雨が降っていました。', words: ['when', 'raining', 'we', 'it', 'got', 'was', 'to', 'the station'], answer: 'It was raining when we got to the station.', point: '過去進行形 + when 〜「〜したとき」' },
+    { type: 'order', jp: '私たちが駅に着いたとき、雨が降っていました。(it で始めて)', words: ['when', 'raining', 'we', 'it', 'got', 'was', 'to', 'the station'], answer: 'It was raining when we got to the station.', point: '過去進行形 + when 〜「〜したとき」' },
     { type: 'order', jp: '彼はその本をどこで見つけましたか。', words: ['find', 'he', 'where', 'the book', 'did'], answer: 'Where did he find the book?', point: '疑問詞 + did + 主語 + 原形' },
     { type: 'order', jp: '私の姉は昨日、家にいませんでした。', words: ['not', 'yesterday', 'my sister', 'at home', 'was'], answer: 'My sister was not at home yesterday.', point: 'be動詞の過去の否定 → was not' },
     { type: 'order', jp: 'だれが昨日この窓を割ったのですか。', words: ['broke', 'yesterday', 'who', 'this', 'window'], answer: 'Who broke this window yesterday?', point: '疑問詞が主語 → Who + 過去形 〜?(did は使わない)' },
@@ -121,9 +121,9 @@ EXAM_GRAMMAR.future = {
 
     { type: 'fill', jp: 'あなたは明日、買い物に行くつもりですか。', en: '( ) you ( ) to go shopping tomorrow?', answers: ['Are', 'going'], point: 'be going to の疑問文 → be動詞を前に' },
     { type: 'fill', jp: 'いっしょに昼食を食べましょうか。— はい、そうしましょう。', en: '( ) we have lunch together? — Yes, ( ).', answers: ['Shall', "let's"], point: 'Shall we 〜? → Yes, let\'s.' },
-    { type: 'fill', jp: '私は明日、学校へ行く必要はありません。', en: 'I ( ) ( ) to go to school tomorrow.', answers: ["don't", 'have'], point: 'don\'t have to =「〜する必要はない」' },
+    { type: 'fill', jp: '私は明日、学校へ行く必要はありません。(have を使って)', en: 'I ( ) ( ) to go to school tomorrow.', answers: ["don't", 'have'], point: 'don\'t have to =「〜する必要はない」' },
     { type: 'fill', jp: '彼は来年には上手にギターをひけるようになるでしょう。', en: 'He will ( ) ( ) to play the guitar well next year.', answers: ['be', 'able'], point: 'will のあとに can は置けない → will be able to' },
-    { type: 'fill', jp: '彼女は今日、学校に来ないかもしれません。', en: 'She ( ) ( ) come to school today.', answers: ['may', 'not'], point: 'may「〜かもしれない」の否定 may not' },
+    { type: 'fill', jp: '彼女は今日、学校に来ないかもしれません。(may を使って)', en: 'She ( ) ( ) come to school today.', answers: ['may', 'not'], point: 'may「〜かもしれない」の否定 may not' },
     { type: 'fill', jp: '私は将来、医者になりたいです。(ていねいに)', en: 'I ( ) like ( ) be a doctor in the future.', answers: ['would', 'to'], point: 'would like to 〜 = want to 〜 のていねいな形' },
     { type: 'fill', jp: 'あなたは今夜、早く寝たほうがよい。', en: 'You ( ) ( ) go to bed early tonight.', answers: ['had', 'better'], point: 'had better + 原形「〜したほうがよい」' },
 
@@ -134,8 +134,8 @@ EXAM_GRAMMAR.future = {
     { type: 'order', jp: 'コーヒーをもう1杯いかがですか。', words: ['like', 'another', 'you', 'cup of coffee', 'would'], answer: 'Would you like another cup of coffee?', point: 'Would you like 〜? / another「もう一つの」' },
 
     { type: 'para', en1: 'Mike can speak Japanese well.', en2: 'Mike is ( ) ( ) speak Japanese well.', answers: ['able', 'to'], point: 'can = be able to' },
-    { type: 'para', en1: "Don't talk in the library.", en2: 'You ( ) ( ) talk in the library.', answers: ['must', 'not'], point: 'Don\'t 〜. ⇔ You must not 〜.' },
-    { type: 'para', en1: "It isn't necessary for you to come here tomorrow.", en2: 'You ( ) ( ) to come here tomorrow.', answers: ["don't", 'have'], point: '必要がない ⇔ don\'t have to' },
+    { type: 'para', en1: "Don't talk in the library.", en2: 'You must ( ) ( ) in the library.', answers: ['not', 'talk'], point: 'Don\'t 〜. ⇔ You must not 〜.' },
+    { type: 'para', en1: "It isn't necessary for you to come here tomorrow.", en2: 'You ( ) have ( ) come here tomorrow.', answers: ["don't", 'to'], point: '必要がない ⇔ don\'t have to' },
     { type: 'para', en1: 'I plan to visit Nara next month.', en2: 'I am ( ) ( ) visit Nara next month.', answers: ['going', 'to'], point: '予定 ⇔ be going to' },
   ],
 };
@@ -196,7 +196,7 @@ EXAM_GRAMMAR.imperative = {
     { type: 'fill', jp: '公園へ行こうよ。— いや、やめておこう。', en: "Let's go to the park. — No, ( ) ( ).", answers: ["let's", 'not'], point: 'Let\'s 〜. を断るときは No, let\'s not.' },
     { type: 'fill', jp: 'そのクラブには部員がほとんどいません。', en: 'The club has ( ) members.', answers: ['few'], point: 'members は数えられる → few「ほとんどない」' },
 
-    { type: 'order', jp: '夕食の前に手を洗いなさい。', words: ['dinner', 'wash', 'before', 'your hands'], answer: 'Wash your hands before dinner.', point: '命令文は動詞の原形で始める' },
+    { type: 'order', jp: '夕食の前に手を洗いなさい。(wash で始めて)', words: ['dinner', 'wash', 'before', 'your hands'], answer: 'Wash your hands before dinner.', point: '命令文は動詞の原形で始める' },
     { type: 'order', jp: '公園でピクニックをするのはどうですか。', words: ['having', 'how', 'in the park', 'a picnic', 'about'], answer: 'How about having a picnic in the park?', point: 'How about 〜ing?「〜するのはどうですか」' },
     { type: 'order', jp: 'このドアを開けてはいけません。', words: ['this', 'open', 'door', "don't"], answer: "Don't open this door.", point: 'Don\'t + 原形' },
     { type: 'order', jp: '一生懸命練習しなさい、そうすれば試合に勝つでしょう。', words: ['win', 'you', 'hard', 'and', 'practice', 'will', 'the game'], answer: 'Practice hard, and you will win the game.', point: '命令文, and 〜' },
@@ -266,7 +266,7 @@ EXAM_GRAMMAR.questions = {
     { type: 'fill', jp: 'だれがこの手紙を書いたか知っていますか。', en: 'Do you know ( ) ( ) this letter?', answers: ['who', 'wrote'], point: '疑問詞が主語 → who + 動詞(語順はそのまま)' },
 
     { type: 'order', jp: 'あなたはこの電車がどこへ行くか知っていますか。', words: ['where', 'you', 'know', 'this train', 'do', 'goes'], answer: 'Do you know where this train goes?', point: '間接疑問 where + 主語 + 動詞' },
-    { type: 'order', jp: '彼女がだれなのか私に教えてください。', words: ['tell', 'she', 'me', 'is', 'please', 'who'], answer: 'Please tell me who she is.', point: 'tell + 人 + 間接疑問' },
+    { type: 'order', jp: '彼女がだれなのか私に教えてください。(please で始めて)', words: ['tell', 'she', 'me', 'is', 'please', 'who'], answer: 'Please tell me who she is.', point: 'tell + 人 + 間接疑問' },
     { type: 'order', jp: 'あなたはどの季節がいちばん好きですか。', words: ['season', 'which', 'you', 'like', 'do', 'the best'], answer: 'Which season do you like the best?', point: 'Which + 名詞 + 疑問文' },
     { type: 'order', jp: '私は彼がなぜ怒っていたのか知りませんでした。', words: ['know', 'was', 'I', 'he', 'why', 'angry', "didn't"], answer: "I didn't know why he was angry.", point: '間接疑問 why + 主語 + 動詞(過去にそろえる)' },
     { type: 'order', jp: 'あなたは泳げますよね。', words: ['can', 'you', "can't", 'swim', 'you'], answer: "You can swim, can't you?", point: '助動詞 can の付加疑問 → can\'t you?' },
@@ -286,7 +286,7 @@ EXAM_GRAMMAR.nouns = {
       key: ['There are three children and two dogs in the park.', '公園に3人の子どもと2匹の犬がいます。'],
       points: [
         'ふつうは -s。s, x, sh, ch で終わる語は -es(buses, boxes, dishes, watches)。',
-        '〈子音字+y〉は y を i にかえて -ies(city → cities)。f, fe で終わる語は -ves(leaf → leaves)。',
+        '〈子音字+y〉は y を i にかえて -ies(city → cities)。f, fe で終わる語は多くが -ves(leaf → leaves)。',
         '不規則に変わる語(man → men, child → children, foot → feet)や、形が変わらない語(fish, sheep)がある。',
         'water, money, homework などは数えられない。数えるときは a glass of water, two pieces of paper のようにする。',
       ],

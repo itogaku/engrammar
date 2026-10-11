@@ -2,11 +2,11 @@
 const EXAM_PHRASE_THEMES = { move: '動詞（行く・帰る・着く）', talk: '動詞（話す・聞く・考える・見る）', amount: '数量を表す表現', people: '人との関わり', place: '場所を表す表現', time: '時を表す表現', feeling: '感情・状態を表す表現', to: 'to を使う表現', compare: '比較の表現', passive: '受け身の形の表現', connect: '文をつなぐ表現', wh: '疑問詞を使う表現', talkdialog: '会話でよく使う表現', other: 'その他の重要表現' };
 const EXAM_PHRASES = [
   // ---- move ----
-  { theme: 'move', phrase: 'arrive at ～', meaning: '～に着く（駅・建物など狭い場所）', en: 'We arrived at the station before six o\'clock.', jp: '私たちは6時前に駅に着きました。', blanks: ['arrived', 'at'] },
-  { theme: 'move', phrase: 'arrive in ～', meaning: '～に着く（都市・国など広い場所）', en: 'My uncle arrived in Tokyo late last night.', jp: 'おじは昨夜遅くに東京に着きました。', blanks: ['arrived', 'in'] },
+  { theme: 'move', phrase: 'arrive at ～', meaning: '～に着く（駅・建物など狭い場所）', en: 'We arrived at the station before six o\'clock.', jp: '私たちは6時前に駅に着きました。', blanks: ['at'] },
+  { theme: 'move', phrase: 'arrive in ～', meaning: '～に着く（都市・国など広い場所）', en: 'My uncle arrived in Tokyo late last night.', jp: 'おじは昨夜遅くに東京に着きました。', blanks: ['in'] },
   { theme: 'move', phrase: 'get to ～', meaning: '～に着く、～へ行く', en: 'How can I get to the city library from here?', jp: 'ここから市立図書館へはどうやって行けますか。', blanks: ['get', 'to'] },
   { theme: 'move', phrase: 'go home', meaning: '家に帰る', en: 'I usually go home at five after club activities.', jp: '私はふだん部活動のあと5時に家に帰ります。', blanks: ['go', 'home'] },
-  { theme: 'move', phrase: 'come home', meaning: '帰宅する、家に帰ってくる', en: 'My father came home very late last night.', jp: '父は昨夜とても遅く帰宅しました。', blanks: ['came', 'home'] },
+  { theme: 'move', phrase: 'come home', meaning: '帰宅する、家に帰ってくる', en: 'My father came home very late last night.', jp: '父は昨夜とても遅く家に帰ってきました。', blanks: ['came', 'home'] },
   { theme: 'move', phrase: 'go back to ～', meaning: '～へ戻る、～へ帰る', en: 'Ms. Green went back to her country last month.', jp: 'グリーンさんは先月、自分の国へ帰りました。', blanks: ['went', 'back', 'to'] },
   { theme: 'move', phrase: 'come back to ～', meaning: '～へ戻ってくる', en: 'I want to come back to this town again someday.', jp: '私はいつかまたこの町へ戻ってきたいです。', blanks: ['come', 'back', 'to'] },
   { theme: 'move', phrase: 'have been to ～', meaning: '～へ行ったことがある', en: 'I have been to Kyoto three times with my family.', jp: '私は家族と京都へ3回行ったことがあります。', blanks: ['have', 'been', 'to'] },
@@ -23,7 +23,7 @@ const EXAM_PHRASES = [
   { theme: 'move', phrase: 'go out', meaning: '外出する', en: 'We didn\'t go out because it was raining hard.', jp: '雨が激しく降っていたので、私たちは外出しませんでした。', blanks: ['go', 'out'] },
 
   // ---- talk ----
-  { theme: 'talk', phrase: 'talk to ～', meaning: '～に話しかける、～と話す', en: 'I talked to my teacher about my future after class.', jp: '私は授業のあと、将来について先生と話しました。', blanks: ['talked', 'to'] },
+  { theme: 'talk', phrase: 'talk to ～', meaning: '～に話しかける、～と話す', en: 'A girl talked to me in English at the station.', jp: '駅で女の子が英語で私に話しかけてきました。', blanks: ['talked', 'to'] },
   { theme: 'talk', phrase: 'talk with ～', meaning: '～と話をする', en: 'I often talk with my friends on the phone.', jp: '私はよく友達と電話で話をします。', blanks: ['talk', 'with'] },
   { theme: 'talk', phrase: 'talk about ～', meaning: '～について話す', en: 'Let\'s talk about our class trip to Okinawa next month.', jp: '来月の沖縄へのクラス旅行について話しましょう。', blanks: ['talk', 'about'] },
   { theme: 'talk', phrase: 'make a speech', meaning: 'スピーチ（演説）をする', en: 'I made a speech in English at the school festival.', jp: '私は文化祭で英語のスピーチをしました。', blanks: ['made', 'a', 'speech'] },
@@ -259,11 +259,11 @@ const EXAM_PHRASES = [
   { theme: 'talkdialog', phrase: 'How about ～ing?', meaning: '～するのはどうですか', en: 'How about going to the movies this weekend?', jp: '今週末、映画に行くのはどうですか。', blanks: ['How', 'about'] },
   { theme: 'talkdialog', phrase: 'Here you are.', meaning: 'はい、どうぞ（物を渡すとき）', en: 'A: Can I borrow your eraser? B: Sure. Here you are.', jp: 'A: 消しゴムを借りてもいい？ B: いいよ。はい、どうぞ。', blanks: ['Here', 'you', 'are'] },
   { theme: 'talkdialog', phrase: 'Of course.', meaning: 'もちろん', en: 'A: Can you help me carry this box? B: Of course.', jp: 'A: この箱を運ぶのを手伝ってくれる？ B: もちろん。', blanks: ['Of', 'course'] },
-  { theme: 'talkdialog', phrase: 'No problem.', meaning: 'いいですよ、問題ありません', en: 'A: Could you wait for a few minutes? B: No problem.', jp: 'A: 数分待っていただけますか。 B: いいですよ。', blanks: ['No', 'problem'] },
+  { theme: 'talkdialog', phrase: 'No problem.', meaning: 'いいですよ、問題ありません', en: 'A: Could you wait for a few minutes? B: No problem.', jp: 'A: 数分待っていただけますか。 B: 問題ありませんよ。', blanks: ['No', 'problem'] },
   { theme: 'talkdialog', phrase: 'Thank you for ～.', meaning: '～をありがとう', en: 'Thank you for inviting me to your party.', jp: 'パーティーに招待してくれてありがとう。', blanks: ['Thank', 'you', 'for'] },
   { theme: 'talkdialog', phrase: "You're welcome.", meaning: 'どういたしまして', en: 'A: Thank you very much for your help today. B: You\'re welcome.', jp: 'A: 今日は手伝ってくれて本当にありがとう。 B: どういたしまして。', blanks: ["You're", 'welcome'] },
   { theme: 'talkdialog', phrase: 'Excuse me.', meaning: 'すみません（呼びかけ）', en: 'Excuse me, but could you tell me the way to the station?', jp: 'すみませんが、駅への道を教えていただけますか。', blanks: ['Excuse', 'me'] },
-  { theme: 'talkdialog', phrase: 'That sounds great.', meaning: 'それはいいですね', en: 'A: Let\'s have lunch in the park. B: That sounds great.', jp: 'A: 公園でお昼を食べようよ。 B: それはいいね。', blanks: ['sounds', 'great'] },
+  { theme: 'talkdialog', phrase: 'That sounds great.', meaning: 'それはいいですね', en: 'A: Let\'s have lunch in the park. B: That sounds great.', jp: 'A: 公園でお昼を食べようよ。 B: それはすごくいいね。', blanks: ['sounds', 'great'] },
   { theme: 'talkdialog', phrase: "I'd love to.", meaning: 'ぜひそうしたいです', en: 'A: Would you like to come with us? B: I\'d love to.', jp: 'A: 私たちといっしょに来ませんか。 B: ぜひ行きたいです。', blanks: ["I'd", 'love', 'to'] },
   { theme: 'talkdialog', phrase: "That's too bad.", meaning: 'それはお気の毒に、それは残念ですね', en: 'A: I can\'t go to the party because I have a cold. B: That\'s too bad.', jp: 'A: かぜをひいているのでパーティーに行けないんだ。 B: それは残念だね。', blanks: ["That's", 'too', 'bad'] },
   { theme: 'talkdialog', phrase: 'Just a minute.', meaning: '少々お待ちください', en: 'A: Is Ken at home now? B: Yes. Just a minute, please.', jp: 'A: ケンは今家にいますか。 B: はい。少々お待ちください。', blanks: ['Just', 'a', 'minute'] },

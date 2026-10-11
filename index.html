@@ -5831,6 +5831,11 @@ function answerText(item) {
   return alt ? `${fullSentence(item)}（${alt} も可）` : fullSentence(item);
 }
 
+// 重要表現で、どちらを書いても正しい語の組
+const PHRASE_EQUIV = [
+  ['could', 'would', 'can', 'will'], ['may', 'can'], ['began', 'started'], ['begin', 'start'], ['though', 'although'],
+  ['make', 'give'], ['made', 'gave'], ['made', 'became'], ['of', 'about'], ['at', 'in'], ['talk', 'speak'], ['talked', 'spoke'],
+];
 // 正誤(和訳は自己採点なので null)
 function isCorrect(item) {
   const answer = item.userAnswer || '';
@@ -5850,6 +5855,12 @@ function isCorrect(item) {
     return words.length > 0 && words[words.length - 1] === want && (words.length === 1 || (words.length === 2 && words[0] === item.wrongWord.toLowerCase()));
   }
   if (item.type === 'xorder') return normalize(answer) !== '' && normalize(answer) === normalize(item.answer);
+  if (item.type === 'cphrase' || item.type === 'cfree') {
+    // 意味の区別がつかない言いかえ(Could / Would you など)は、どちらでも正解にする
+    const got = answer.replace(/[／/・,、]/g, ' ').toLowerCase().split(/\s+/).filter(Boolean);
+    const want = item.answers.map(a => a.toLowerCase());
+    if (got.length === want.length && want.every((w, k) => w === got[k] || PHRASE_EQUIV.some(g => g.includes(w) && g.includes(got[k])))) return true;
+  }
   if (item.type === 'vidiom' || item.type === 'cphrase' || item.type === 'cfree' || item.type === 'xfill' || item.type === 'xpara') return normalize(answer.replace(/[／/・]/g, ' ')) === normalize(item.answers.join(' '));
   if (item.type === 'cform') {
     // 「was / were」のような答えは、どちらか一方でも両方書いても正解
