@@ -477,6 +477,29 @@
   .reg-add { font-family: inherit; font-size: 12.5px; border: 1.5px dashed var(--line); background: transparent; color: var(--teal); border-radius: 999px; padding: 3px 12px; cursor: pointer; font-weight: 700; }
   .reg-add:disabled { opacity: .4; cursor: default; }
   .reg-card .test-save-form { margin-top: 0; }
+
+  /* 入試対策 */
+  .exam-card { display: flex; flex-direction: column; gap: 10px; }
+  .exam-head { font-family: var(--mincho); font-weight: 900; font-size: 17px; display: flex; flex-wrap: wrap; align-items: baseline; gap: 10px; }
+  .exam-head span { font-family: var(--gothic); font-weight: 400; font-size: 12px; color: var(--ink-soft); }
+  .exam-rounds { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 8px; }
+  .exam-round { text-align: left; font-family: inherit; border: 1.5px solid var(--line); background: var(--panel); border-radius: 8px; padding: 9px 12px; cursor: pointer; font-size: 14px; font-weight: 700; color: var(--ink); display: flex; flex-direction: column; gap: 2px; }
+  .exam-round b { font-family: var(--mincho); color: var(--amber); font-size: 13px; }
+  .exam-round small { font-weight: 400; font-size: 11px; color: var(--ink-soft); line-height: 1.4; }
+  .exam-round:hover { border-color: var(--teal); }
+  .exam-make { align-self: flex-start; flex: none; padding: 9px 20px; font-size: 14px; }
+  .ws-dialog { display: grid; grid-template-columns: max-content 1fr; column-gap: 10px; line-height: 1.85; margin: 2px 0 6px; }
+  .ws-cform { display: flex; flex-wrap: wrap; gap: 4px 18px; }
+  .ws-cmean { font-size: 12px; color: var(--ink-soft); margin-left: 4px; }
+  .ans-why { display: block; font-size: 12px; color: var(--ink-soft); line-height: 1.5; }
+  .ws-exam-summary { border: 1.5px solid var(--ink); border-radius: 6px; padding: 12px 14px; margin: 10px 0 16px; }
+  .ws-es-head { font-weight: 800; font-size: 14px; margin-bottom: 8px; }
+  .ws-es-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 16px; }
+  .ws-es-item { border-top: 1px dashed var(--line); padding-top: 6px; font-size: 12.5px; line-height: 1.55; }
+  .ws-es-title { font-weight: 800; }
+  .ws-es-form { display: inline-block; border: 1px solid var(--ink); border-radius: 3px; padding: 0 6px; margin: 2px 0; font-size: 12px; }
+  .ws-es-ex span { color: var(--ink-soft); font-size: 11.5px; }
+  .ws-es-tip { color: var(--ink-soft); font-size: 11.5px; }
   @media print {
     @page { size: A4; margin: 14mm 14mm; }
     body { background: #fff; padding: 0; display: block; }
@@ -504,6 +527,8 @@
     body.multi-round #sheet { display: none !important; }
     body.multi-round #roundsPrint { display: block !important; }
     .round-copy + .round-copy { break-before: page; page-break-before: always; }
+    .ws-exam-summary { break-after: page; page-break-after: always; border: 1px solid #000; }
+    .ws-es-item { break-inside: avoid; }
     .round-tabs { display: none !important; }
   }
   #roundsPrint { display: none; }
@@ -526,10 +551,43 @@
       <button data-tab="test">定期テスト<small>範囲を選んで</small></button>
       <button data-tab="print">単元プリント<small>単元ごとに</small></button>
       <button data-tab="guide">解説つき<small>はじめて学ぶ人</small></button>
+      <button data-tab="exam">入試対策<small>3年間の総まとめ</small></button>
       <button data-tab="practice">画面で練習<small>並べ替え</small></button>
       <button data-tab="history">履歴<small>印刷したもの</small></button>
     </div>
   </nav>
+
+  <!-- 入試対策 -->
+  <div id="screenExam" style="display:none;">
+    <p class="program-note">高校入試に向けて、3年間の内容をまとめて練習するプリントです。どれも「何周するか」や配点・解答ページは次の画面で選べ、できたプリントは問題ごとに直す・変える・消すができます。</p>
+    <div class="card test-card exam-card">
+      <div class="exam-head">文法の総まとめ<span>まとめ（ルールの確認）→ 問題（語形変化・適語・書きかえ・同意文・並べ替え・誤文訂正・英訳・和訳）</span></div>
+      <div class="exam-rounds" id="examRoundList"></div>
+    </div>
+    <div class="card test-card exam-card">
+      <div class="exam-head">会話表現<span>対話の空所に入る応答を選ぶ</span></div>
+      <div class="opt-row"><span class="opt-label">場面</span><div class="chip-switch" id="examDialogCats"></div></div>
+      <div class="opt-row"><span class="opt-label">問題数</span><div class="mode-switch" id="examDialogCount"></div></div>
+      <button class="btn btn-primary exam-make" id="examDialogBtn">会話表現のプリントを作る</button>
+    </div>
+    <div class="card test-card exam-card">
+      <div class="exam-head">重要表現（熟語・連語）<span>日本語に合うように英文の空所をうめる</span></div>
+      <div class="opt-row"><span class="opt-label">テーマ</span><div class="chip-switch" id="examPhraseThemes"></div></div>
+      <div class="opt-row"><span class="opt-label">問題数</span><div class="mode-switch" id="examPhraseCount"></div></div>
+      <button class="btn btn-primary exam-make" id="examPhraseBtn">重要表現のプリントを作る</button>
+    </div>
+    <div class="card test-card exam-card">
+      <div class="exam-head">語形変化の確認<span>不規則動詞・複数形・3単現・比較級/最上級</span></div>
+      <div class="opt-row"><span class="opt-label">種類</span><div class="chip-switch" id="examTableKinds"></div></div>
+      <div class="opt-row"><span class="opt-label">問題数</span><div class="mode-switch" id="examTableCount"></div></div>
+      <button class="btn btn-primary exam-make" id="examTableBtn">語形変化のプリントを作る</button>
+    </div>
+    <div class="card test-card exam-card">
+      <div class="exam-head">入試形式の総合問題<span>単語・文法・会話表現・重要表現・長文をまとめた1回分（100点）</span></div>
+      <div class="opt-row"><span class="opt-label">範囲</span><div class="mode-switch" id="examMockRange"></div></div>
+      <button class="btn btn-primary exam-make" id="examMockBtn">総合問題を作る</button>
+    </div>
+  </div>
 
   <!-- 履歴(印刷したプリント・出さない問題) -->
   <div id="screenGrade">
@@ -757,6 +815,9 @@
 <script src="reading_parts_g3.js"></script>
 <script src="reading_program2.js"></script>
 <script src="guides.js"></script>
+<script src="exam_dialogs.js"></script>
+<script src="exam_phrases.js"></script>
+<script src="exam_tables.js"></script>
 <script>
 // STAGE type "chunk": 日本語チャンクを英語と同じ語順に並べ替える(単語を知らなくても語順感覚を養う)
 // STAGE type "word": 実際の英単語タイルを並べ替える
@@ -3400,6 +3461,7 @@ let printItems = [];          // 今のプリントの問題(ベース文+修飾
 let printTypes = new Set(['reorder']); // プリントに出す問題の種類(QUESTION_TYPESのkey)
 let vocabItems = [];          // 単語問題(テスト範囲のプリントのみ)
 let readingItems = [];        // 長文問題(テスト範囲のプリントのみ)
+let examItems = [];           // 入試対策の会話表現・重要表現・語形変化
 let printSource = { kind: 'stage' };  // 出題元: 1つの単元(stage) / テスト範囲(test)
 // テスト範囲画面の状態
 // mode: 'byType'(種類ごとの数を範囲全体からバランスよく) / 'perUnit'(単元ごとに数を指定)
@@ -3460,6 +3522,7 @@ const screenPractice = document.getElementById('screenPractice');
 const programList = document.getElementById('programList');
 const backToProgram = document.getElementById('backToProgram');
 const screenPrint = document.getElementById('screenPrint');
+const screenExam = document.getElementById('screenExam');
 const programModePractice = document.getElementById('programModePractice');
 const programModePrint = document.getElementById('programModePrint');
 const programModeGuide = document.getElementById('programModeGuide');
@@ -4747,6 +4810,8 @@ function showScreen(name) {
   screenPractice.style.display = name === 'practice' ? 'block' : 'none';
   screenPrint.style.display = name === 'print' ? 'block' : 'none';
   screenTest.style.display = name === 'test' ? 'block' : 'none';
+  screenExam.style.display = name === 'exam' ? 'block' : 'none';
+  if (name === 'exam') renderExamScreen();
   if (name === 'test') renderTestScreen();
   if (name === 'grade') { renderPrintHistory(); renderExcludedInfo(); }
   renderNav(name);
@@ -5378,6 +5443,7 @@ function generateGuideWorksheet() {
   printItems = guideUnits.flatMap(u => [...u.intro.slice(0, u.nIntro), ...u.practice.slice(0, u.nPractice)]);
   vocabItems = [];
   readingItems = [];
+  examItems = [];
 }
 
 // ---------- Screen 4: print (worksheet) ----------
@@ -5443,7 +5509,7 @@ function renderPrintOptions() {
   printCheckBtn.parentElement.style.display = isGuide ? 'none' : '';
   printSourceNote.style.display = isTest ? 'block' : 'none';
   printSourceNote.textContent = isTest ? `${printSource.summary}（1周 ${countQuestions()}問）` : '';
-  backToProgramFromPrint.innerHTML = isTest ? '&larr; テスト範囲の設定に戻る' : '&larr; 単元選択に戻る';
+  backToProgramFromPrint.innerHTML = navTab === 'exam' ? '&larr; 入試対策に戻る' : isTest ? '&larr; テスト範囲の設定に戻る' : '&larr; 単元選択に戻る';
   // テスト範囲のプリントでは、問題の種類と数は前の画面で決める
   printTypeRow.style.display = isTest || isGuide ? 'none' : 'flex';
   printReorderBox.style.display = !isGuide && printItems.some(it => it.type === 'reorder') ? 'block' : 'none';
@@ -5529,7 +5595,7 @@ function generateWorksheet(seed) {
   const isTest = printSource.kind === 'test';
   const stageList = sourceStages();
   // くり返しの回ごとに、同じ形式・同じ範囲で別の問題を作る(文は回をまたいで重ならないように順に使う)
-  const usedWords = new Set(), usedPassages = new Set();
+  const usedWords = new Set(), usedPassages = new Set(), usedExam = new Set();
   roundSets = [];
   for (let r = 0; r < printRounds; r++) {
   const slots = grammarSlots();
@@ -5549,13 +5615,15 @@ function generateWorksheet(seed) {
   });
   vocabItems = [];
   readingItems = [];
+  examItems = [];
   if (isTest) {
     const cfg = printSource.config;
     vocabItems = groupByType(generateVocabItems(stageList, cfg, usedWords), VOCAB_TYPES);
-    readingItems = generateReadingItems(stageList, cfg, usedPassages);
+    readingItems = generateReadingItems(cfg.readingKeys ? stages.filter(st => cfg.readingKeys.includes(st.key)) : stageList, cfg, usedPassages);
+    examItems = generateExamItems(cfg, usedExam);
   }
   printItems = groupByType(printItems, QUESTION_TYPES);
-  roundSets.push({ vocab: vocabItems, grammar: printItems, reading: readingItems });
+  roundSets.push({ vocab: vocabItems, grammar: printItems, reading: readingItems, exam: examItems });
   }
   useRound(0);
   renderPrintOptions();
@@ -5567,7 +5635,7 @@ function useRound(i) {
   activeRound = Math.max(0, Math.min(i, roundSets.length - 1));
   const r = roundSets[activeRound];
   if (!r) return;
-  vocabItems = r.vocab; printItems = r.grammar; readingItems = r.reading;
+  vocabItems = r.vocab; printItems = r.grammar; readingItems = r.reading; examItems = r.exam || [];
 }
 function roundCount() {
   return printSource.kind === 'guide' ? 1 : roundSets.length;
@@ -5615,7 +5683,7 @@ function nextRound() {
 
 // プリント上のすべての設問(長文の小問も含む)
 function allWorksheetItems() {
-  return [...vocabItems, ...printItems, ...readingItems.flatMap(r => r.subs)];
+  return [...vocabItems, ...printItems, ...examItems, ...readingItems.flatMap(r => r.subs)];
 }
 
 // 入試と同じように、文頭に来る語も小文字で示す(大文字で最初の語がわからないように)。I や地名などはそのまま
@@ -5666,7 +5734,7 @@ function shuffledPieces(item) {
   return item.shuffled[printChunkLevel];
 }
 
-const SELECT_TYPES = new Set(['choice', 'usage', 'vmeaning', 'rchoice', 'rtf']);
+const SELECT_TYPES = new Set(['choice', 'usage', 'vmeaning', 'rchoice', 'rtf', 'cdialog']);
 // 日本語で答える問題は、模範解答を見て自分で採点する
 const SELF_GRADED_TYPES = new Set(['rja', 'entoja', 'vjp']);
 
@@ -5676,6 +5744,8 @@ function answerText(item) {
     return item.type === 'rtf' ? item.answer : `${CHOICE_LABELS[item.options.indexOf(item.answer)]} ${item.answer}`;
   }
   if (item.type === 'fillin' && (item.altAnswers || []).length) return `${item.answer}（${item.altAnswers.join(' / ')} も可）`;
+  if (item.type === 'cphrase') return `${item.answers.join(' / ')}<span class="ans-why">${item.phrase}：${item.meaning}</span>`;
+  if (item.type === 'cform') return item.answers.join('　');
   if (['form', 'fillin', 'vword', 'vblank', 'vidiom', 'vjp', 'entoja', 'rfill', 'rja'].includes(item.type)) return item.answer;
   if (item.type === 'rewrite') return item.answerSentence;
   if (item.type === 'error') return `${item.wrongWord} → ${item.answer}`;
@@ -5703,7 +5773,14 @@ function isCorrect(item) {
     const want = item.answer.toLowerCase();
     return words.length > 0 && words[words.length - 1] === want && (words.length === 1 || (words.length === 2 && words[0] === item.wrongWord.toLowerCase()));
   }
-  if (item.type === 'vidiom') return normalize(answer.replace(/[／/・]/g, ' ')) === normalize(item.answers.join(' '));
+  if (item.type === 'vidiom' || item.type === 'cphrase') return normalize(answer.replace(/[／/・]/g, ' ')) === normalize(item.answers.join(' '));
+  if (item.type === 'cform') {
+    // 「was / were」のような答えは、どちらか一方でも両方書いても正解
+    const got = normalize(answer.replace(/[／/・,、]/g, ' '));
+    const opts = item.answers.map(a => { const alts = a.split(' / '); return alts.length > 1 ? [...alts, alts.join(' ')] : alts; });
+    const combos = opts.reduce((acc, o) => acc.flatMap(x => o.map(y => (x ? x + ' ' : '') + y)), ['']);
+    return got !== '' && combos.some(c => normalize(c) === got);
+  }
   if (item.type === 'fillin' && (item.altAnswers || []).some(a => normalize(a) === normalize(answer))) return true;
   if (['reorder', 'translate', 'extra'].includes(item.type)) {
     const alt = clauseAltSentence(item.tokens, item.end);
@@ -5737,6 +5814,9 @@ function itemPromptHtml(item) {
     return item.exampleJa;
   }
   if (item.section === 'reading') return item.q;
+  if (item.type === 'cdialog') return '';
+  if (item.type === 'cphrase') return item.jp;
+  if (item.type === 'cform') return `<span class="ws-word">${item.word}</span><span class="ws-cmean">（${item.meaning}）</span>`;
   if (item.type === 'entoja') return `<span class="ws-en">${fullSentence(item)}</span>`;
   const tags = item.jpTags.map(t => `<span class="ws-tag">＋${t}</span>`).join('');
   return `${item.jp}${tags}`;
@@ -5788,6 +5868,12 @@ function itemBodyHtml(item) {
       return answerLineHtml('本文中の英語で答えよう', 'short');
     case 'rja':
       return answerLineHtml('日本語で書こう');
+    case 'cdialog':
+      return `<div class="ws-dialog">${item.lines.map(([who, text]) => `<b>${who}:</b><span>${text === null ? '<span class="ws-blank">（　　　　　　　　）</span>' : text}</span>`).join('')}</div>${optionsHtml(item)}`;
+    case 'cphrase':
+      return `<div class="ws-sentence">${item.sentenceHtml}</div>${answerLineHtml('（　）に入る語を順に', 'short')}`;
+    case 'cform':
+      return `<div class="ws-sentence ws-cform">${item.cols.map(c => `<span>${c}（　　　　　　）</span>`).join('')}</div>${answerLineHtml(item.cols.join('・') + 'を順に', 'short')}`;
     default:
       return '';
   }
@@ -6143,7 +6229,7 @@ function renderGuideWorksheet() {
 const POINT_WEIGHTS = {
   vmeaning: 1, vjp: 2, vword: 2, vblank: 2, vidiom: 2,
   choice: 2, usage: 2, fillin: 2, form: 2, error: 3, extra: 3, reorder: 3, rewrite: 3, paraphrase: 3, translate: 4, entoja: 4,
-  rchoice: 3, rtf: 2, rfill: 3, rja: 4,
+  rchoice: 3, rtf: 2, rfill: 3, rja: 4, cdialog: 3, cphrase: 3, cform: 2,
 };
 function assignPoints(items) {
   items.forEach(it => { delete it.points; });
@@ -6197,13 +6283,17 @@ function renderWorksheet() {
   const sections = [];
   if (vocabItems.length) sections.push('vocab');
   if (printItems.length) sections.push('grammar');
+  if (examItems.length) sections.push('exam');
   if (readingItems.length) sections.push('reading');
   const numbered = sections.length > 1;
+  const examTitle = examSectionTitle();
+  renderExamSummary();
   let instr = '';
   sections.forEach((sec, si) => {
     const numeral = numbered ? SECTION_NUMERALS[si] : '';
     if (sec === 'vocab') instr = appendItemGroup(vocabItems, VOCAB_TYPES, numeral, titleWithPoints('単語', vocabItems));
     if (sec === 'grammar') instr = appendItemGroup(printItems, QUESTION_TYPES, numeral, titleWithPoints('文法', printItems));
+    if (sec === 'exam') instr = appendItemGroup(examItems, EXAM_TYPES, numeral, titleWithPoints(examTitle, examItems));
     if (sec === 'reading') {
       sheetItems.appendChild(sectionHead(numeral || '', titleWithPoints('長文', readingItems.flatMap(r => r.subs)), '次の英文を読んで、あとの問いに答えなさい。'));
       readingItems.forEach((r, ri) => {
@@ -6222,10 +6312,11 @@ function renderWorksheet() {
   sheetInstr.style.display = sheetInstr.textContent ? 'block' : 'none';
 
   answerSheetTitle.textContent = `解答 ${sheetTitle.textContent.replace(/^英語(プリント|テスト) ?/, '')}`;
-  const listHtml = items => `<ol>${items.map(item => `<li>${answerText(item)}</li>`).join('')}</ol>`;
+  const listHtml = items => `<ol>${items.map(item => `<li>${answerText(item)}${item.why ? `<span class="ans-why">${item.why}</span>` : ''}</li>`).join('')}</ol>`;
   let answersHtml = '';
   sections.forEach((sec, si) => {
-    const head = numbered ? `<h3>${SECTION_NUMERALS[si]} ${{ vocab: '単語', grammar: '文法', reading: '長文' }[sec]}</h3>` : '';
+    const head = numbered ? `<h3>${SECTION_NUMERALS[si]} ${{ vocab: '単語', grammar: '文法', exam: examTitle, reading: '長文' }[sec]}</h3>` : '';
+    if (sec === 'exam') answersHtml += head + listHtml(examItems);
     if (sec === 'vocab') answersHtml += head + listHtml(vocabItems);
     if (sec === 'grammar') answersHtml += head + listHtml(printItems);
     if (sec === 'reading') {
@@ -6305,7 +6396,7 @@ function resetWorksheetAnswers() {
 programModePractice.addEventListener('click', () => setProgramMode('practice'));
 programModePrint.addEventListener('click', () => setProgramMode('print'));
 programModeGuide.addEventListener('click', () => setProgramMode('guide'));
-backToProgramFromPrint.addEventListener('click', () => showScreen(printSource.kind === 'test' ? 'test' : 'program'));
+backToProgramFromPrint.addEventListener('click', () => showScreen(navTab === 'exam' ? 'exam' : printSource.kind === 'test' ? 'test' : 'program'));
 printRegenBtn.addEventListener('click', generateWorksheet);
 printPrintBtn.addEventListener('click', () => { savePrintHistory(); buildRoundsPrint(); window.print(); });
 window.addEventListener('beforeprint', () => { if (screenPrint.style.display !== 'none') buildRoundsPrint(); });
@@ -6377,7 +6468,7 @@ function loadNav() {
   try {
     const v = JSON.parse(localStorage.getItem(NAV_STORAGE_KEY) || '{}');
     if (v.grade) { currentGrade = v.grade; testState.grade = v.grade; }
-    return ['test', 'print', 'guide', 'practice', 'history'].includes(v.tab) ? v.tab : 'test';
+    return ['test', 'print', 'guide', 'exam', 'practice', 'history'].includes(v.tab) ? v.tab : 'test';
   } catch (_) { return 'test'; }
 }
 function saveNav() {
@@ -6385,6 +6476,8 @@ function saveNav() {
 }
 function tabOfScreen(name) {
   if (name === 'test') return 'test';
+  if (name === 'exam') return 'exam';
+  if (name === 'print' && printSource.kind === 'test' && /^入試/.test(printSource.config.name || '')) return 'exam';
   if (name === 'grade') return 'history';
   if (name === 'practice') return 'practice';
   if (name === 'print') return printSource.kind === 'test' ? 'test' : printSource.kind === 'guide' ? 'guide' : 'print';
@@ -6399,7 +6492,7 @@ function renderNav(screenName) {
   navTab = tabOfScreen(screenName);
   saveNav();
   navTabs.querySelectorAll('button').forEach(b => b.classList.toggle('active', b.dataset.tab === navTab));
-  const showGrades = navTab !== 'history' && screenName !== 'print' && screenName !== 'practice';
+  const showGrades = !['history', 'exam'].includes(navTab) && screenName !== 'print' && screenName !== 'practice';
   navGrades.style.display = showGrades ? '' : 'none';
   const g = navTab === 'test' ? testState.grade : currentGrade;
   navGrades.innerHTML = '';
@@ -6415,6 +6508,7 @@ function renderNav(screenName) {
 function openTab(tab) {
   navTab = tab;
   if (tab === 'test') showScreen('test');
+  else if (tab === 'exam') showScreen('exam');
   else if (tab === 'history') showScreen('grade');
   else { setProgramMode(tab); showScreen('program'); }
   window.scrollTo(0, 0);
@@ -6431,6 +6525,7 @@ function saveExcluded() {
   try { localStorage.setItem(EXCLUDED_STORAGE_KEY, JSON.stringify([...excludedSet])); } catch (_) {}
 }
 function excludeKey(item) {
+  if (item.section === 'exam') return `e|${item.type}|${item.key}`;
   if (item.section === 'vocab') return `v|${item.type}|${item.word}`;
   if (item.section === 'reading') return null;
   return item.stageKey && item.jp ? `g|${item.stageKey}|${item.jp}` : null;
@@ -6453,6 +6548,7 @@ function renderExcludedInfo() {
 }
 let printEdited = false;
 function itemList(item) {
+  if (examItems.includes(item)) return examItems;
   if (vocabItems.includes(item)) return vocabItems;
   if (printItems.includes(item)) return printItems;
   const r = readingItems.find(x => x.subs.includes(item));
@@ -6483,6 +6579,7 @@ function newVocabItem(type) {
   return null;
 }
 function newItemLike(item) {
+  if (item.section === 'exam') return newExamItem(item);
   if (item.section === 'vocab') return newVocabItem(item.type);
   if (item.section === 'reading') return null;
   return newGrammarItem(item.type, item.stageKey);
@@ -6518,8 +6615,8 @@ function excludeItem(item) {
   if (next) { list[list.indexOf(item)] = next; editedRender(); } else removeItem(item);
 }
 function addItemOfType(section, type) {
-  const list = section === 'vocab' ? vocabItems : printItems;
-  const next = section === 'vocab' ? newVocabItem(type) : newGrammarItem(type);
+  const list = section === 'vocab' ? vocabItems : section === 'exam' ? examItems : printItems;
+  const next = section === 'vocab' ? newVocabItem(type) : section === 'exam' ? newExamItem({ type }) : newGrammarItem(type);
   if (!next) { alert('この範囲では、ほかに出せる問題がありません。'); return; }
   let at = -1;
   list.forEach((it, i) => { if (it.type === type) at = i; });
@@ -6562,11 +6659,11 @@ function addEditControls() {
   const lastOfType = new Map();
   rows.forEach(row => {
     const it = row._item;
-    if (it.section !== 'reading') lastOfType.set(`${it.section === 'vocab' ? 'vocab' : 'grammar'}|${it.type}`, row);
+    if (it.section !== 'reading') lastOfType.set(`${it.section === 'vocab' ? 'vocab' : it.section === 'exam' ? 'exam' : 'grammar'}|${it.type}`, row);
   });
   lastOfType.forEach((row, key) => {
     const [section, type] = key.split('|');
-    const defs = section === 'vocab' ? VOCAB_TYPES : QUESTION_TYPES;
+    const defs = section === 'vocab' ? VOCAB_TYPES : section === 'exam' ? EXAM_TYPES : QUESTION_TYPES;
     const b = document.createElement('button');
     b.className = 'ws-add no-print';
     b.textContent = `＋ ${defs[type].label}を1問追加`;
@@ -6583,6 +6680,201 @@ function addEditControls() {
     box.prepend(b);
   });
 }
+
+
+// ---------- 入試対策 ----------
+const EXAM_TYPES = {
+  cdialog: { label: '会話表現', instr: '対話が成り立つように、（　）に入る最も適切なものをア〜エから選びなさい。' },
+  cphrase: { label: '重要表現', instr: '日本語に合うように、（　）に適切な英語を1語ずつ入れなさい。' },
+  cform: { label: '語形変化', instr: '次の語の変化形を書きなさい。' },
+};
+// 文法の総まとめ(3年間の単元を文法ごとにまとめる)
+const EXAM_ROUNDS = [
+  { title: '動詞の基本', sub: 'be動詞・一般動詞・3単現・過去形・進行形', match: /^(getready|program1-(aff|neg|q)|program2-(aff|neg|q|plural)|g1program4-(aff|neg|q)|g1program5-|g1program8-(aff|neg|q)|g1program9-(general|be))/ },
+  { title: '未来・助動詞・命令文', sub: 'will・be going to・can・must・have to・命令文', match: /^(program2-(imperative|lets)|g1program3-(aff|neg|q)|g2program1-(begoingto|will)|g2program4-(must|haveto))/ },
+  { title: '受け身・現在完了', sub: '受け身・経験・完了・継続・現在完了進行形', match: /^(g2program8-|g3program1-experience|g3program2-)/ },
+  { title: '不定詞・動名詞', sub: '不定詞の3用法・It is 〜 to・疑問詞+to・動名詞・want 人 to', match: /^(g2program1-(enjoystop|likegerund|subjgerund)|g2program3-|g2program4-emotion|g2program5-whto|g2program7-howto|g3program1-(itisfor|asktell)|g3program3-makeletlelp)/ },
+  { title: '文型・接続詞', sub: 'SVC・SVOO・SVOC・that・when・if・There is', match: /^(g2program2-|g2program5-(svc|svoo)|g3program3-(tellshow|svoc)|g1program7-(aff|neg|q))/ },
+  { title: '比較', sub: '比較級・最上級・as 〜 as・like 〜 better / the best', match: /^(g2program6-|g2program7-(better|best))/ },
+  { title: '分詞・関係代名詞', sub: '名詞を修飾する分詞・who・which・that・接触節', match: /^(g3program4-(presentp|pastp)|g3program5-|g3program6-)/ },
+  { title: '疑問詞・間接疑問・仮定法', sub: '疑問詞の疑問文・間接疑問・I wish・If I were', match: /^(program1-where|program2-when|g1program3-whatcan|g1program4-who|g1program7-(how|candoq)|g1powerup|g1program8-wh|g1program9-whprog|g3program4-indirect|g3program7-)/ },
+];
+const EXAM_GRAMMAR_FORMAT = { form: 4, choice: 3, fillin: 2, rewrite: 2, paraphrase: 2, reorder: 2, extra: 2, error: 2, translate: 2, entoja: 1 };
+const examState = { dialogCats: new Set(), dialogCount: 10, phraseThemes: new Set(), phraseCount: 20, tableKinds: new Set(['irregular']), tableCount: 20, mockRange: 3 };
+
+function examRoundKeys(r) { return stages.filter(st => r.match.test(st.key)).map(st => st.key); }
+function emptyCounts(defs) { return Object.fromEntries(Object.keys(defs).map(k => [k, 0])); }
+function examConfig(name, extra) {
+  return {
+    name, keys: [], mode: 'byType', perUnit: {}, shuffle: true,
+    grammarCounts: emptyCounts(QUESTION_TYPES), vocabCounts: emptyCounts(VOCAB_TYPES),
+    vocabImportant: false, readingCount: 0, readingLevel: 'program', ...extra,
+  };
+}
+function startExamPrint(summary, config) {
+  printSource = { kind: 'test', summary, config };
+  printPointsCheck.checked = true;
+  printGlossMode = 'enonly'; // 入試と同じく、並べ替えの語句に日本語のヒントはつけない
+  showScreen('print');
+  generateWorksheet();
+}
+
+function generateExamItems(cfg, used) {
+  const out = [];
+  const take = (pool, n, keyOf) => {
+    const fresh = shuffle(pool.filter(x => !used.has(keyOf(x)) && !excludedSet.has(keyOf(x))));
+    const old = shuffle(pool.filter(x => used.has(keyOf(x)) && !excludedSet.has(keyOf(x))));
+    return [...fresh, ...old].slice(0, n).map(x => { used.add(keyOf(x)); return x; });
+  };
+  if (cfg.dialogCount && typeof EXAM_DIALOGS !== 'undefined') {
+    const pool = EXAM_DIALOGS.map((d, i) => ({ ...d, i })).filter(d => !cfg.dialogCats || !cfg.dialogCats.length || cfg.dialogCats.includes(d.cat));
+    take(pool, cfg.dialogCount, d => `e|cdialog|d${d.i}`).forEach(d => out.push(examDialogItem(d)));
+  }
+  if (cfg.phraseCount && typeof EXAM_PHRASES !== 'undefined') {
+    const pool = EXAM_PHRASES.map((ph, i) => ({ ...ph, i })).filter(ph => !cfg.phraseThemes || !cfg.phraseThemes.length || cfg.phraseThemes.includes(ph.theme));
+    take(pool, cfg.phraseCount, ph => `e|cphrase|p${ph.i}`).forEach(ph => out.push(examPhraseItem(ph)));
+  }
+  if (cfg.tableCount) {
+    const pool = (cfg.tableKinds || ['irregular']).flatMap(k => EXAM_TABLES[k].rows.map((row, i) => ({ k, row, i })));
+    take(pool, cfg.tableCount, t => `e|cform|${t.k}${t.i}`).forEach(t => out.push(examTableItem(t)));
+  }
+  return groupByType(out, EXAM_TYPES);
+}
+function examDialogItem(d) {
+  // 選択肢の順番はそのまま(作った人が正解の位置をばらしている)
+  return { section: 'exam', type: 'cdialog', key: `d${d.i}`, lines: d.lines, options: d.options, answer: d.options[d.answer], why: d.why, cat: d.cat };
+}
+function examPhraseItem(ph) {
+  const toks = ph.en.split(' ');
+  let k = 0;
+  const blankIdx = new Set();
+  ph.blanks.forEach(b => {
+    for (; k < toks.length; k++) {
+      if (toks[k].replace(/[.,!?]+$/, '') === b) { blankIdx.add(k); k++; break; }
+    }
+  });
+  const sentenceHtml = toks.map((t, i) => {
+    if (!blankIdx.has(i)) return t;
+    const tail = (t.match(/[.,!?]+$/) || [''])[0];
+    return `<span class="ws-blank">（　　　　）</span>${tail}`;
+  }).join(' ');
+  return { section: 'exam', type: 'cphrase', key: `p${ph.i}`, jp: ph.jp, en: ph.en, sentenceHtml, answers: ph.blanks, phrase: ph.phrase, meaning: ph.meaning };
+}
+function examTableItem(t) {
+  const table = EXAM_TABLES[t.k];
+  const [word, meaning, ...forms] = t.row;
+  return { section: 'exam', type: 'cform', key: `${t.k}${t.i}`, kind: t.k, word, meaning, cols: table.cols, answers: forms };
+}
+function newExamItem(item) {
+  const used = new Set(examItems.map(it => `e|${it.type}|${it.key}`));
+  const cfg = printSource.config || {};
+  if (item.type === 'cdialog') {
+    const pool = shuffle(EXAM_DIALOGS.map((d, i) => ({ ...d, i })).filter(d => (!cfg.dialogCats || !cfg.dialogCats.length || cfg.dialogCats.includes(d.cat)) && !used.has(`e|cdialog|d${d.i}`) && !excludedSet.has(`e|cdialog|d${d.i}`)));
+    return pool[0] ? examDialogItem(pool[0]) : null;
+  }
+  if (item.type === 'cphrase') {
+    const pool = shuffle(EXAM_PHRASES.map((ph, i) => ({ ...ph, i })).filter(ph => (!cfg.phraseThemes || !cfg.phraseThemes.length || cfg.phraseThemes.includes(ph.theme)) && !used.has(`e|cphrase|p${ph.i}`) && !excludedSet.has(`e|cphrase|p${ph.i}`)));
+    return pool[0] ? examPhraseItem(pool[0]) : null;
+  }
+  const pool = shuffle((cfg.tableKinds || ['irregular']).flatMap(k => EXAM_TABLES[k].rows.map((row, i) => ({ k, row, i })))
+    .filter(t => !used.has(`e|cform|${t.k}${t.i}`) && !excludedSet.has(`e|cform|${t.k}${t.i}`)));
+  return pool[0] ? examTableItem(pool[0]) : null;
+}
+function examSectionTitle() {
+  const types = [...new Set(examItems.map(it => it.type))];
+  if (types.length === 1) return EXAM_TYPES[types[0]].label;
+  return '表現・会話';
+}
+// 文法の総まとめ: 問題の前に、その回の単元のルールを1ページにまとめる
+function renderExamSummary() {
+  const cfg = printSource.kind === 'test' ? printSource.config : null;
+  if (!cfg || !cfg.examSummary) return;
+  const keys = cfg.keys.filter(k => STAGE_GUIDES[k]);
+  const box = document.createElement('div');
+  box.className = 'ws-exam-summary';
+  const fmt = t => t.replace(/\*([^*]+)\*/g, '<b>$1</b>');
+  box.innerHTML = `<div class="ws-es-head">まとめ ― ルールを確認してから問題を解こう</div><div class="ws-es-grid">${keys.map(k => {
+    const g = STAGE_GUIDES[k];
+    const ex = (g.examples || [])[0];
+    return `<div class="ws-es-item"><div class="ws-es-title">${g.title}</div>${g.form ? `<div class="ws-es-form">${g.form}</div>` : ''}${ex ? `<div class="ws-es-ex">${fmt(ex[0])}　<span>${ex[1]}</span></div>` : ''}${(g.tips || [])[0] ? `<div class="ws-es-tip">${g.tips[0]}</div>` : ''}</div>`;
+  }).join('')}</div>`;
+  sheetItems.appendChild(box);
+}
+
+function renderExamScreen() {
+  examRoundList.innerHTML = '';
+  EXAM_ROUNDS.forEach((r, i) => {
+    const b = document.createElement('button');
+    b.className = 'exam-round';
+    b.innerHTML = `<b>第${i + 1}回</b>${r.title}<small>${r.sub}</small>`;
+    b.onclick = () => {
+      const keys = examRoundKeys(r);
+      startExamPrint(`入試対策 第${i + 1}回 ${r.title}（${keys.length}単元）`, examConfig(`入試対策 第${i + 1}回 ${r.title}`, {
+        keys, examSummary: true, shuffle: false, grammarCounts: { ...emptyCounts(QUESTION_TYPES), ...EXAM_GRAMMAR_FORMAT },
+      }));
+    };
+    examRoundList.appendChild(b);
+  });
+  const chips = (container, entries, set) => {
+    container.innerHTML = '';
+    const all = document.createElement('button');
+    all.textContent = 'すべて';
+    all.className = set.size === 0 ? 'active' : '';
+    all.onclick = () => { set.clear(); renderExamScreen(); };
+    container.appendChild(all);
+    entries.forEach(([k, label]) => {
+      const b = document.createElement('button');
+      b.textContent = label;
+      b.className = set.has(k) ? 'active' : '';
+      b.onclick = () => { if (set.has(k)) set.delete(k); else set.add(k); renderExamScreen(); };
+      container.appendChild(b);
+    });
+  };
+  const hasDialogs = typeof EXAM_DIALOGS !== 'undefined', hasPhrases = typeof EXAM_PHRASES !== 'undefined';
+  if (hasDialogs) chips(examDialogCats, Object.entries(EXAM_DIALOG_CATS), examState.dialogCats);
+  if (hasPhrases) chips(examPhraseThemes, Object.entries(EXAM_PHRASE_THEMES), examState.phraseThemes);
+  examDialogBtn.disabled = !hasDialogs;
+  examPhraseBtn.disabled = !hasPhrases;
+  examTableKinds.innerHTML = '';
+  Object.entries(EXAM_TABLES).forEach(([k, t]) => {
+    const b = document.createElement('button');
+    b.textContent = t.label;
+    b.className = examState.tableKinds.has(k) ? 'active' : '';
+    b.onclick = () => {
+      if (examState.tableKinds.has(k) && examState.tableKinds.size === 1) return;
+      if (examState.tableKinds.has(k)) examState.tableKinds.delete(k); else examState.tableKinds.add(k);
+      renderExamScreen();
+    };
+    examTableKinds.appendChild(b);
+  });
+  renderOptionSwitch(examDialogCount, [10, 15, 20].map(n => [n, `${n}問`]), examState.dialogCount, v => { examState.dialogCount = v; renderExamScreen(); });
+  renderOptionSwitch(examPhraseCount, [10, 20, 30].map(n => [n, `${n}問`]), examState.phraseCount, v => { examState.phraseCount = v; renderExamScreen(); });
+  renderOptionSwitch(examTableCount, [10, 20, 30].map(n => [n, `${n}問`]), examState.tableCount, v => { examState.tableCount = v; renderExamScreen(); });
+  renderOptionSwitch(examMockRange, [[1, '中1まで'], [2, '中2まで'], [3, '中3まで']], examState.mockRange, v => { examState.mockRange = v; renderExamScreen(); });
+}
+examDialogBtn.onclick = () => {
+  const cats = [...examState.dialogCats];
+  startExamPrint(`入試対策 会話表現${cats.length ? `（${cats.map(c => EXAM_DIALOG_CATS[c]).join('・')}）` : ''}`, examConfig('入試対策 会話表現', { dialogCount: examState.dialogCount, dialogCats: cats }));
+};
+examPhraseBtn.onclick = () => {
+  const themes = [...examState.phraseThemes];
+  startExamPrint(`入試対策 重要表現${themes.length ? `（${themes.map(t => EXAM_PHRASE_THEMES[t]).join('・')}）` : ''}`, examConfig('入試対策 重要表現', { phraseCount: examState.phraseCount, phraseThemes: themes }));
+};
+examTableBtn.onclick = () => {
+  const kinds = [...examState.tableKinds];
+  startExamPrint(`入試対策 語形変化（${kinds.map(k => EXAM_TABLES[k].label).join('・')}）`, examConfig('入試対策 語形変化', { tableCount: examState.tableCount, tableKinds: kinds }));
+};
+examMockBtn.onclick = () => {
+  const g = examState.mockRange;
+  const keys = stages.filter(st => st.grade <= g).map(st => st.key);
+  const lastProgram = stages.filter(st => st.grade === g).map(st => st.key);
+  startExamPrint(`入試形式の総合問題（中${g}までの全範囲）`, examConfig(`入試形式 総合問題（中${g}まで）`, {
+    keys, readingKeys: lastProgram,
+    vocabCounts: { ...emptyCounts(VOCAB_TYPES), vmeaning: 3, vword: 3 },
+    grammarCounts: { ...emptyCounts(QUESTION_TYPES), form: 3, choice: 2, paraphrase: 2, extra: 2, error: 1, translate: 2 },
+    dialogCount: 4, phraseCount: 4, readingCount: 1, readingLevel: 'program',
+  }));
+};
 
 // ---------- Screen 5: test range ----------
 // テスト範囲(複数の単元、学年をまたいでもよい)を選び、出題数の決め方と順番を指定して
