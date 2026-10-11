@@ -7208,7 +7208,7 @@ examMockBtn.onclick = () => {
   const lastProgram = stages.filter(st => st.grade === g).map(st => st.key);
   printRounds = 1; // 総合問題は1回分(類題が必要なら次の画面で周数をふやせる)
   startExamPrint(`入試形式の総合問題（中${g}までの全範囲）`, examConfig(`入試形式 総合問題（中${g}まで）`, {
-    keys, readingKeys: lastProgram,
+    keys, readingKeys: lastProgram, examReadingLevels: typeof EXAM_READING !== 'undefined' ? [g === 3 ? 'standard' : 'basic'] : undefined,
     vocabCounts: { ...emptyCounts(VOCAB_TYPES), vmeaning: 3, vword: 3 },
     grammarCounts: { ...emptyCounts(QUESTION_TYPES), form: 3, choice: 2, paraphrase: 2, extra: 2, error: 1, translate: 2 },
     dialogCount: 4, phraseCount: 3, readingCount: 1, readingLevel: 'program', writing: { condition: 1, free: 1 },
