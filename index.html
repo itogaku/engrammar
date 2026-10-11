@@ -455,6 +455,14 @@
   .ws-add { display: inline-block; margin: 4px 0 10px; background: var(--panel); }
   .ws-passage-change { float: right; margin: 0 0 6px 8px; }
   .sheet.teacher .ws-edit, .sheet.teacher .ws-add { display: none; }
+
+  .ws-editor { margin: 8px 0 4px; padding: 10px 12px; border: 1.5px solid var(--teal); border-radius: 8px; background: var(--teal-tint); display: flex; flex-direction: column; gap: 6px; }
+  .ws-editor label { font-size: 11.5px; font-weight: 700; color: var(--ink-soft); display: flex; flex-direction: column; gap: 2px; }
+  .ws-editor textarea, .ws-editor input { font: inherit; font-size: 14px; font-weight: 400; color: var(--ink); padding: 5px 8px; border: 1px solid var(--line); border-radius: 5px; background: #fff; resize: vertical; }
+  .ws-editor-actions { display: flex; gap: 6px; }
+  .edit-hint { font-size: 12.5px; color: var(--ink-soft); background: var(--panel); border: 1.5px dashed var(--line); border-radius: 8px; padding: 8px 12px; margin: 0 0 10px; line-height: 1.6; }
+  .edit-hint b { color: var(--teal); }
+  .ws-editor-actions .btn { flex: none; padding: 5px 14px; font-size: 13px; }
   @media print {
     @page { size: A4; margin: 14mm 14mm; }
     body { background: #fff; padding: 0; display: block; }
@@ -632,6 +640,7 @@
       </div>
     </div>
 
+    <div class="edit-hint no-print" id="editHint">✎ できたプリントは、問題ごとの右上のボタンで <b>直す</b>（文や解答を書きかえる）・<b>変える</b>（別の問題にする）・<b>消す</b> ができます。ボタンは印刷されません。</div>
     <div class="round-tabs no-print" id="roundTabs"></div>
     <div class="sheet" id="sheet">
       <div class="sheet-head">
@@ -5395,6 +5404,9 @@ function renderPrintOptions() {
   printGuideRow.style.display = isGuide ? 'block' : 'none';
   printPointsLabel.style.display = isTest ? '' : 'none';
   printRoundRow.style.display = isGuide ? 'none' : '';
+  editHint.innerHTML = isGuide
+    ? '✎ 問題ごとの右上の <b>直す</b> で、問題文や解答を書きかえられます。ボタンは印刷されません。'
+    : '✎ できたプリントは、問題ごとの右上のボタンで <b>直す</b>（文や解答を書きかえる）・<b>変える</b>（別の問題にする）・<b>消す</b> ができます。ボタンは印刷されません。';
   renderOptionSwitch(printRoundSwitch, [1, 2, 3, 4, 5, 6].map(n => [n, `${n}周`]), printRounds, v => {
     printRounds = v; generateWorksheet(printSeed);
   });
@@ -5633,6 +5645,7 @@ const SELECT_TYPES = new Set(['choice', 'usage', 'vmeaning', 'rchoice', 'rtf']);
 const SELF_GRADED_TYPES = new Set(['rja', 'entoja', 'vjp']);
 
 function answerText(item) {
+  if (item.custom && item.custom.answer != null && !SELECT_TYPES.has(item.type)) return escHtml(item.custom.answer);
   if (SELECT_TYPES.has(item.type)) {
     return item.type === 'rtf' ? item.answer : `${CHOICE_LABELS[item.options.indexOf(item.answer)]} ${item.answer}`;
   }
@@ -5651,6 +5664,11 @@ function isCorrect(item) {
   const answer = item.userAnswer || '';
   if (SELF_GRADED_TYPES.has(item.type)) return null;
   if (SELECT_TYPES.has(item.type)) return answer === item.answer;
+  // 先生が直した解答(「 / 」で区切ると、どれでも正解)
+  if (item.custom && item.custom.answer != null) {
+    const a = normalize(answer.replace(/\s*→\s*/g, ' → '));
+    return a !== '' && item.custom.answer.split(/\s+\/\s+|／/).some(x => normalize(x.replace(/\s*→\s*/g, ' → ')) === a);
+  }
   if (item.type === 'rewrite') return normalize(answer) !== '' && item.answers.some(a => normalize(a) === normalize(answer));
   if (item.type === 'paraphrase') return normalize(answer.replace(/[／/・]/g, ' ')) !== '' && normalize(answer.replace(/[／/・]/g, ' ')) === normalize(item.answer.replace(/ \/ /g, ' '));
   // 誤文訂正: 「正しい語」だけ、または「誤っている語 → 正しい語」を正解にする
@@ -5686,6 +5704,7 @@ function optionsHtml(item) {
 
 // 問題番号の横に出す文(日本語の意味・英単語・設問文)
 function itemPromptHtml(item) {
+  if (item.custom && item.custom.prompt != null) return escHtml(item.custom.prompt).replace(/\n/g, '<br>');
   if (item.section === 'vocab') {
     if (item.type === 'vmeaning' || item.type === 'vjp') return `<span class="ws-word">${item.word}</span>`;
     if (item.type === 'vword') return item.meaning;
@@ -5748,6 +5767,84 @@ function itemBodyHtml(item) {
   }
 }
 
+function escHtml(t) {
+  return String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+// 先生が直した英文を問題の本文に反映する(並べ替えは「 / 」で区切った語句、ほかは1行ずつ)
+function applyCustomBody(el, item) {
+  const c = item.custom;
+  if (!c || c.sentence == null) return;
+  const pieces = el.querySelector('.ws-pieces');
+  if (pieces) {
+    pieces.innerHTML = c.sentence.split(/\s*\/\s*/).filter(Boolean).map(t => `<span class="ws-piece"><span>${escHtml(t)}</span></span>`).join('');
+    return;
+  }
+  const lines = c.sentence.split('\n');
+  const sents = [...el.querySelectorAll('.ws-body .ws-sentence:not(.ws-wordcount)')];
+  sents.forEach((node, i) => {
+    const hint = node.querySelector('.ws-hint');
+    node.innerHTML = escHtml(lines[i] || '');
+    if (hint) node.appendChild(hint);
+  });
+  if (!sents.length && c.sentence.trim()) {
+    const node = document.createElement('div');
+    node.className = 'ws-sentence';
+    node.textContent = c.sentence;
+    el.querySelector('.ws-body').prepend(node);
+  }
+}
+function plainText(html) {
+  const d = document.createElement('div');
+  d.innerHTML = html;
+  d.querySelectorAll('.ws-tag').forEach(t => { t.textContent = ' ' + t.textContent; });
+  return d.textContent.replace(/\s+/g, ' ').trim();
+}
+// 「直す」: 問題文・英文・選択肢・解答をその場で書きかえる
+function openItemEditor(row) {
+  const item = row._item;
+  if (row.querySelector('.ws-editor')) return;
+  const body = row.querySelector('.ws-body');
+  const pieces = [...row.querySelectorAll('.ws-piece > span:first-child')].map(n => n.textContent);
+  const sents = [...row.querySelectorAll('.ws-body .ws-sentence:not(.ws-wordcount)')].map(n => {
+    const c = n.cloneNode(true); c.querySelectorAll('.ws-hint').forEach(h => h.remove()); return c.textContent.replace(/\s+/g, ' ').trim();
+  });
+  const sentence = pieces.length ? pieces.join(' / ') : sents.join('\n');
+  const isSelect = SELECT_TYPES.has(item.type);
+  const box = document.createElement('div');
+  box.className = 'ws-editor no-print';
+  box.innerHTML = `
+    <label>問題文<textarea data-f="prompt" rows="2"></textarea></label>
+    ${pieces.length || sents.length ? `<label>${pieces.length ? '語句（ / で区切る）' : '英文'}<textarea data-f="sentence" rows="${Math.max(1, sents.length)}"></textarea></label>` : ''}
+    ${item.options ? `<label>選択肢（ / で区切る）<input data-f="options"></label>` : ''}
+    <label>${isSelect ? '正解（記号か選択肢の文）' : '解答（ / で区切ると、どれでも正解）'}<input data-f="answer"></label>
+    <div class="ws-editor-actions"><button data-act="save" class="btn btn-primary btn-small">保存</button><button data-act="cancel" class="btn btn-ghost btn-small">やめる</button></div>`;
+  const f = name => box.querySelector(`[data-f="${name}"]`);
+  f('prompt').value = plainText(itemPromptHtml(item));
+  if (f('sentence')) f('sentence').value = sentence;
+  if (f('options')) f('options').value = item.options.join(' / ');
+  f('answer').value = isSelect ? item.answer : plainText(answerText(item));
+  body.after(box);
+  box.querySelector('[data-act="cancel"]').onclick = () => box.remove();
+  box.querySelector('[data-act="save"]').onclick = () => {
+    const c = { ...(item.custom || {}) };
+    if (f('prompt').value.trim() !== plainText(itemPromptHtml(item))) c.prompt = f('prompt').value.trim();
+    if (f('sentence') && f('sentence').value.trim() !== sentence) c.sentence = f('sentence').value.trim();
+    if (f('options')) item.options = f('options').value.split(/\s*\/\s*/).map(x => x.trim()).filter(Boolean);
+    const ans = f('answer').value.trim();
+    if (isSelect) {
+      const k = CHOICE_LABELS.indexOf(ans.replace(/[\s.．]/g, ''));
+      const pick = k >= 0 ? item.options[k] : item.options.find(o => o === ans || o.includes(ans));
+      if (!pick) { alert('正解は、選択肢の記号（ア・イ…）か選択肢の文で入れてください。'); return; }
+      item.answer = pick;
+    } else if (ans !== plainText(answerText(item))) {
+      c.answer = ans;
+    }
+    item.custom = c;
+    printEdited = true;
+    renderWorksheet();
+  };
+}
+
 function makeItemEl(item, num, typeLine) {
   const el = document.createElement('div');
   el.className = `ws-item t-${item.type}`;
@@ -5759,6 +5856,7 @@ function makeItemEl(item, num, typeLine) {
     <div class="ws-teacher">${SELF_GRADED_TYPES.has(item.type) ? '（例）' : ''}${answerText(item)}</div>
     <div class="ws-correct" style="display:none;"></div>
   `;
+  applyCustomBody(el, item);
   const input = el.querySelector('.ws-input');
   if (input) {
     input.value = item.userAnswer || '';
@@ -6048,7 +6146,7 @@ function assignPoints(items) {
 function renderWorksheet() {
   document.getElementById('sheet').classList.toggle('teacher', printTeacherCheck.checked);
   sheetNo.textContent = `No.${printSeed}${printEdited ? '（編集あり）' : ''}`;
-  if (printSource.kind === 'guide') { allWorksheetItems().forEach(it => { delete it.points; }); renderGuideWorksheet(); return; }
+  if (printSource.kind === 'guide') { allWorksheetItems().forEach(it => { delete it.points; }); renderGuideWorksheet(); addEditControls(); return; }
   renderRoundTabs();
   const roundLabel = roundCount() > 1 ? `（${activeRound + 1}周目）` : '';
   if (printSource.kind === 'stage') {
@@ -6418,8 +6516,8 @@ function replacePassage(r) {
 }
 // 画面のプリントに編集ボタンをつける(単元プリント・定期テスト。印刷には出ない)
 function addEditControls() {
-  if (printSource.kind === 'guide') return;
-  const rows = [...sheetItems.querySelectorAll('.ws-item')];
+  const guide = printSource.kind === 'guide';
+  const rows = [...sheetItems.querySelectorAll('.ws-item')].filter(r => r._item);
   rows.forEach(row => {
     const item = row._item;
     const bar = document.createElement('div');
@@ -6431,11 +6529,15 @@ function addEditControls() {
       b.onclick = fn;
       bar.appendChild(b);
     };
-    if (item.section !== 'reading') mk('変える', '', () => replaceItem(item));
-    mk('消す', '', () => removeItem(item));
-    if (excludeKey(item)) mk('今後出さない', 'danger', () => excludeItem(item));
+    mk('直す', '', () => openItemEditor(row));
+    if (!guide) {
+      if (item.section !== 'reading') mk('変える', '', () => replaceItem(item));
+      mk('消す', '', () => removeItem(item));
+      if (excludeKey(item)) mk('今後出さない', 'danger', () => excludeItem(item));
+    }
     row.querySelector('.ws-top').appendChild(bar);
   });
+  if (guide) return;
   // 形式ごとに「1問追加」(長文は長文ごと差しかえ)
   const lastOfType = new Map();
   rows.forEach(row => {
