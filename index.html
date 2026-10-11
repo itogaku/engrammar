@@ -531,7 +531,7 @@
     body.multi-round #sheet { display: none !important; }
     body.multi-round #roundsPrint { display: block !important; }
     .round-copy + .round-copy { break-before: page; page-break-before: always; }
-    .ws-answer textarea.ws-long { border-bottom: none; background: repeating-linear-gradient(transparent, transparent 33px, #000 33px, #000 34px) !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .ws-answer textarea.ws-long { resize: none; border-bottom: none; background: repeating-linear-gradient(transparent, transparent 33px, #000 33px, #000 34px) !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     .ws-exam-summary { break-after: page; page-break-after: always; border: 1px solid #000; }
     .ws-es-item { break-inside: avoid; }
     .round-tabs { display: none !important; }
@@ -6420,8 +6420,14 @@ function checkWorksheetScore() {
     sheetScore.textContent = pts;
     printScoreBanner.style.display = 'block';
     printScoreBanner.textContent = selfPts
-      ? `${pts}点 / ${ptsTotal}点（${score} / ${total} 問正解）　※日本語で答える問題（${selfPts}点分）は模範解答を見て自分で採点し、足すと${ptsTotal + selfPts}点満点です`
+      ? `${pts}点 / ${ptsTotal}点（${score} / ${total} 問正解）　※和訳・英作文など自分で採点する問題（${selfPts}点分）は模範解答を見て自分で採点し、足すと${ptsTotal + selfPts}点満点です`
       : `${pts}点 / ${ptsTotal}点（${score} / ${total} 問正解）`;
+    return;
+  }
+  if (total === 0) {
+    // 英作文・和訳だけのプリントは、すべて模範解答を見て自分で採点する
+    printScoreBanner.style.display = 'block';
+    printScoreBanner.textContent = '模範解答を表示しました。自分の答えと見くらべて採点しよう（英作文は、条件を守れているか・文法のまちがいがないかも確認）。';
     return;
   }
   showScore(score, total);
