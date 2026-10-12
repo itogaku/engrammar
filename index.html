@@ -530,6 +530,41 @@
   .ws-panels li { counter-increment: pn; }
   .ws-panels li::before { content: counter(pn, decimal) '．'; margin-left: -20px; display: inline-block; width: 20px; }
   .t-kform .ws-dialog, .t-korder .ws-dialog, .t-kscene .ws-dialog { margin-left: 36px; }
+
+  /* 解き方プリント */
+  .hw-page { padding: 4px 0 14px; }
+  .hw-page + .hw-page { border-top: 2px dashed var(--line); margin-top: 14px; padding-top: 14px; }
+  .hw-unit { font-family: var(--mincho); font-weight: 900; font-size: 20px; display: flex; align-items: center; gap: 10px; border-bottom: 2px solid var(--ink); padding-bottom: 6px; }
+  .hw-unit span { font-family: var(--gothic); font-size: 12px; background: var(--ink); color: #fff; padding: 2px 8px; border-radius: 3px; }
+  .hw-intro { font-size: 13px; color: var(--ink-soft); margin: 6px 0 10px; }
+  .hw-label { font-weight: 800; font-size: 13.5px; margin: 12px 0 6px; padding-left: 8px; border-left: 4px solid var(--amber); }
+  .hw-label-big { font-size: 16px; }
+  .hw-label small { font-weight: 400; font-size: 12px; color: var(--ink-soft); margin-left: 10px; }
+  .hw-steps { border: 1.5px solid var(--amber); border-radius: 8px; padding: 6px 12px 10px; background: var(--amber-tint); }
+  .hw-steps .hw-label { border: none; padding: 0; margin: 4px 0; color: var(--amber); }
+  .hw-steprow { display: flex; gap: 8px; align-items: flex-start; font-size: 13px; line-height: 1.65; margin: 5px 0; }
+  .hw-step { flex-shrink: 0; font-size: 11.5px; font-weight: 800; color: #fff; background: var(--amber); border-radius: 10px; padding: 1px 8px; margin-top: 2px; }
+  .hw-problem { border: 1px solid var(--ink-soft); border-radius: 6px; padding: 8px 12px; margin: 4px 0 8px; }
+  .hw-instr { font-size: 13px; font-weight: 700; margin-bottom: 6px; }
+  .hw-body { font-family: var(--sheet-font); font-size: 14px; line-height: 1.75; }
+  .hw-line { display: flex; gap: 8px; }
+  .hw-line b { flex-shrink: 0; }
+  .hw-note { font-size: 12px; color: var(--ink-soft); }
+  .hw-options { display: flex; flex-wrap: wrap; gap: 4px 22px; font-family: var(--sheet-font); font-size: 14px; margin-top: 6px; }
+  .hw-table { margin: 8px 0; }
+  .hw-chart { margin: 8px 0; }
+  .hw-walk { border-top: 1px dashed var(--line); padding-top: 4px; }
+  .hw-exans { font-size: 13.5px; margin-top: 6px; }
+  .hw-box { display: inline-block; min-width: 3.4em; border: 1.5px solid var(--ink); border-radius: 3px; text-align: left; padding: 0 4px; margin: 0 3px; font-size: 11px; line-height: 1.6; }
+  .hw-guide { border: 1.5px dashed var(--teal); border-radius: 8px; padding: 6px 12px; }
+  .hw-ansline { margin: 10px 0 4px; font-size: 13px; font-weight: 700; display: flex; align-items: flex-end; gap: 8px; }
+  .hw-ansline span { flex: 1; max-width: 360px; border-bottom: 1px solid var(--ink); height: 22px; }
+  .hw-practice { display: flex; gap: 8px; align-items: flex-start; flex-wrap: wrap; margin-bottom: 10px; }
+  .hw-pno { font-weight: 800; width: 22px; }
+  .hw-practice .hw-problem { flex: 1; min-width: 0; }
+  .hw-practice .hw-ansline { flex-basis: 100%; margin-left: 30px; }
+  .hw-ansblock { font-size: 13px; line-height: 1.7; border-bottom: 1px dashed var(--line); padding: 6px 0; }
+  .hw-blanks { display: flex; flex-wrap: wrap; gap: 4px 16px; margin: 4px 0; }
   @media print {
     @page { size: A4; margin: 14mm 14mm; }
     body { background: #fff; padding: 0; display: block; }
@@ -558,6 +593,9 @@
     body.multi-round #roundsPrint { display: block !important; }
     .round-copy + .round-copy { break-before: page; page-break-before: always; }
     .ws-answer textarea.ws-long { resize: none; border-bottom: none; background: repeating-linear-gradient(transparent, transparent 33px, #000 33px, #000 34px) !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .hw-page + .hw-page { break-before: page; page-break-before: always; border-top: none; margin-top: 0; }
+    .hw-steps, .hw-step { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .hw-practice, .hw-problem { break-inside: avoid; }
     .ws-exam-summary { break-after: page; page-break-after: always; border: 1px solid #000; }
     .ws-ch-key { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     .ws-es-item { break-inside: avoid; }
@@ -592,6 +630,10 @@
   <!-- 入試対策 -->
   <div id="screenExam" style="display:none;">
     <p class="program-note">高校入試に向けて、3年間の内容をまとめて練習するプリントです。どれも「何周するか」や配点・解答ページは次の画面で選べ、できたプリントは問題ごとに直す・変える・消すができます。</p>
+    <div class="card test-card exam-card" id="howtoCard">
+      <div class="exam-head">解き方を学ぶ<span>問題の形式ごとに「例題と解き方（3つの手順）→ 手順にそって解くチェック問題 → 実践問題 → 解答・解説」</span></div>
+      <div class="exam-rounds" id="howtoList"></div>
+    </div>
     <div class="card test-card exam-card">
       <div class="exam-head">文法の総まとめ<span>章ごとに「まとめ（重要度★・例文・ポイント）→ 入試レベルの問題（適語選択・適語補充・並べかえ・同意文）」</span></div>
       <div class="exam-rounds" id="examRoundList"></div>
@@ -763,7 +805,7 @@
         <div class="opt-sec-head" id="printQHead">問題</div>
         <div class="print-source-note" id="printSourceNote" style="display:none;"></div>
         <div id="printGuideRow" style="display:none;">
-          <div class="opt-note">1つの単元を「説明と確認の問題 → くわしい解説と解答 → 練習問題 → 解答」の4ページで学びます。両面印刷（長辺とじ）にすると、問題の裏が解答になります。</div>
+          <div class="opt-note" id="printGuideNote">1つの単元を「説明と確認の問題 → くわしい解説と解答 → 練習問題 → 解答」の4ページで学びます。両面印刷（長辺とじ）にすると、問題の裏が解答になります。</div>
         </div>
         <div class="opt-row" id="printCountRow"><span class="opt-label">1周の問題数</span><div class="mode-switch" id="printCountSwitch"></div></div>
         <div class="opt-row" id="printTypeRow"><span class="opt-label">問題の種類</span><div class="chip-switch" id="printTypeSwitch"></div></div>
@@ -896,6 +938,9 @@
 <script src="exam_reading_2.js"></script>
 <script src="exam_chiba.js"></script>
 <script src="exam_chiba_reading.js"></script>
+<script src="howto_1.js"></script>
+<script src="howto_2.js"></script>
+<script src="howto_3.js"></script>
 <script>
 // STAGE type "chunk": 日本語チャンクを英語と同じ語順に並べ替える(単語を知らなくても語順感覚を養う)
 // STAGE type "word": 実際の英単語タイルを並べ替える
@@ -5590,7 +5635,11 @@ function countQuestions() {
 
 function renderPrintOptions() {
   const isTest = printSource.kind === 'test';
-  const isGuide = printSource.kind === 'guide';
+  const isHowto = printSource.kind === 'howto';
+  const isGuide = printSource.kind === 'guide' || isHowto;
+  printGuideNote.textContent = isHowto
+    ? '「例題と解き方 → 解き方チェック問題（手順にそって空欄をうめながら解く）→ 実践問題 → 解答・解説」の4ページで、問題の解き方の手順を身につけます。'
+    : '1つの単元を「説明と確認の問題 → くわしい解説と解答 → 練習問題 → 解答」の4ページで学びます。両面印刷（長辺とじ）にすると、問題の裏が解答になります。';
   printCountRow.style.display = isTest || isGuide ? 'none' : 'flex';
   printGuideRow.style.display = isGuide ? 'block' : 'none';
   printPointsLabel.style.display = isTest ? '' : 'none';
@@ -5681,6 +5730,12 @@ function generateWorksheet(seed) {
   // プリント番号(乱数の種)。番号を指定すると同じ問題を作り直せる
   printSeed = typeof seed === 'number' ? seed : 100000 + Math.floor(Math.random() * 900000);
   seedRandom(printSeed);
+  if (printSource.kind === 'howto') {
+    vocabItems = []; printItems = []; readingItems = []; examItems = []; roundSets = [];
+    renderPrintOptions();
+    renderWorksheet();
+    return;
+  }
   if (printSource.kind === 'guide') {
     generateGuideWorksheet();
     printChunkLevel = 1;
@@ -5737,7 +5792,7 @@ function useRound(i) {
   vocabItems = r.vocab; printItems = r.grammar; readingItems = r.reading; examItems = r.exam || [];
 }
 function roundCount() {
-  return printSource.kind === 'guide' ? 1 : roundSets.length;
+  return printSource.kind === 'guide' || printSource.kind === 'howto' ? 1 : roundSets.length;
 }
 function renderRoundTabs() {
   const n = roundCount();
@@ -6419,6 +6474,7 @@ function renderWorksheet() {
   document.getElementById('sheet').classList.toggle('teacher', printTeacherCheck.checked);
   sheetNo.textContent = '';
   if (printSource.kind === 'guide') { allWorksheetItems().forEach(it => { delete it.points; }); renderGuideWorksheet(); addEditControls(); return; }
+  if (printSource.kind === 'howto') { renderHowtoWorksheet(); return; }
   renderRoundTabs();
   const roundLabel = roundCount() > 1 ? `（${activeRound + 1}周目）` : '';
   if (printSource.kind === 'stage') {
@@ -6648,6 +6704,7 @@ function saveNav() {
 function tabOfScreen(name) {
   if (name === 'test') return 'test';
   if (name === 'exam') return 'exam';
+  if (name === 'print' && printSource.kind === 'howto') return 'exam';
   if (name === 'print' && printSource.kind === 'test' && /^(入試|千葉)/.test(printSource.config.name || '')) return 'exam';
   if (name === 'grade') return 'history';
   if (name === 'practice') return 'practice';
@@ -7166,7 +7223,106 @@ function renderChibaParts() {
   });
 }
 
+// ---------- 解き方を学ぶプリント ----------
+// 1ユニット = 例題と解き方(3ステップ) → 解き方チェック問題(手順にそって空欄をうめる) → 実践問題 → 解答・解説
+function hwText(t) {
+  return String(t).replace(/〔([①-⑳])〕/g, '<span class="hw-box">$1</span>');
+}
+function hwChartSvg(c) {
+  const W = 560, H = 230, L = 46, R = 12, T = 26, B = 40;
+  const all = c.series.flatMap(sr => sr.values);
+  const max = Math.max(...all) * 1.12 || 1;
+  const step = Math.pow(10, Math.floor(Math.log10(max))) / (max / Math.pow(10, Math.floor(Math.log10(max))) > 5 ? 1 : 2);
+  const y = v => T + (H - T - B) * (1 - v / max);
+  const n = c.labels.length;
+  const colW = (W - L - R) / n;
+  const colors = ['#18212E', '#8FA3B8', '#C04A33'];
+  let g = '';
+  for (let v = 0; v <= max; v += step) g += `<line x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}" stroke="#D3DAE1"/><text x="${L - 5}" y="${y(v) + 4}" font-size="10" text-anchor="end">${+v.toFixed(2)}</text>`;
+  c.labels.forEach((lb, i) => { g += `<text x="${L + colW * (i + 0.5)}" y="${H - B + 15}" font-size="10.5" text-anchor="middle">${lb}</text>`; });
+  c.series.forEach((sr, si) => {
+    if (c.type === 'line') {
+      const pts = sr.values.map((v, i) => `${L + colW * (i + 0.5)},${y(v)}`).join(' ');
+      g += `<polyline points="${pts}" fill="none" stroke="${colors[si]}" stroke-width="2"${si ? ' stroke-dasharray="5 3"' : ''}/>` + sr.values.map((v, i) => `<circle cx="${L + colW * (i + 0.5)}" cy="${y(v)}" r="3" fill="${colors[si]}"/>`).join('');
+    } else {
+      const bw = colW * 0.7 / c.series.length;
+      sr.values.forEach((v, i) => { g += `<rect x="${L + colW * i + colW * 0.15 + bw * si}" y="${y(v)}" width="${bw - 2}" height="${y(0) - y(v)}" fill="${colors[si]}"/>`; });
+    }
+  });
+  const legend = c.series.length > 1 ? c.series.map((sr, si) => `<rect x="${L + si * 110}" y="${H - 14}" width="10" height="10" fill="${colors[si]}"/><text x="${L + 14 + si * 110}" y="${H - 5}" font-size="10.5">${sr.name}</text>`).join('') : '';
+  return `<div class="hw-chart"><svg viewBox="0 0 ${W} ${H}" width="100%" style="max-width:${W}px"><text x="${L}" y="14" font-size="12" font-weight="700">${c.title || ''}</text><text x="${W - R}" y="14" font-size="10" text-anchor="end">${c.unit ? `（単位：${c.unit}）` : ''}</text><line x1="${L}" x2="${L}" y1="${T}" y2="${y(0)}" stroke="#18212E"/><line x1="${L}" x2="${W - R}" y1="${y(0)}" y2="${y(0)}" stroke="#18212E"/>${g}${legend}</svg></div>`;
+}
+function hwProblemHtml(p) {
+  const lines = String(p.body || '').split('\n').map(line => {
+    const m = line.match(/^([A-Z][A-Za-z.]*|[^\s:：]{1,8})[:：]\s(.*)$/);
+    return m && !/^（注）/.test(line) ? `<div class="hw-line"><b>${m[1]}:</b><span>${hwText(m[2])}</span></div>` : `<div class="hw-line${/^（注）/.test(line) ? ' hw-note' : ''}"><span>${hwText(line)}</span></div>`;
+  }).join('');
+  const table = p.table ? `<table class="ws-ch-table hw-table">${p.table.map((row, r) => `<tr>${row.map(c => r === 0 ? `<th>${c}</th>` : `<td>${c}</td>`).join('')}</tr>`).join('')}</table>` : '';
+  const opts = p.options ? `<div class="hw-options">${p.options.map((o, k) => `<span><b>${CHOICE_LABELS5[k] || ''}</b> ${o}</span>`).join('')}</div>` : '';
+  return `<div class="hw-problem"><div class="hw-instr">${p.instr || ''}</div><div class="hw-body">${lines}</div>${table}${p.chart ? hwChartSvg(p.chart) : ''}${opts}</div>`;
+}
+function renderHowtoWorksheet() {
+  const u = (typeof HOWTO_UNITS !== 'undefined' ? HOWTO_UNITS : []).find(x => x.no === printSource.unit);
+  sheetTitle.textContent = u ? `解き方プリント UNIT ${u.no} ${u.title}` : '解き方プリント';
+  sheetSub.textContent = u ? u.part : '';
+  sheetTotal.textContent = '';
+  sheetScore.textContent = '';
+  sheetInstr.style.display = 'none';
+  printScoreBanner.style.display = 'none';
+  answerList.innerHTML = '';
+  answerSheet.classList.remove('include');
+  renderRoundTabs();
+  if (!u) { sheetItems.innerHTML = ''; return; }
+  const stepBadge = n => `<span class="hw-step">✓${n}</span>`;
+  const ex = u.example, ck = u.check;
+  let bno = 0;
+  const page1 = `<div class="hw-page">
+    <div class="hw-unit"><span>UNIT ${u.no}</span>${u.title}</div>
+    <p class="hw-intro">${u.intro || ''}</p>
+    <div class="hw-steps"><div class="hw-label">解き方</div>${u.steps.map((st, i) => `<div class="hw-steprow">${stepBadge(i + 1)}<div><b>${st.title}</b><div>${st.text}</div></div></div>`).join('')}</div>
+    <div class="hw-label">例題</div>${hwProblemHtml(ex)}
+    <div class="hw-walk"><div class="hw-label">例題の解き方</div>${ex.walkthrough.map(w => `<div class="hw-steprow">${stepBadge(w.step)}<div>${hwText(w.text)}</div></div>`).join('')}
+      <div class="hw-exans">例題の答え：<b>${ex.answer}</b></div></div>
+  </div>`;
+  const page2 = `<div class="hw-page">
+    <div class="hw-label hw-label-big">解き方チェック問題</div>${hwProblemHtml(ck)}
+    <div class="hw-label">解き方を使って解いてみよう</div>
+    <div class="hw-guide">${ck.guide.map(gd => `<div class="hw-steprow">${stepBadge(gd.step)}<div>${hwText(gd.text)}</div></div>`).join('')}</div>
+    <div class="hw-ansline">答え <span></span></div>
+  </div>`;
+  const page3 = `<div class="hw-page">
+    <div class="hw-label hw-label-big">実践問題<small>解き方の ✓1〜✓3 を思い出しながら、自分で解こう</small></div>
+    ${u.practice.map((pr, i) => `<div class="hw-practice"><div class="hw-pno">${i + 1}</div>${hwProblemHtml(pr)}<div class="hw-ansline">答え <span></span></div></div>`).join('')}
+  </div>`;
+  const blanks = ck.guide.flatMap(gd => gd.blanks || []);
+  const page4 = `<div class="hw-page hw-answers">
+    <div class="hw-label hw-label-big">解答・解説</div>
+    <div class="hw-ansblock"><b>解き方チェック問題</b>　答え：<b>${ck.answer}</b>
+      <div class="hw-blanks">${blanks.map((b, i) => `<span><span class="hw-box">${'①②③④⑤⑥⑦⑧⑨⑩'[i]}</span>${b}</span>`).join('')}</div>
+      <div>${ck.explanation || ''}</div></div>
+    ${u.practice.map((pr, i) => `<div class="hw-ansblock"><b>実践問題 ${i + 1}</b>　答え：<b>${pr.answer}</b><div>${pr.explanation || ''}</div></div>`).join('')}
+  </div>`;
+  sheetItems.innerHTML = page1 + page2 + page3 + (printIncludeAnswers.checked ? page4 : '');
+}
+function renderHowtoList() {
+  howtoList.innerHTML = '';
+  const units = (typeof HOWTO_UNITS !== 'undefined' ? HOWTO_UNITS : []).slice().sort((a, b) => a.no - b.no);
+  howtoCard.style.display = units.length ? '' : 'none';
+  units.forEach(u => {
+    const b = document.createElement('button');
+    b.className = 'exam-round';
+    b.innerHTML = `<b>UNIT ${u.no}・${u.part.replace('編', '')}</b>${u.title}`;
+    b.onclick = () => {
+      printSource = { kind: 'howto', unit: u.no, config: { name: `入試 解き方 UNIT ${u.no}` } };
+      showScreen('print');
+      generateWorksheet();
+    };
+    howtoList.appendChild(b);
+  });
+}
+
 function renderExamScreen() {
+  renderHowtoList();
   renderChibaParts();
   examRoundList.innerHTML = '';
   const chapters = typeof EXAM_GRAMMAR !== 'undefined' ? Object.entries(EXAM_GRAMMAR).sort((a, b) => a[1].no - b[1].no) : [];
