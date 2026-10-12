@@ -523,6 +523,13 @@
   .ws-passage-table { margin: 6px 0 4px; }
   .ws-reading-tips { border: 1.5px solid var(--ink); border-radius: 6px; padding: 10px 14px; margin: 8px 0 14px; font-size: 12.5px; line-height: 1.6; }
   .ws-reading-tips ol { margin: 0; padding-left: 20px; }
+
+  .exam-round.main { border-color: var(--amber); background: var(--amber-tint); }
+  .exam-round:disabled { opacity: .45; cursor: default; }
+  .ws-panels { margin: 2px 0 6px 36px; padding-left: 20px; font-size: 13px; color: var(--ink-soft); line-height: 1.6; list-style: none; counter-reset: pn; }
+  .ws-panels li { counter-increment: pn; }
+  .ws-panels li::before { content: counter(pn, decimal) '．'; margin-left: -20px; display: inline-block; width: 20px; }
+  .t-kform .ws-dialog, .t-korder .ws-dialog, .t-kscene .ws-dialog { margin-left: 36px; }
   @media print {
     @page { size: A4; margin: 14mm 14mm; }
     body { background: #fff; padding: 0; display: block; }
@@ -637,6 +644,11 @@
       <div class="opt-row"><span class="opt-label">範囲</span><div class="mode-switch" id="examVocabRange"></div></div>
       <div class="opt-row"><span class="opt-label">問題数</span><div class="mode-switch" id="examVocabCount"></div></div>
       <button class="btn btn-primary exam-make" id="examVocabBtn">入試単語のプリントを作る</button>
+    </div>
+    <div class="card test-card exam-card chiba-card">
+      <div class="exam-head">千葉県公立入試形式<span>本番と同じ大問の順番・形式（リスニングの大問1〜4はのぞく）</span></div>
+      <div class="exam-rounds" id="chibaParts"></div>
+      <div class="opt-note">場面英作文（大問6）は、本番のイラストのかわりに場面を日本語で示しています。</div>
     </div>
     <div class="card test-card exam-card">
       <div class="exam-head">入試形式の総合問題<span>単語・文法・会話表現・重要表現・長文をまとめた1回分（100点）</span></div>
@@ -882,6 +894,8 @@
 <script src="exam_grammar_basic.js"></script>
 <script src="exam_reading_1.js"></script>
 <script src="exam_reading_2.js"></script>
+<script src="exam_chiba.js"></script>
+<script src="exam_chiba_reading.js"></script>
 <script>
 // STAGE type "chunk": 日本語チャンクを英語と同じ語順に並べ替える(単語を知らなくても語順感覚を養う)
 // STAGE type "word": 実際の英単語タイルを並べ替える
@@ -4450,6 +4464,7 @@ function rewriteSentence(tokens, jp, kind) {
 }
 
 const CHOICE_LABELS = ['ア', 'イ', 'ウ', 'エ'];
+const CHOICE_LABELS5 = ['ア', 'イ', 'ウ', 'エ', 'オ'];
 const QUESTION_TYPES = {
   reorder:   { label: '並べ替え', instr: '日本語に合うように、下の語句を並べ替えて英文を書きなさい。文頭に来る語も小文字で示してあります。' },
   choice:    { label: '適語選択', instr: '日本語に合うように、（　）に入る最も適切な語を選びなさい。' },
@@ -5105,12 +5120,24 @@ function readingPassagesFor(stageList, level = 'both') {
     && (level === 'both' || (p.level || 'program') === level));
 }
 const EXAM_READING_LEVELS = { basic: '入門（200〜280語）', standard: '標準（300〜400語）', advanced: '発展（400語〜）' };
+const CHIBA_READING_LABELS = { chiba7p: '発表・スライド', chiba7n: 'お知らせ・広告', chiba9: '対話文' };
 function passageLabel(p) {
+  if (p.id && CHIBA_READING_LABELS[p.level]) return `千葉県形式・${CHIBA_READING_LABELS[p.level]}`;
   if (p.id) return `入試長文・${(EXAM_READING_LEVELS[p.level] || '').replace(/（.*/, '')}`;
   return `中${p.grade} P${p.program}${p.level === 'part' ? ` Part ${p.part}` : ''}`;
 }
 
 function generateReadingItems(stageList, cfg, usedBefore = new Set()) {
+  if (cfg.examReadingPlan && typeof EXAM_READING !== 'undefined') {
+    // 大問の順に、レベル(種類)ごとに1題ずつ(前の周で使ったものはあとまわし)
+    const picked = cfg.examReadingPlan.map(level => {
+      const pool = shuffle(EXAM_READING.filter(p => level.split('|').includes(p.level)));
+      const p = pool.find(x => !usedBefore.has(x)) || pool[0];
+      if (p) usedBefore.add(p);
+      return p;
+    }).filter(Boolean);
+    return picked.map(p => readingItemOf(p));
+  }
   const passages = shuffle(cfg.examReadingLevels
     ? (typeof EXAM_READING !== 'undefined' ? EXAM_READING.filter(p => cfg.examReadingLevels.includes(p.level)) : [])
     : readingPassagesFor(stageList, cfg.readingLevel || 'both'));
@@ -5118,7 +5145,10 @@ function generateReadingItems(stageList, cfg, usedBefore = new Set()) {
   picked.forEach(p => usedBefore.add(p));
   picked
     .sort((a, b) => a.grade - b.grade || a.program - b.program || (a.part || 9) - (b.part || 9));
-  return picked.map(p => ({
+  return picked.map(p => readingItemOf(p));
+}
+function readingItemOf(p) {
+  return ({
     section: 'reading', passage: p,
     subs: p.questions.map(q => {
       const base = { section: 'reading', q: q.q };
@@ -5128,7 +5158,7 @@ function generateReadingItems(stageList, cfg, usedBefore = new Set()) {
       if (q.type === 'ea') return { ...base, type: 'rea', answer: q.answer };
       return { ...base, type: 'rja', answer: q.answer };
     }),
-  }));
+  });
 }
 
 // ---------- 解説つきプリント(初学者向け) ----------
@@ -5805,7 +5835,7 @@ function shuffledPieces(item) {
 
 const SELECT_TYPES = new Set(['choice', 'usage', 'vmeaning', 'rchoice', 'rtf', 'cdialog', 'xchoice']);
 // 日本語で答える問題は、模範解答を見て自分で採点する
-const SELF_GRADED_TYPES = new Set(['rja', 'rea', 'entoja', 'vjp', 'cwtrans', 'cwcond', 'cwfree', 'cetoj']);
+const SELF_GRADED_TYPES = new Set(['kscene', 'rja', 'rea', 'entoja', 'vjp', 'cwtrans', 'cwcond', 'cwfree', 'cetoj']);
 
 function answerText(item) {
   if (item.custom && item.custom.answer != null && !SELECT_TYPES.has(item.type)) return escHtml(item.custom.answer);
@@ -5822,6 +5852,9 @@ function answerText(item) {
   if (item.type === 'cform') return item.answers.join('　');
   if (item.type === 'xfill' || item.type === 'xpara') return item.answers.join(' / ');
   if (item.type === 'xorder') return item.answer;
+  if (item.type === 'kform') return item.answer;
+  if (item.type === 'korder') return `${item.order.map(k => CHOICE_LABELS5[k]).join('→')}<span class="ans-why">${item.sentence}</span>`;
+  if (item.type === 'kscene') return `${item.answers[0]}${item.answers.slice(1).map(a => `<span class="ans-why">別解：${a}</span>`).join('')}`;
   if (['form', 'fillin', 'vword', 'vblank', 'vidiom', 'vjp', 'entoja', 'rfill', 'rja', 'rea'].includes(item.type)) return item.answer;
   if (item.type === 'rewrite') return item.answerSentence;
   if (item.type === 'error') return `${item.wrongWord} → ${item.answer}`;
@@ -5855,6 +5888,11 @@ function isCorrect(item) {
     return words.length > 0 && words[words.length - 1] === want && (words.length === 1 || (words.length === 2 && words[0] === item.wrongWord.toLowerCase()));
   }
   if (item.type === 'xorder') return normalize(answer) !== '' && normalize(answer) === normalize(item.answer);
+  if (item.type === 'kform') return normalize(answer) !== '' && normalize(answer) === normalize(item.answer);
+  if (item.type === 'korder') {
+    const got = (answer.match(/[アイウエオ]/g) || []).join('');
+    return got === item.order.map(k => CHOICE_LABELS5[k]).join('');
+  }
   if (item.type === 'cphrase' || item.type === 'cfree') {
     // 意味の区別がつかない言いかえ(Could / Would you など)は、どちらでも正解にする
     const got = answer.replace(/[／/・,、]/g, ' ').toLowerCase().split(/\s+/).filter(Boolean);
@@ -5907,6 +5945,8 @@ function itemPromptHtml(item) {
   if (item.type === 'cwtrans') return item.jp;
   if (['xchoice', 'xfill', 'xorder'].includes(item.type)) return item.jp || '';
   if (item.type === 'xpara') return '';
+  if (item.type === 'kform' || item.type === 'korder') return '';
+  if (item.type === 'kscene') return item.scene;
   if (item.type === 'cwcond' || item.type === 'cwfree') return item.task;
   if (item.type === 'cetoj') return `<span class="ws-en">${item.en}</span>`;
   if (item.type === 'cform') return `<span class="ws-word">${item.word}</span><span class="ws-cmean">（${item.meaning}）</span>`;
@@ -5967,6 +6007,16 @@ function itemBodyHtml(item) {
       return `<div class="ws-dialog">${item.lines.map(([who, text]) => `<b>${who}:</b><span>${text === null ? '<span class="ws-blank">（　　　　　　　　）</span>' : text}</span>`).join('')}</div>${optionsHtml(item)}`;
     case 'cwtrans':
       return answerLineHtml('英文を書こう');
+    case 'kform': case 'korder': {
+      const line = t => (t === null ? '<span class="ws-blank">（　　　　　　）</span>'
+        : item.type === 'korder' ? t.replace(/\(\s*_+\s*\)/, `（ ${item.words.map((w, k) => `${CHOICE_LABELS5[k]} ${w}`).join('　')} ）`) : t);
+      return `<div class="ws-dialog">${item.lines.map(([who, t]) => `<b>${who}:</b><span>${line(t)}</span>`).join('')}</div>${answerLineHtml(item.type === 'korder' ? '符号を順に（例：イウアオエ）' : '1語で書こう', 'short')}`;
+    }
+    case 'kscene':
+      return `<ol class="ws-panels">${item.panels.map(pn => `<li>${pn.replace(/^[①-④]\s*/, '')}</li>`).join('')}</ol>
+        <div class="ws-dialog">${item.dialogue.map(([who, t]) => `<b>${who}:</b><span>${t === null ? '<span class="ws-blank">（　　　　　　　　　　）</span>' : t}</span>`).join('')}</div>
+        <div class="ws-conditions">【条件】${item.limit}</div>
+        <div class="ws-answer"><textarea class="ws-input ws-long" rows="${/25/.test(item.limit) ? 3 : 2}" placeholder="英語で書こう"></textarea><span class="ws-mark"></span></div>`;
     case 'xchoice':
       return `<div class="ws-sentence">${examBlanks(item.en)}</div>${optionsHtml(item)}`;
     case 'xfill':
@@ -6339,7 +6389,7 @@ function renderGuideWorksheet() {
 const POINT_WEIGHTS = {
   vmeaning: 1, vjp: 2, vword: 2, vblank: 2, vidiom: 2,
   choice: 2, usage: 2, fillin: 2, form: 2, error: 3, extra: 3, reorder: 3, rewrite: 3, paraphrase: 3, translate: 4, entoja: 4,
-  rchoice: 3, rtf: 2, rfill: 3, rja: 4, rea: 4, cdialog: 3, cphrase: 3, cform: 2, cfree: 3, cwtrans: 4, cwcond: 5, cwfree: 10, cetoj: 4, xchoice: 2, xfill: 3, xorder: 3, xpara: 3,
+  rchoice: 3, rtf: 2, rfill: 3, rja: 4, rea: 4, cdialog: 3, cphrase: 3, cform: 2, cfree: 3, cwtrans: 4, cwcond: 5, cwfree: 10, cetoj: 4, xchoice: 2, xfill: 3, xorder: 3, xpara: 3, kform: 3, korder: 3, kscene: 6,
 };
 function assignPoints(items) {
   items.forEach(it => { delete it.points; });
@@ -6594,7 +6644,7 @@ function saveNav() {
 function tabOfScreen(name) {
   if (name === 'test') return 'test';
   if (name === 'exam') return 'exam';
-  if (name === 'print' && printSource.kind === 'test' && /^入試/.test(printSource.config.name || '')) return 'exam';
+  if (name === 'print' && printSource.kind === 'test' && /^(入試|千葉)/.test(printSource.config.name || '')) return 'exam';
   if (name === 'grade') return 'history';
   if (name === 'practice') return 'practice';
   if (name === 'print') return printSource.kind === 'test' ? 'test' : printSource.kind === 'guide' ? 'guide' : 'print';
@@ -6742,6 +6792,7 @@ function addItemOfType(section, type) {
 }
 function replacePassage(r) {
   const cfg = { ...printSource.config, readingCount: 1 };
+  if (cfg.examReadingPlan) cfg.examReadingPlan = [r.passage.level];
   const current = readingItems.map(x => x.passage);
   const [next] = generateReadingItems(sourceStages(), cfg, new Set(current));
   if (!next || current.includes(next.passage)) { alert('この範囲では、ほかに出せる長文がありません。'); return; }
@@ -6804,6 +6855,9 @@ const EXAM_TYPES = {
   cdialog: { label: '会話表現', instr: '対話が成り立つように、（　）に入る最も適切なものをア〜エから選びなさい。' },
   cphrase: { label: '重要表現', instr: '日本語に合うように、（　）に適切な英語を1語ずつ入れなさい。' },
   cform: { label: '語形変化', instr: '次の語の変化形を書きなさい。' },
+  kform: { label: '対話文完成（語形変化）', instr: '対話文が成り立つように、（　）の中の語を最も適当な形にしなさい。ただし、英単語1語で答えること。' },
+  korder: { label: '対話文完成（並べかえ）', instr: '対話文が成り立つように、（　）の中のア〜オを正しい語順に並べかえ、その順序を符号で示しなさい。' },
+  kscene: { label: '場面英作文', instr: '場面に合うように、（　）に入る英語を書きなさい。ただし、,.?! などの符号は語数に含めない。' },
   xchoice: { label: '適語選択', instr: '（　）に入る最も適切なものをア〜エから選びなさい。' },
   xfill: { label: '適語補充', instr: '日本語に合うように、（　）に適切な語を1語ずつ入れなさい。' },
   xorder: { label: '並べかえ', instr: '日本語に合うように、（　）内の語句を並べかえて英文を書きなさい。' },
@@ -6874,6 +6928,13 @@ function generateExamItems(cfg, used) {
     picked.sort((a, b) => (String(a.i)[0] === 'b' ? 0 : 1) - (String(b.i)[0] === 'b' ? 0 : 1));
     picked.forEach(q => out.push(examGrammarItem(cfg.chapter, q)));
   }
+  if (typeof CHIBA_FORM !== 'undefined') {
+    if (cfg.chibaForm) take(CHIBA_FORM.map((x, i) => ({ ...x, i })), cfg.chibaForm, x => `e|kform|kf${x.i}`).forEach(x => out.push(chibaFormItem(x)));
+    if (cfg.chibaOrder) take(CHIBA_ORDER.map((x, i) => ({ ...x, i })), cfg.chibaOrder, x => `e|korder|ko${x.i}`).forEach(x => out.push(chibaOrderItem(x)));
+    const scenes = CHIBA_SCENE.map((x, i) => ({ ...x, i }));
+    if (cfg.chibaScene10) take(scenes.filter(x => /10/.test(x.limit)), cfg.chibaScene10, x => `e|kscene|ks${x.i}`).forEach(x => out.push(chibaSceneItem(x)));
+    if (cfg.chibaScene25) take(scenes.filter(x => /25/.test(x.limit)), cfg.chibaScene25, x => `e|kscene|ks${x.i}`).forEach(x => out.push(chibaSceneItem(x)));
+  }
   if (cfg.freePhraseCount && typeof EXAM_FREE_PHRASES !== 'undefined') {
     const pool = EXAM_FREE_PHRASES.map((ph, i) => ({ ...ph, i })).filter(ph => !cfg.freeThemes || !cfg.freeThemes.length || cfg.freeThemes.includes(ph.theme));
     take(pool, cfg.freePhraseCount, ph => `e|cfree|f${ph.i}`).forEach(ph => out.push(examPhraseItem(ph, 'f', 'cfree')));
@@ -6929,6 +6990,15 @@ function examGrammarItem(chapter, q) {
   if (q.type === 'order') return { ...base, words: shuffle([...q.words]), answer: q.answer };
   return { ...base, en1: q.en1, en2: q.en2, answers: q.answers };
 }
+function chibaFormItem(x) {
+  return { section: 'exam', type: 'kform', key: `kf${x.i}`, lines: x.lines, answer: x.answer, why: x.point };
+}
+function chibaOrderItem(x) {
+  return { section: 'exam', type: 'korder', key: `ko${x.i}`, lines: x.lines, words: x.words, order: x.answer, sentence: x.sentence, why: x.point };
+}
+function chibaSceneItem(x) {
+  return { section: 'exam', type: 'kscene', key: `ks${x.i}`, scene: x.scene, panels: x.panels, dialogue: x.dialogue, limit: x.limit, answers: x.answers, answer: x.answers[0], why: x.point };
+}
 function examEtojItem(x) {
   return { section: 'exam', type: 'cetoj', key: `t${x.i}`, en: x.en, answer: x.jp, point: x.point, hint: x.hint };
 }
@@ -6955,6 +7025,14 @@ function newExamItem(item) {
       .filter(q => 'x' + q.type === item.type && !used.has(`e|${item.type}|${ch}${q.i}`) && !excludedSet.has(`e|${item.type}|${ch}${q.i}`)));
     return pool[0] ? examGrammarItem(ch, pool[0]) : null;
   }
+  if (item.type === 'kform' || item.type === 'korder' || item.type === 'kscene') {
+    const src = { kform: CHIBA_FORM, korder: CHIBA_ORDER, kscene: CHIBA_SCENE }[item.type];
+    const pre = { kform: 'kf', korder: 'ko', kscene: 'ks' }[item.type];
+    const pool = shuffle(src.map((x, i) => ({ ...x, i })).filter(x => !used.has(`e|${item.type}|${pre}${x.i}`) && !excludedSet.has(`e|${item.type}|${pre}${x.i}`)
+      && (item.type !== 'kscene' || !item.limit || x.limit === item.limit)));
+    if (!pool[0]) return null;
+    return item.type === 'kform' ? chibaFormItem(pool[0]) : item.type === 'korder' ? chibaOrderItem(pool[0]) : chibaSceneItem(pool[0]);
+  }
   if (item.type === 'cetoj') {
     const pool = shuffle(EXAM_ETOJ.map((x, i) => ({ ...x, i })).filter(x => !used.has(`e|cetoj|t${x.i}`) && !excludedSet.has(`e|cetoj|t${x.i}`)));
     return pool[0] ? examEtojItem(pool[0]) : null;
@@ -6977,6 +7055,7 @@ function examSectionTitle() {
   if (types.length === 1) return EXAM_TYPES[types[0]].label;
   if (types.every(t => /^cw/.test(t))) return '英作文';
   if (types.every(t => /^x/.test(t))) return '入試レベルの問題';
+  if (types.every(t => /^k/.test(t))) return types.includes('kscene') && types.length === 1 ? '場面英作文' : types.includes('kscene') ? '対話文完成・場面英作文' : '対話文完成';
   return '表現・会話';
 }
 // 文法の総まとめ: 問題の前に、その回の単元のルールを1ページにまとめる
@@ -7055,7 +7134,32 @@ function startChapterPrint(key) {
   }));
 }
 
+const CHIBA_PARTS = [
+  { title: '実戦問題（1回分）', sub: '大問5〜9をまとめて（100点）', make: () => ({ chibaForm: 2, chibaOrder: 3, chibaScene10: 1, chibaScene25: 1, readingCount: 4, examReadingPlan: ['chiba7p', 'chiba7n', 'standard|advanced', 'chiba9'] }) },
+  { title: '大問5 対話文完成', sub: '語形変化・並べかえ（符号で答える）', make: () => ({ chibaForm: 4, chibaOrder: 6 }) },
+  { title: '大問6 場面英作文', sub: '10語程度・25語程度', make: () => ({ chibaScene10: 2, chibaScene25: 2 }) },
+  { title: '大問7 資料・発表の読解', sub: 'スライドつきの発表とお知らせ・広告', make: () => ({ readingCount: 2, examReadingPlan: ['chiba7p', 'chiba7n'] }) },
+  { title: '大問8 長文読解', sub: 'スピーチ・説明文・メール（文の挿入・英問英答）', make: () => ({ readingCount: 1, examReadingPlan: ['standard|advanced'] }) },
+  { title: '大問9 対話文読解', sub: '空所の文を選ぶ＋10語程度の英作文', make: () => ({ readingCount: 2, examReadingPlan: ['chiba9', 'chiba9'] }) },
+];
+function renderChibaParts() {
+  chibaParts.innerHTML = '';
+  const ok = typeof CHIBA_FORM !== 'undefined' && typeof EXAM_READING !== 'undefined' && EXAM_READING.some(p => p.level === 'chiba9');
+  CHIBA_PARTS.forEach((part, i) => {
+    const b = document.createElement('button');
+    b.className = 'exam-round' + (i === 0 ? ' main' : '');
+    b.disabled = !ok;
+    b.innerHTML = `<b>${i === 0 ? '本番形式' : '大問別'}</b>${part.title}<small>${part.sub}</small>`;
+    b.onclick = () => {
+      if (i === 0) printRounds = 1;
+      startExamPrint(`千葉県公立入試形式 ${part.title}`, examConfig(`千葉県公立入試形式 ${part.title}`, part.make()));
+    };
+    chibaParts.appendChild(b);
+  });
+}
+
 function renderExamScreen() {
+  renderChibaParts();
   examRoundList.innerHTML = '';
   const chapters = typeof EXAM_GRAMMAR !== 'undefined' ? Object.entries(EXAM_GRAMMAR).sort((a, b) => a[1].no - b[1].no) : [];
   chapters.forEach(([key, ch]) => {
