@@ -7144,8 +7144,12 @@ const CHIBA_PARTS = [
 ];
 function renderChibaParts() {
   chibaParts.innerHTML = '';
-  const ok = typeof CHIBA_FORM !== 'undefined' && typeof EXAM_READING !== 'undefined' && EXAM_READING.some(p => p.level === 'chiba9');
+  const hasForm = typeof CHIBA_FORM !== 'undefined';
+  const hasLevel = lv => typeof EXAM_READING !== 'undefined' && EXAM_READING.some(p => lv.split('|').includes(p.level));
   CHIBA_PARTS.forEach((part, i) => {
+    const cfg = part.make();
+    const ok = (!(cfg.chibaForm || cfg.chibaOrder || cfg.chibaScene10 || cfg.chibaScene25) || hasForm)
+      && (cfg.examReadingPlan || []).every(hasLevel);
     const b = document.createElement('button');
     b.className = 'exam-round' + (i === 0 ? ' main' : '');
     b.disabled = !ok;
