@@ -563,6 +563,8 @@
   .hw-pno { font-weight: 800; width: 22px; }
   .hw-practice .hw-problem { flex: 1; min-width: 0; }
   .hw-practice .hw-ansline { flex-basis: 100%; margin-left: 30px; }
+  .hw-ans-long span { max-width: none; height: 30px; }
+  .hw-ansline.hw-ans-long + .hw-ans-long { margin-top: 2px; padding-left: 2.6em; }
   .hw-ansblock { font-size: 13px; line-height: 1.7; border-bottom: 1px dashed var(--line); padding: 6px 0; }
   .hw-blanks { display: flex; flex-wrap: wrap; gap: 4px 16px; margin: 4px 0; }
   @media print {
@@ -7259,7 +7261,7 @@ function hwProblemHtml(p) {
   }).join('');
   const table = p.table ? `<table class="ws-ch-table hw-table">${p.table.map((row, r) => `<tr>${row.map(c => r === 0 ? `<th>${c}</th>` : `<td>${c}</td>`).join('')}</tr>`).join('')}</table>` : '';
   const opts = p.options ? `<div class="hw-options">${p.options.map((o, k) => `<span><b>${CHOICE_LABELS5[k] || ''}</b> ${o}</span>`).join('')}</div>` : '';
-  return `<div class="hw-problem"><div class="hw-instr">${p.instr || ''}</div><div class="hw-body">${lines}</div>${table}${p.chart ? hwChartSvg(p.chart) : ''}${opts}</div>`;
+  return `<div class="hw-problem"><div class="hw-instr">${hwText(p.instr || '').replace(/\n/g, '<br>')}</div><div class="hw-body">${lines}</div>${table}${p.chart ? hwChartSvg(p.chart) : ''}${opts}</div>`;
 }
 function renderHowtoWorksheet() {
   const u = (typeof HOWTO_UNITS !== 'undefined' ? HOWTO_UNITS : []).find(x => x.no === printSource.unit);
@@ -7274,6 +7276,9 @@ function renderHowtoWorksheet() {
   renderRoundTabs();
   if (!u) { sheetItems.innerHTML = ''; return; }
   const stepBadge = n => `<span class="hw-step">✓${n}</span>`;
+  // 英文を書くユニット(場面・条件・自由英作文)は答えの欄を3行に
+  const writing = /英文|英語で書く/.test(u.title);
+  const ansLine = `<div class="hw-ansline${writing ? ' hw-ans-long' : ''}">答え <span></span></div>${writing ? '<div class="hw-ansline hw-ans-long"><span></span></div><div class="hw-ansline hw-ans-long"><span></span></div>' : ''}`;
   const ex = u.example, ck = u.check;
   let bno = 0;
   const page1 = `<div class="hw-page">
@@ -7288,11 +7293,11 @@ function renderHowtoWorksheet() {
     <div class="hw-label hw-label-big">解き方チェック問題</div>${hwProblemHtml(ck)}
     <div class="hw-label">解き方を使って解いてみよう</div>
     <div class="hw-guide">${ck.guide.map(gd => `<div class="hw-steprow">${stepBadge(gd.step)}<div>${hwText(gd.text)}</div></div>`).join('')}</div>
-    <div class="hw-ansline">答え <span></span></div>
+    ${ansLine}
   </div>`;
   const page3 = `<div class="hw-page">
     <div class="hw-label hw-label-big">実践問題<small>解き方の ✓1〜✓3 を思い出しながら、自分で解こう</small></div>
-    ${u.practice.map((pr, i) => `<div class="hw-practice"><div class="hw-pno">${i + 1}</div>${hwProblemHtml(pr)}<div class="hw-ansline">答え <span></span></div></div>`).join('')}
+    ${u.practice.map((pr, i) => `<div class="hw-practice"><div class="hw-pno">${i + 1}</div>${hwProblemHtml(pr)}${ansLine}</div>`).join('')}
   </div>`;
   const blanks = ck.guide.flatMap(gd => gd.blanks || []);
   const page4 = `<div class="hw-page hw-answers">
