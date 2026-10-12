@@ -6462,7 +6462,11 @@ function renderWorksheet() {
         const paragraphs = r.passage.text.split('\n').map(p => `<p>${p}</p>`).join('');
         const notes = (r.passage.notes || []).length ? `<div class="ws-notes">（注）${r.passage.notes.join('　')}</div>` : '';
         const table = r.passage.table ? `<table class="ws-ch-table ws-passage-table">${r.passage.table.map((row, k) => `<tr>${row.map(c => k === 0 ? `<th>${c}</th>` : `<td>${c}</td>`).join('')}</tr>`).join('')}</table>` : '';
-        box.innerHTML = `<div class="ws-passage-title">${readingItems.length > 1 ? `[${ri + 1}] ` : ''}${r.passage.title}</div>${paragraphs}${table}${notes}`;
+        // 千葉県形式は本番と同じ大問番号で示す
+        const chibaNo = { chiba7p: '大問7(1)', chiba7n: '大問7(2)', chiba9: '大問9' }[r.passage.level]
+          || (printSource.config && printSource.config.examReadingPlan && /^千葉/.test(printSource.config.name || '') ? '大問8' : '');
+        const head = chibaNo ? `${chibaNo}　` : readingItems.length > 1 ? `[${ri + 1}] ` : '';
+        box.innerHTML = `<div class="ws-passage-title">${head}${r.passage.title}</div>${paragraphs}${table}${notes}`;
         sheetItems.appendChild(box);
         r.subs.forEach((sub, i) => sheetItems.appendChild(makeItemEl(sub, i + 1)));
       });
