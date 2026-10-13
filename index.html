@@ -567,6 +567,25 @@
   .hw-ansline.hw-ans-long + .hw-ans-long { margin-top: 2px; padding-left: 2.6em; }
   .hw-ansblock { font-size: 13px; line-height: 1.7; border-bottom: 1px dashed var(--line); padding: 6px 0; }
   .hw-blanks { display: flex; flex-wrap: wrap; gap: 4px 16px; margin: 4px 0; }
+
+  .round-style-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; padding: 6px 0; border-bottom: 1px dashed var(--line); }
+  .round-style-row:last-child { border-bottom: none; }
+  .round-style-row .rs-name { font-weight: 800; font-size: 13px; min-width: 4.5em; }
+  .round-style-row .opt-label { font-size: 12px; color: var(--ink-soft); }
+  .round-style-row .mode-switch { margin-bottom: 0; }
+
+  /* くり返しプリント(1周 = 紙1枚)は行間を詰める */
+  .round-q .sheet-head { padding-bottom: 6px; margin-bottom: 2px; }
+  .round-q .sheet-fields { margin: 6px 0 2px; }
+  .round-q .sheet-instr { margin: 4px 0 0; }
+  .round-q .ws-item { padding: 6px 0 5px; }
+  .round-q .ws-pieces { margin: 3px 0 2px 36px; gap: 4px; }
+  .round-q .ws-piece { padding: 1px 7px; font-size: 13.5px; }
+  .round-q .wp-jp { font-size: 9.5px; }
+  .round-q .ws-sentence { margin: 2px 0 2px 36px; line-height: 1.6; font-size: 14.5px; }
+  .round-q .ws-input { padding: 3px 2px; font-size: 14px; }
+  .round-q .ws-type, .round-q .ws-section-head { margin-top: 6px; margin-bottom: 2px; }
+  .round-a ol { line-height: 1.6; }
   @media print {
     @page { size: A4; margin: 14mm 14mm; }
     body { background: #fff; padding: 0; display: block; }
@@ -801,7 +820,7 @@
         <div class="opt-sec-head">くり返し<span>問題と解答のセットを何周するか</span></div>
         <div class="mode-switch" id="printRoundSwitch"></div>
         <div class="round-flow" id="roundFlow"></div>
-        <div class="opt-note">1周 = 問題 → 解答。解いて丸付けしたら、次の周の類題（同じ形式・同じ範囲の別の問題）を解きます。</div>
+        <div class="opt-note">1周 = 紙1枚（表に問題・裏に解答。両面印刷がおすすめ）。解いて丸付けしたら、次の周の類題（同じ形式・同じ範囲の別の問題）を解きます。周ごとのヒントの出し方は「並べ替えの設定」で変えられます。</div>
       </section>
 
       <section class="opt-sec">
@@ -812,10 +831,10 @@
         </div>
         <div class="opt-row" id="printCountRow"><span class="opt-label">1周の問題数</span><div class="mode-switch" id="printCountSwitch"></div></div>
         <div class="opt-row" id="printTypeRow"><span class="opt-label">問題の種類</span><div class="chip-switch" id="printTypeSwitch"></div></div>
-        <details class="opt-more" id="printReorderBox">
-          <summary>並べ替えの設定</summary>
-          <div class="opt-row"><span class="opt-label">まとまり</span><div class="mode-switch" id="printChunkSwitch"></div></div>
-          <div class="opt-row" id="printGlossRow"><span class="opt-label">ヒント</span><div class="mode-switch" id="printGlossSwitch"></div></div>
+        <details class="opt-more" id="printReorderBox" open>
+          <summary>並べ替えの設定（周ごとに変えられます）</summary>
+          <div id="roundStyleRows"></div>
+          <div style="display:none;"><div id="printChunkSwitch"></div><div id="printGlossRow"><div id="printGlossSwitch"></div></div></div>
         </details>
       </section>
 
@@ -3578,7 +3597,17 @@ let poolPieces = [];
 let answered = false;
 let programMode = "print";    // 'print' | 'practice'  (単元選択後に開く画面。プリント作りが中心)
 let printCount = 10;
-let printRounds = 3;          // くり返しの回数(1回分 = 問題 + 解答)
+let printRounds = 3;          // くり返しの回数(1回分 = 問題 + 解答。1周は紙1枚)
+// 周ごとの並べ替えの出し方(ヒント・まとまり)。例: 1周目は英単語+意味、2周目からは英単語のみ
+let roundStyles = [];
+function roundStyle(i) {
+  if (!roundStyles[i]) roundStyles[i] = { gloss: i === 0 ? 'glossed' : 'enonly', chunk: Math.min(3, 1 + Math.floor(i / 2)) };
+  return roundStyles[i];
+}
+// 定期テスト(テスト範囲のプリント)はくり返さない。入試対策のプリントはくり返せる
+function isTestRangePrint() {
+  return printSource.kind === 'test' && !/^(入試|千葉)/.test((printSource.config && printSource.config.name) || '');
+}
 let roundSets = [];           // [{ vocab, grammar, reading }] 回ごとの問題
 let activeRound = 0;          // 画面に出している回
 let printChunkLevel = 1;
@@ -5646,7 +5675,7 @@ function renderPrintOptions() {
   printCountRow.style.display = isTest || isGuide ? 'none' : 'flex';
   printGuideRow.style.display = isGuide ? 'block' : 'none';
   printPointsLabel.style.display = isTest ? '' : 'none';
-  printRoundRow.style.display = isGuide ? 'none' : '';
+  printRoundRow.style.display = isGuide || isTestRangePrint() ? 'none' : '';
   editHint.innerHTML = isGuide
     ? '✎ 問題ごとの右上の <b>直す</b> で、問題文や解答を書きかえられます。ボタンは印刷されません。'
     : '✎ できたプリントは、問題ごとの右上のボタンで <b>直す</b>（文や解答を書きかえる）・<b>変える</b>（別の問題にする）・<b>消す</b> ができます。ボタンは印刷されません。';
@@ -5670,12 +5699,19 @@ function renderPrintOptions() {
   });
   // 問題の種類は複数選べる(選んだ種類の中から1問ずつランダムに決める)
   renderMultiSwitch(printTypeSwitch, Object.entries(QUESTION_TYPES), printTypes);
-  renderOptionSwitch(printChunkSwitch, [1, 2, 3].map(l => [l, CHUNK_LEVEL_LABELS[l]]), printChunkLevel, v => {
-    printChunkLevel = v; renderPrintOptions(); renderWorksheet();
-  });
-  renderOptionSwitch(printGlossSwitch, Object.entries(EXERCISE_MODE_LABELS), printGlossMode, v => {
-    printGlossMode = v; renderPrintOptions(); renderWorksheet();
-  });
+  // 周ごとのヒント・まとまり
+  roundStyleRows.innerHTML = '';
+  const nRows = isGuide ? 1 : roundCount() || 1;
+  for (let i = 0; i < nRows; i++) {
+    const st = roundStyle(i);
+    const row = document.createElement('div');
+    row.className = 'round-style-row';
+    row.innerHTML = `<span class="rs-name">${nRows > 1 ? `${i + 1}周目` : '並べ替え'}</span><span class="opt-label">ヒント</span><div class="mode-switch rs-gloss"></div><span class="opt-label">まとまり</span><div class="mode-switch rs-chunk"></div>`;
+    const apply = () => { useRound(activeRound); renderPrintOptions(); renderWorksheet(); };
+    renderOptionSwitch(row.querySelector('.rs-gloss'), Object.entries(EXERCISE_MODE_LABELS), st.gloss, v => { st.gloss = v; apply(); });
+    renderOptionSwitch(row.querySelector('.rs-chunk'), [1, 2, 3].map(l => [l, CHUNK_LEVEL_LABELS[l]]), st.chunk, v => { st.chunk = v; apply(); });
+    roundStyleRows.appendChild(row);
+  }
 }
 
 // 合計 total 問を、weights({形式: 重み})の比で形式に配る(端数は大きい順)。並びはシャッフル。
@@ -5754,7 +5790,8 @@ function generateWorksheet(seed) {
   // くり返しの回ごとに、同じ形式・同じ範囲で別の問題を作る(文は回をまたいで重ならないように順に使う)
   const usedWords = new Set(), usedPassages = new Set(), usedExam = new Set();
   roundSets = [];
-  for (let r = 0; r < printRounds; r++) {
+  const rounds = isTestRangePrint() ? 1 : printRounds;
+  for (let r = 0; r < rounds; r++) {
   const slots = grammarSlots();
   // 順番をランダムにしないときは単元順(同じ形式の中で)
   if (isTest && !printSource.config.shuffle) slots.sort((a, b) => stages.indexOf(a.stage) - stages.indexOf(b.stage));
@@ -5793,6 +5830,9 @@ function useRound(i) {
   const r = roundSets[activeRound];
   if (!r) return;
   vocabItems = r.vocab; printItems = r.grammar; readingItems = r.reading; examItems = r.exam || [];
+  const st = roundStyle(activeRound);
+  printGlossMode = st.gloss;
+  printChunkLevel = st.chunk;
 }
 function roundCount() {
   return printSource.kind === 'guide' || printSource.kind === 'howto' ? 1 : roundSets.length;
@@ -5816,6 +5856,7 @@ function renderRoundTabs() {
 // 印刷用に、すべての回(問題 + 解答)を順にならべる
 function buildRoundsPrint() {
   roundsPrint.innerHTML = '';
+  roundOverflow = false;
   const multi = roundCount() > 1;
   document.body.classList.toggle('multi-round', multi);
   if (!multi) return;
@@ -5826,11 +5867,34 @@ function buildRoundsPrint() {
     const copy = sheet.cloneNode(true);
     copy.removeAttribute('id');
     copy.querySelectorAll('[id]').forEach(e => e.removeAttribute('id'));
+    copy.querySelectorAll('.no-print, .ws-edit, .ws-add').forEach(e => e.remove());
     copy.classList.add('round-copy');
+    fitRoundToPages(copy);
     roundsPrint.appendChild(copy);
   });
   useRound(keep);
   renderWorksheet();
+}
+// 1周 = 紙1枚(表に問題・裏に解答)。入りきらないときは文字を小さくして1ページに収める
+let roundOverflow = false;
+const ROUND_PAGE_LIMIT = 1016 * 0.95; // A4から上下の余白を引いた高さ(GUIDE_PAGE_HEIGHT と同じ)
+function fitRoundToPages(copy) {
+  const ans = copy.querySelector('.answer-sheet');
+  const q = document.createElement('div');
+  q.className = 'round-q';
+  [...copy.childNodes].forEach(n => { if (n !== ans) q.appendChild(n); });
+  copy.insertBefore(q, ans);
+  const fit = (node, limit) => {
+    const clone = node.cloneNode(true);
+    clone.classList.remove('include');
+    clone.style.display = 'block';
+    const h = measureHeight(clone);
+    if (h > limit) node.style.zoom = Math.max(0.6, Math.floor(limit / h * 100) / 100);
+    if (h * 0.6 > limit) roundOverflow = true;
+  };
+  if (ans) ans.classList.add('round-a');
+  fit(q, ROUND_PAGE_LIMIT);
+  if (ans) fit(ans, ROUND_PAGE_LIMIT);
 }
 function nextRound() {
   if (activeRound < roundSets.length - 1) { useRound(activeRound + 1); renderWorksheet(); }
@@ -6628,7 +6692,12 @@ programModePrint.addEventListener('click', () => setProgramMode('print'));
 programModeGuide.addEventListener('click', () => setProgramMode('guide'));
 backToProgramFromPrint.addEventListener('click', () => showScreen(navTab === 'exam' ? 'exam' : printSource.kind === 'test' ? 'test' : 'program'));
 printRegenBtn.addEventListener('click', generateWorksheet);
-printPrintBtn.addEventListener('click', () => { savePrintHistory(); buildRoundsPrint(); window.print(); });
+printPrintBtn.addEventListener('click', () => {
+  savePrintHistory();
+  buildRoundsPrint();
+  if (roundOverflow && !confirm('1周分の問題が多く、紙1枚（表に問題・裏に解答）に収まりません。\n「1周の問題数」を減らすと1枚に収まります。このまま印刷しますか？')) return;
+  window.print();
+});
 window.addEventListener('beforeprint', () => { if (screenPrint.style.display !== 'none') buildRoundsPrint(); });
 window.addEventListener('afterprint', () => { roundsPrint.innerHTML = ''; document.body.classList.remove('multi-round'); });
 printNextRoundBtn.addEventListener('click', nextRound);
@@ -6645,7 +6714,7 @@ function savePrintHistory() {
   const entry = {
     seed: printSeed, title: sheetTitle.textContent, sub: sheetSub.textContent, date: new Date().toISOString().slice(0, 10),
     source: JSON.parse(JSON.stringify(printSource)), stageIndex,
-    settings: { printCount, printTypes: [...printTypes], printChunkLevel, printGlossMode, points: printPointsCheck.checked, rounds: printRounds },
+    settings: { printCount, printTypes: [...printTypes], printChunkLevel, printGlossMode, points: printPointsCheck.checked, rounds: printRounds, roundStyles: JSON.parse(JSON.stringify(roundStyles)) },
   };
   const list = loadPrintHistory().filter(e => !(e.title === entry.title && e.sub === entry.sub));
   list.unshift(entry);
@@ -6661,6 +6730,7 @@ function openFromHistory(entry, sameQuestions) {
   printGlossMode = st.printGlossMode || printGlossMode;
   printPointsCheck.checked = st.points !== false;
   printRounds = st.rounds || 1;
+  roundStyles = st.roundStyles || [];
   showScreen('print');
   generateWorksheet(sameQuestions ? entry.seed : undefined);
 }
@@ -6958,9 +7028,11 @@ function examConfig(name, extra) {
   };
 }
 function startExamPrint(summary, config) {
+  roundStyles = [];
   printSource = { kind: 'test', summary, config };
   printPointsCheck.checked = true;
   printGlossMode = 'enonly'; // 入試と同じく、並べ替えの語句に日本語のヒントはつけない
+  roundStyles = Array.from({ length: 6 }, () => ({ gloss: 'enonly', chunk: 1 }));
   showScreen('print');
   generateWorksheet();
 }
