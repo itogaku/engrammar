@@ -727,7 +727,7 @@
       <button class="btn btn-primary exam-make" id="examPhraseBtn">重要表現のプリントを作る</button>
     </div>
     <div class="card test-card exam-card">
-      <div class="exam-head">語形変化の確認<span>不規則動詞・複数形・3単現・比較級/最上級</span></div>
+      <div class="exam-head">語形変化・ことばの確認<span>不規則動詞・複数形・3単現・比較級/最上級・月/曜日/季節・序数・反意語</span></div>
       <div class="opt-row"><span class="opt-label">種類</span><div class="chip-switch" id="examTableKinds"></div></div>
       <div class="opt-row"><span class="opt-label">問題数</span><div class="mode-switch" id="examTableCount"></div></div>
       <div class="opt-row"><span class="opt-label">出し方</span><div class="mode-switch" id="examTableMix"></div></div>
@@ -6291,7 +6291,7 @@ function itemPromptHtml(item) {
   }
   if (item.type === 'cetoj') return `<span class="ws-en">${item.en}</span>`;
   if (item.type === 'cform' && item.mixed) return `<span class="ws-cmean">（${item.meaning}）</span>`;
-  if (item.type === 'cform') return `<span class="ws-word">${item.word}</span><span class="ws-cmean">（${item.meaning}）</span>`;
+  if (item.type === 'cform') return `<span class="ws-word">${item.word}</span>${item.meaning ? `<span class="ws-cmean">（${item.meaning}）</span>` : ''}`;
   if (item.type === 'entoja') return `<span class="ws-en">${fullSentence(item)}</span>`;
   if (item.type === 'chunkorder') return item.chunk.jp;
   if (item.type === 'clist') return `<span class="ws-word">${escHtml(item.phrase)}</span>${item.theme ? `<span class="ws-clist-theme">${item.theme}</span>` : ''}`;

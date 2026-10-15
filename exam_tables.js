@@ -81,4 +81,32 @@ const EXAM_TABLES = {
       ['useful', '役に立つ', 'more useful', 'most useful'], ['slowly', 'ゆっくりと', 'more slowly', 'most slowly'],
     ],
   },
+  calendar: {
+    label: '月・曜日・季節（日本語→英語）', cols: ['英語'],
+    rows: [
+      ['1月', '', 'January'], ['2月', '', 'February'], ['3月', '', 'March'], ['4月', '', 'April'], ['5月', '', 'May'], ['6月', '', 'June'],
+      ['7月', '', 'July'], ['8月', '', 'August'], ['9月', '', 'September'], ['10月', '', 'October'], ['11月', '', 'November'], ['12月', '', 'December'],
+      ['日曜日', '', 'Sunday'], ['月曜日', '', 'Monday'], ['火曜日', '', 'Tuesday'], ['水曜日', '', 'Wednesday'], ['木曜日', '', 'Thursday'],
+      ['金曜日', '', 'Friday'], ['土曜日', '', 'Saturday'], ['春', '', 'spring'], ['夏', '', 'summer'], ['秋', '', 'fall / autumn'], ['冬', '', 'winter'],
+      ['週末', '', 'weekend'], ['休日', '', 'holiday'], ['晴れた', '天気', 'sunny'], ['くもった', '天気', 'cloudy'], ['雨の', '天気', 'rainy'], ['雪の', '天気', 'snowy'],
+    ],
+  },
+  ordinal: {
+    label: '序数（〜番目）', cols: ['〜番目'],
+    rows: [
+      ['one', '1', 'first'], ['two', '2', 'second'], ['three', '3', 'third'], ['four', '4', 'fourth'], ['five', '5', 'fifth'], ['six', '6', 'sixth'],
+      ['eight', '8', 'eighth'], ['nine', '9', 'ninth'], ['ten', '10', 'tenth'], ['twelve', '12', 'twelfth'], ['twenty', '20', 'twentieth'], ['twenty-one', '21', 'twenty-first'],
+    ],
+  },
+  antonym: {
+    label: '反意語（反対の意味の語）', cols: ['反意語'],
+    rows: [
+      ['big', '大きい', 'small / little'], ['long', '長い', 'short'], ['tall', '背が高い', 'short'], ['old', '古い', 'new'], ['old', '年をとった', 'young'],
+      ['hot', '暑い', 'cold'], ['warm', '暖かい', 'cool'], ['fast', '速い', 'slow'], ['early', '早い', 'late'], ['easy', '簡単な', 'difficult / hard'],
+      ['high', '高い', 'low'], ['heavy', '重い', 'light'], ['rich', '金持ちの', 'poor'], ['strong', '強い', 'weak'], ['happy', 'うれしい', 'sad'],
+      ['busy', '忙しい', 'free'], ['same', '同じ', 'different'], ['right', '正しい', 'wrong'], ['open', '開ける', 'close'], ['buy', '買う', 'sell'],
+      ['begin', '始める', 'end / finish'], ['come', '来る', 'go'], ['remember', '覚えている', 'forget'], ['win', '勝つ', 'lose'], ['push', '押す', 'pull'],
+      ['ask', 'たずねる', 'answer'], ['arrive', '着く', 'leave'], ['before', '〜の前に', 'after'], ['inside', '内側に', 'outside'], ['always', 'いつも', 'never'],
+    ],
+  },
 };
