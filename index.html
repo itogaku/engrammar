@@ -723,6 +723,7 @@
       <div class="exam-head">語形変化の確認<span>不規則動詞・複数形・3単現・比較級/最上級</span></div>
       <div class="opt-row"><span class="opt-label">種類</span><div class="chip-switch" id="examTableKinds"></div></div>
       <div class="opt-row"><span class="opt-label">問題数</span><div class="mode-switch" id="examTableCount"></div></div>
+      <div class="opt-row"><span class="opt-label">出し方</span><div class="mode-switch" id="examTableMix"></div></div>
       <button class="btn btn-primary exam-make" id="examTableBtn">語形変化のプリントを作る</button>
     </div>
     <div class="card test-card exam-card">
@@ -6277,6 +6278,7 @@ function itemPromptHtml(item) {
   if (item.type === 'kscene') return item.scene;
   if (item.type === 'cwcond' || item.type === 'cwfree') return item.task;
   if (item.type === 'cetoj') return `<span class="ws-en">${item.en}</span>`;
+  if (item.type === 'cform' && item.mixed) return `<span class="ws-cmean">（${item.meaning}）</span>`;
   if (item.type === 'cform') return `<span class="ws-word">${item.word}</span><span class="ws-cmean">（${item.meaning}）</span>`;
   if (item.type === 'entoja') return `<span class="ws-en">${fullSentence(item)}</span>`;
   if (item.type === 'chunkorder') return item.chunk.jp;
@@ -6380,6 +6382,10 @@ function itemBodyHtml(item) {
     case 'cphrase':
       return `<div class="ws-sentence">${item.sentenceHtml}</div>${answerLineHtml('（　）に入る語を順に', 'short')}`;
     case 'cform':
+      if (item.mixed) {
+        const m = item.mixed;
+        return `<div class="ws-sentence ws-cform">${m.cols.map((c, i) => (i === m.given ? `<span>${c}：<b class="ws-word">${m.values[i]}</b></span>` : `<span>${c}（　　　　　　）</span>`)).join('')}</div>${answerLineHtml(item.cols.join('・') + 'を順に', 'short')}`;
+      }
       return `<div class="ws-sentence ws-cform">${item.cols.map(c => `<span>${c}（　　　　　　）</span>`).join('')}</div>${answerLineHtml(item.cols.join('・') + 'を順に', 'short')}`;
     default:
       return '';
@@ -7316,7 +7322,7 @@ const EXAM_ROUNDS = [
   { title: '疑問詞・間接疑問・仮定法', sub: '疑問詞の疑問文・間接疑問・I wish・If I were', match: /^(program1-where|program2-when|g1program3-whatcan|g1program4-who|g1program7-(how|candoq)|g1powerup|g1program8-wh|g1program9-whprog|g3program4-indirect|g3program7-)/ },
 ];
 const EXAM_GRAMMAR_FORMAT = { form: 4, choice: 3, fillin: 2, rewrite: 2, paraphrase: 2, reorder: 2, extra: 2, error: 2, translate: 2, entoja: 1 };
-const examState = { readingLevels: new Set(['basic']), readingCount: 1, vocabRange: 3, vocabCount: 30, writingKinds: new Set(['translate']), writingCount: 10, freeThemes: new Set(), freeCount: 20, etojCount: 10, dialogCats: new Set(), dialogCount: 10, phraseThemes: new Set(), phraseCount: 20, tableKinds: new Set(['irregular']), tableCount: 20, mockRange: 3 };
+const examState = { readingLevels: new Set(['basic']), readingCount: 1, vocabRange: 3, vocabCount: 30, writingKinds: new Set(['translate']), writingCount: 10, freeThemes: new Set(), freeCount: 20, etojCount: 10, dialogCats: new Set(), dialogCount: 10, phraseThemes: new Set(), phraseCount: 20, tableKinds: new Set(['irregular']), tableCount: 20, tableMix: false, mockRange: 3 };
 
 function examRoundKeys(r) { return stages.filter(st => r.match.test(st.key)).map(st => st.key); }
 function emptyCounts(defs) { return Object.fromEntries(Object.keys(defs).map(k => [k, 0])); }
@@ -7387,7 +7393,7 @@ function generateExamItems(cfg, used) {
   }
   if (cfg.tableCount) {
     const pool = (cfg.tableKinds || ['irregular']).flatMap(k => EXAM_TABLES[k].rows.map((row, i) => ({ k, row, i })));
-    take(pool, cfg.tableCount, t => `e|cform|${t.k}${t.i}`).forEach(t => out.push(examTableItem(t)));
+    take(pool, cfg.tableCount, t => `e|cform|${t.k}${t.i}`).forEach(t => out.push(examTableItem(t, cfg.tableMix)));
   }
   return groupByType(out, EXAM_TYPES);
 }
@@ -7411,10 +7417,20 @@ function examPhraseItem(ph, prefix = 'p', type = 'cphrase') {
   }).join(' ').replace(/ ([AB]:) /g, '<br>$1 '); // 対話の例文は話し手ごとに改行
   return { section: 'exam', type, key: `${prefix}${ph.i}`, jp: ph.jp, en: ph.en, sentenceHtml, answers: ph.blanks, phrase: ph.phrase, meaning: ph.meaning };
 }
-function examTableItem(t) {
+// mix: どの形(原形・過去形・過去分詞 など)を見せるかを行ごとに変える。見せた形以外をすべて書く
+const TABLE_BASE_COL = { irregular: '原形', regular: '原形', compare: '原級', plural: '単数形', third: '原形' };
+function examTableItem(t, mix) {
   const table = EXAM_TABLES[t.k];
   const [word, meaning, ...forms] = t.row;
-  return { section: 'exam', type: 'cform', key: `${t.k}${t.i}`, kind: t.k, word, meaning, cols: table.cols, answers: forms };
+  const item = { section: 'exam', type: 'cform', key: `${t.k}${t.i}`, kind: t.k, word, meaning, cols: table.cols, answers: forms };
+  if (mix && forms.length >= 2) {
+    const cols = [TABLE_BASE_COL[t.k] || 'もとの形', ...table.cols], values = [word, ...forms];
+    const given = Math.floor(rand() * values.length);
+    item.mixed = { cols, values, given };
+    item.answers = values.filter((_, i) => i !== given);
+    item.cols = cols.filter((_, i) => i !== given);
+  }
+  return item;
 }
 function examBlanks(text) {
   return String(text).replace(/\(\s*\)|（\s*）/g, '<span class="ws-blank">（　　　　）</span>');
@@ -7485,7 +7501,7 @@ function newExamItem(item) {
   }
   const pool = shuffle((cfg.tableKinds || ['irregular']).flatMap(k => EXAM_TABLES[k].rows.map((row, i) => ({ k, row, i })))
     .filter(t => !used.has(`e|cform|${t.k}${t.i}`) && !excludedSet.has(`e|cform|${t.k}${t.i}`)));
-  return pool[0] ? examTableItem(pool[0]) : null;
+  return pool[0] ? examTableItem(pool[0], cfg.tableMix) : null;
 }
 function examSectionTitle() {
   const types = [...new Set(examItems.map(it => it.type))];
@@ -7801,6 +7817,7 @@ function renderExamScreen() {
   renderOptionSwitch(examDialogCount, [10, 15, 20].map(n => [n, `${n}問`]), examState.dialogCount, v => { examState.dialogCount = v; renderExamScreen(); });
   renderOptionSwitch(examPhraseCount, [10, 20, 30].map(n => [n, `${n}問`]), examState.phraseCount, v => { examState.phraseCount = v; renderExamScreen(); });
   renderOptionSwitch(examTableCount, [10, 20, 30].map(n => [n, `${n}問`]), examState.tableCount, v => { examState.tableCount = v; renderExamScreen(); });
+  renderOptionSwitch(document.getElementById('examTableMix'), [[false, 'もとの形から'], [true, 'どの形かばらばら']], examState.tableMix, v => { examState.tableMix = v; renderExamScreen(); });
   renderOptionSwitch(examMockRange, [[1, '中1まで'], [2, '中2まで'], [3, '中3まで']], examState.mockRange, v => { examState.mockRange = v; renderExamScreen(); });
 }
 examWithTextbook.onchange = () => { examState.withTextbook = examWithTextbook.checked; };
@@ -7847,7 +7864,7 @@ examVocabBtn.onclick = () => {
 };
 examTableBtn.onclick = () => {
   const kinds = [...examState.tableKinds];
-  startExamPrint(`入試対策 語形変化（${kinds.map(k => EXAM_TABLES[k].label).join('・')}）`, examConfig('入試対策 語形変化', { tableCount: examState.tableCount, tableKinds: kinds }));
+  startExamPrint(`入試対策 語形変化（${kinds.map(k => EXAM_TABLES[k].label).join('・')}）`, examConfig('入試対策 語形変化', { tableCount: examState.tableCount, tableKinds: kinds, tableMix: examState.tableMix }));
 };
 examMockBtn.onclick = () => {
   const g = examState.mockRange;
