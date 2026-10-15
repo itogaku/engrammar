@@ -5250,6 +5250,12 @@ function readingItemOf(p) {
 const GUIDE_INTRO_TYPES = ['choice', 'choice', 'fillin', 'reorder', 'fillin', 'translate', 'choice'];
 const GUIDE_PRACTICE_TYPES = ['fillin', 'reorder', 'translate', 'choice', 'fillin', 'translate', 'reorder', 'fillin',
   'choice', 'translate', 'reorder', 'fillin'];
+// 2周目・3周目の練習問題: 周が進むほど「書く」問題をふやす(選ぶ → 書く → 英文を書く)
+const GUIDE_PRACTICE_TYPES_BY_ROUND = [
+  GUIDE_PRACTICE_TYPES,
+  ['fillin', 'translate', 'reorder', 'fillin', 'choice', 'translate', 'reorder', 'fillin', 'translate', 'fillin', 'reorder', 'translate'],
+  ['translate', 'reorder', 'fillin', 'translate', 'translate', 'reorder', 'fillin', 'translate', 'reorder', 'translate', 'fillin', 'translate'],
+];
 const GUIDE_TYPE_LABELS = {
   choice: ['えらぼう', '日本語に合うように、（　）に入る語を選ぶ'],
   reorder: ['ならべかえよう', '日本語に合うように、語句をならべかえて英文を書く'],
@@ -5588,8 +5594,11 @@ function generateGuideWorksheet() {
     const seen = new Set();
     // 同じ英文はなるべく2回出さない。基本の文が少ない単元では、時・場所の語句を足した文も使い、
     // それでも足りなければ、同じ英文を別の形式で出す
-    const make = type => {
+    // local: 同じページ(周)の中で使った英文。同じページには同じ英文を出さない
+    const make = (type, local) => {
+      const ok = item => !(local && local.has(fullSentence(item)));
       const accept = item => {
+        if (local) local.add(fullSentence(item));
         seen.add(fullSentence(item));
         seen.add(`${item.type}|${fullSentence(item)}`);
         item.guide = explainItem(stage, item);
@@ -5598,25 +5607,34 @@ function generateGuideWorksheet() {
       };
       for (let tries = 0; tries < 10; tries++) {
         const item = makeUnitQuestion(stage, type, st, 1);
-        if (!seen.has(fullSentence(item))) return accept(item);
+        if (!seen.has(fullSentence(item)) && ok(item)) return accept(item);
       }
       // 基本の文が足りなければ、同じ英文を別の形式で(選ぶ → 書く など)。それでも足りなければ時・場所の語句を足した文
       for (let tries = 0; tries < 10; tries++) {
         const item = makeUnitQuestion(stage, type, st, 1);
-        if (!seen.has(`${item.type}|${fullSentence(item)}`)) return accept(item);
+        if (!seen.has(`${item.type}|${fullSentence(item)}`) && ok(item)) return accept(item);
       }
       const wide = { order: st.order, n: 6 + Math.floor(rand() * 6) };
       for (let tries = 0; tries < 10; tries++) {
         const item = makeUnitQuestion(stage, type, wide, 2);
-        if (!seen.has(fullSentence(item))) return accept(item);
+        if (!seen.has(fullSentence(item)) && ok(item)) return accept(item);
       }
       return null;
     };
-    const intro = GUIDE_INTRO_TYPES.map(make).filter(Boolean);
-    const practice = GUIDE_PRACTICE_TYPES.map(make).filter(Boolean);
-    return { stage, intro, practice, nIntro: Math.min(5, intro.length), nPractice: Math.min(8, practice.length) };
+    const introSeen = new Set(), practiceSeen = new Set();
+    const intro = GUIDE_INTRO_TYPES.map(t => make(t, introSeen)).filter(Boolean);
+    const practice = GUIDE_PRACTICE_TYPES.map(t => make(t, practiceSeen)).filter(Boolean);
+    // 練習問題をくり返す周(2周目から)。前の周と同じ英文はなるべく使わない
+    const more = [];
+    for (let r = 1; r < Math.max(1, printRounds); r++) {
+      const types = GUIDE_PRACTICE_TYPES_BY_ROUND[Math.min(r, GUIDE_PRACTICE_TYPES_BY_ROUND.length - 1)];
+      const roundSeen = new Set();
+      const items = types.map(t => make(t, roundSeen)).filter(Boolean);
+      more.push({ stage, practice: items, nPractice: Math.min(8, items.length), round: r });
+    }
+    return { stage, intro, practice, nIntro: Math.min(5, intro.length), nPractice: Math.min(8, practice.length), more };
   });
-  printItems = guideUnits.flatMap(u => [...u.intro.slice(0, u.nIntro), ...u.practice.slice(0, u.nPractice)]);
+  printItems = guideUnits.flatMap(u => [...u.intro.slice(0, u.nIntro), ...u.practice.slice(0, u.nPractice), ...u.more.flatMap(m => m.practice.slice(0, m.nPractice))]);
   vocabItems = [];
   readingItems = [];
   examItems = [];
@@ -5675,14 +5693,16 @@ function renderPrintOptions() {
   printCountRow.style.display = isTest || isGuide ? 'none' : 'flex';
   printGuideRow.style.display = isGuide ? 'block' : 'none';
   printPointsLabel.style.display = isTest ? '' : 'none';
-  printRoundRow.style.display = isGuide || isTestRangePrint() ? 'none' : '';
+  printRoundRow.style.display = isHowto || isTestRangePrint() ? 'none' : '';
   editHint.innerHTML = isGuide
     ? '✎ 問題ごとの右上の <b>直す</b> で、問題文や解答を書きかえられます。ボタンは印刷されません。'
     : '✎ できたプリントは、問題ごとの右上のボタンで <b>直す</b>（文や解答を書きかえる）・<b>変える</b>（別の問題にする）・<b>消す</b> ができます。ボタンは印刷されません。';
   renderOptionSwitch(printRoundSwitch, [1, 2, 3, 4, 5, 6].map(n => [n, `${n}周`]), printRounds, v => {
     printRounds = v; generateWorksheet(printSeed);
   });
-  roundFlow.innerHTML = Array.from({ length: printRounds }, (_, i) =>
+  roundFlow.innerHTML = printSource.kind === 'guide'
+    ? `<span class="rf q">説明・確認の問題</span>→<span class="rf a">解説・解答</span>→` + Array.from({ length: printRounds }, (_, i) => `<span class="rf q">練習${'①②③④⑤⑥'[i]}</span>→<span class="rf a">解答${'①②③④⑤⑥'[i]}</span>`).join('→')
+    : Array.from({ length: printRounds }, (_, i) =>
     `<span class="rf q">問題${'①②③④⑤⑥'[i]}</span>${printIncludeAnswers.checked ? `→<span class="rf a">解答${'①②③④⑤⑥'[i]}</span>` : ''}`).join('→');
   printQHead.textContent = isTest ? '問題（テスト範囲の画面で設定した内容）' : '問題';
   document.getElementById('printGlossRow').style.display = isGuide ? 'none' : 'flex';
@@ -6400,7 +6420,9 @@ function guideIntroPage(u, mark, startNum) {
 function guidePracticePage(u, mark, startNum) {
   const page = document.createElement('div');
   page.className = 'ws-qpage';
-  page.innerHTML = `<div class="ws-part-head ws-part-practice"><b>練習問題${mark ? ` ${mark}` : ''}</b>${guideUnitName(u.stage)}　たくさん解いて、ルールを身につけよう。解いたら裏で答え合わせ</div>`;
+  const roundLabel = u.round ? `（${u.round + 1}周目）` : (u.more && u.more.length ? '（1周目）' : '');
+  const lead = u.round ? '前の周でまちがえたところに気をつけて、もう一度。解いたら裏で答え合わせ' : 'たくさん解いて、ルールを身につけよう。解いたら裏で答え合わせ';
+  page.innerHTML = `<div class="ws-part-head ws-part-practice"><b>練習問題${roundLabel}${mark ? ` ${mark}` : ''}</b>${guideUnitName(u.stage)}　${lead}</div>`;
   guideItemsInto(page, guidePracticeItems(u), startNum);
   return page;
 }
@@ -6418,7 +6440,8 @@ function guideIntroAnswerHtml(u, mark, startNum) {
 // 4ページ目: 練習問題の解答(1問ずつ短い解説つき)
 function guidePracticeAnswerHtml(u, mark, startNum) {
   const items = guidePracticeItems(u);
-  return `<div class="ws-ans-head">練習問題の解答<span>${mark} ${guideUnitName(u.stage)} (${startNum})〜(${startNum + items.length - 1})</span></div>
+  const roundLabel = u.round ? `（${u.round + 1}周目）` : (u.more && u.more.length ? '（1周目）' : '');
+  return `<div class="ws-ans-head">練習問題${roundLabel}の解答<span>${mark} ${guideUnitName(u.stage)} (${startNum})〜(${startNum + items.length - 1})</span></div>
     ${items.map((item, i) => `<div class="ws-ans-item ws-ans-short">
       <div class="ws-ans-top"><span class="ws-num">(${startNum + i})</span>
         <span class="ws-ans-en">${guideAnswerSentence(item)}</span>${item.type === 'choice' ? `<span class="ws-ans-key">${answerText(item).split(' ')[0]}</span>` : ''}
@@ -6436,11 +6459,15 @@ function layoutGuideUnit(u, first) {
     u.nIntro++;
     if (!(measureHeight(guideIntroPage(u, '①', 10)) + headH <= GUIDE_PAGE_LIMIT && measureHeight(htmlNode(guideIntroAnswerHtml(u, '①', 10))) <= GUIDE_PAGE_LIMIT)) { u.nIntro--; break; }
   }
-  u.nPractice = 1;
-  while (u.nPractice < u.practice.length) {
-    u.nPractice++;
-    if (!fit(() => guidePracticePage(u, '①', 10), () => guidePracticeAnswerHtml(u, '①', 10))) { u.nPractice--; break; }
-  }
+  const fitPractice = pu => {
+    pu.nPractice = 1;
+    while (pu.nPractice < pu.practice.length) {
+      pu.nPractice++;
+      if (!fit(() => guidePracticePage(pu, '①', 10), () => guidePracticeAnswerHtml(pu, '①', 10))) { pu.nPractice--; break; }
+    }
+  };
+  fitPractice(u);
+  (u.more || []).forEach(fitPractice);
 }
 
 function renderGuideWorksheet() {
@@ -6461,8 +6488,8 @@ function renderGuideWorksheet() {
 
   const paged = printIncludeAnswers.checked;
   if (paged) units.forEach((u, i) => layoutGuideUnit(u, i === 0));
-  else units.forEach(u => { u.nIntro = Math.min(5, u.intro.length); u.nPractice = Math.min(8, u.practice.length); });
-  printItems = units.flatMap(u => [...guideIntroItems(u), ...guidePracticeItems(u)]);
+  else units.forEach(u => { u.nIntro = Math.min(5, u.intro.length); u.nPractice = Math.min(8, u.practice.length); (u.more || []).forEach(m => { m.nPractice = Math.min(8, m.practice.length); }); });
+  printItems = units.flatMap(u => [...guideIntroItems(u), ...guidePracticeItems(u), ...(u.more || []).flatMap(guidePracticeItems)]);
   sheetTotal.textContent = countQuestions();
   sheetItems.classList.toggle('guide-paged', paged);
 
@@ -6475,7 +6502,12 @@ function renderGuideWorksheet() {
     const practiceStart = num;
     num += guidePracticeItems(u).length;
     parts.push({ page: guideIntroPage(u, mark, introStart), ans: guideIntroAnswerHtml(u, mark, introStart), label: `${mark}確認の問題` });
-    parts.push({ page: guidePracticePage(u, mark, practiceStart), ans: guidePracticeAnswerHtml(u, mark, practiceStart), label: `${mark}練習問題` });
+    parts.push({ page: guidePracticePage(u, mark, practiceStart), ans: guidePracticeAnswerHtml(u, mark, practiceStart), label: `${mark}練習問題${u.more && u.more.length ? '（1周目）' : ''}` });
+    (u.more || []).forEach(m => {
+      const start = num;
+      num += guidePracticeItems(m).length;
+      parts.push({ page: guidePracticePage(m, mark, start), ans: guidePracticeAnswerHtml(m, mark, start), label: `${mark}練習問題（${m.round + 1}周目）` });
+    });
   });
   parts.forEach(part => {
     const { page } = part;
