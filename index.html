@@ -373,6 +373,17 @@
   .ws-test-score i { display: inline-block; width: 56px; border-bottom: 1px solid var(--ink); height: 20px; }
   .ws-test-lead { font-size: 12.5px; color: var(--ink-soft); margin: 6px 0 2px; }
   .ws-pfoot { display: none; }
+  .ws-wtable { border-collapse: collapse; margin: 4px 0 6px 36px; font-size: 13px; }
+  .ws-wtable th, .ws-wtable td { border: 1px solid var(--ink); padding: 3px 12px; min-width: 88px; height: 22px; }
+  .ws-wtable th { font-size: 12px; background: var(--amber-tint); -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .ws-wtable .wt-en { font-family: 'Georgia', serif; font-size: 14.5px; color: #d0492a; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .ws-wtable-box .ws-wtable { margin-left: 0; }
+  .t-wtable .ws-wtable td.wt-en { min-width: 120px; }
+  .ws-midcheck { font-size: 12.5px; font-weight: 700; color: #d0492a; margin: 6px 0 2px; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .ws-rule-form { font-weight: 700; }
+  .ws-box { border: 1.5px solid currentColor; padding: 0 3px; }
+  .ws-ans-ctx { font-size: 12.5px; color: var(--ink-soft); margin-left: 6px; }
+  .ws-ans-jp { font-family: var(--gothic); font-size: 13.5px; }
   .ws-ans-page .ws-ans-en .ws-hl, .ws-ans-page .ws-ans-key { color: #d0492a; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 
   /* 印刷したときの高さを測るための見えない箱(印刷と同じスタイル) */
@@ -4586,6 +4597,20 @@ const QUESTION_TYPES = {
   paraphrase: { label: '同意文書きかえ', instr: '上の文とほぼ同じ意味になるように、下の文の（　）に適する語を1語ずつ書きなさい。' },
 };
 
+// 文法のポイントになる「まとまり」(3語以上の語句。囲む問題は2語以上で、日本語の文に同じ言葉があるもの)。
+// 「ここがポイント」の例文で強調している語をふくむまとまりを優先する
+function guideKeyPiece(stage, item, type) {
+  const g = STAGE_GUIDES[stage.key] || {};
+  const keys = new Set((g.examples || []).flatMap(([en]) => (en.match(/\*([^*]+)\*/g) || []).flatMap(m => m.replace(/\*/g, '').toLowerCase().split(' '))));
+  const hasKey = p => p.en.toLowerCase().split(' ').some(w => keys.has(w));
+  // ポイントの語をふくむまとまりだけを使う(2語でもよい)。ポイントの語がわからない単元は3語以上のまとまり
+  const cands = (item.pieces || []).filter(p => p.jp && !/[〜~]/.test(p.jp) && (type !== 'frame' || item.jp.includes(p.jp))
+    && (keys.size ? hasKey(p) && p.en.split(' ').length >= 2 : p.en.split(' ').length >= 3));
+  if (!cands.length) return null;
+  const score = p => p.en.toLowerCase().split(' ').filter(w => keys.has(w)).length * 10 + p.en.split(' ').length;
+  return cands.slice().sort((a, b) => score(b) - score(a))[0];
+}
+
 // 1問ぶんの出題データを作る。空所が作れないときは別の形式に切り替える。
 function buildQuestion(stage, q, type) {
   const item = { ...q, type: 'reorder', stageKey: stage.key, end: sentenceEnd(q.jp) };
@@ -4593,6 +4618,24 @@ function buildQuestion(stage, q, type) {
   item.tokens = tokens;
   if (type === 'translate') { item.type = 'translate'; return item; }
   if (type === 'trace') { item.type = 'trace'; return item; } // なぞり書き(解説つきプリント)
+  // まとまりづくり・囲む問題(解説つきプリント): 文法のポイントになる「まとまり」を使う。作れない文は並べかえにする
+  if (type === 'chunkorder' || type === 'frame') {
+    const piece = guideKeyPiece(stage, item, type);
+    if (piece) {
+      item.type = type;
+      item.chunk = piece;
+      if (type === 'chunkorder') {
+        const words = piece.en.split(' ');
+        let order = shuffle(words.slice());
+        for (let k = 0; k < 6 && order.join(' ') === words.join(' '); k++) order = shuffle(words.slice());
+        item.chunkWords = order.map(w => (w === 'I' ? w : lowerFirst(w)));
+        item.answer = piece.en;
+      } else {
+        item.answer = `${piece.jp} ／ ${piece.en}`;
+      }
+      return item;
+    }
+  }
   // 英文和訳は修飾語なしの文で出す(模範解答の日本語が文と一致するように)
   if (type === 'entoja') return { ...item, type: 'entoja', answer: q.jp };
   if (type === 'rewrite') {
@@ -4882,7 +4925,7 @@ function makeUnitQuestion(stage, type, st, maxTier = 3) {
   let item;
   for (let tries = 0; tries < 6; tries++) {
     // 並べ替えは修飾語を足さない(場所と時の語句の順番が2通りになることがあるため)
-    const tier = ['entoja', 'reorder', 'extra', 'trace'].includes(type) ? 1 : maxTier;
+    const tier = ['entoja', 'reorder', 'extra', 'trace', 'chunkorder', 'frame'].includes(type) ? 1 : maxTier;
     const q = getSessionQuestion(stage, st.n++, st.order, tier);
     item = buildQuestion(stage, q, type);
     if (item.type === type && !isExcluded(item)) return item;
@@ -5279,20 +5322,24 @@ function readingItemOf(p) {
 // 複数の単元(肯定文・否定文・疑問文 など)を選んだときは、単元ごとに4ページずつ続ける。
 // 問題は修飾語なしの基本文を中心に作り、1問ずつ解説を自動でつける(ヒントは出さない)。
 const GUIDE_INTRO_TYPES = ['choice', 'choice', 'fillin', 'reorder', 'fillin', 'translate', 'choice'];
-const GUIDE_PRACTICE_TYPES = ['trace', 'trace', 'fillin', 'reorder', 'translate', 'choice', 'fillin', 'translate', 'reorder', 'fillin',
+const GUIDE_PRACTICE_TYPES = ['trace', 'trace', 'chunkorder', 'fillin', 'reorder', 'frame', 'translate', 'choice', 'fillin', 'translate', 'reorder', 'fillin',
   'choice', 'translate', 'reorder', 'fillin'];
 // 確認テスト(練習のあと、何も見ないで解いて先生に出す)
-const GUIDE_TEST_TYPES = ['choice', 'fillin', 'fillin', 'reorder', 'reorder', 'translate', 'translate', 'fillin', 'reorder', 'translate'];
+const GUIDE_TEST_TYPES = ['choice', 'fillin', 'reorder', 'chunkorder', 'translate', 'reorder', 'fillin', 'translate', 'reorder', 'translate'];
 // 2周目・3周目の練習問題: 周が進むほど「書く」問題をふやす(選ぶ → 書く → 英文を書く)
 const GUIDE_PRACTICE_TYPES_BY_ROUND = [
   GUIDE_PRACTICE_TYPES,
-  ['fillin', 'translate', 'reorder', 'fillin', 'choice', 'translate', 'reorder', 'fillin', 'translate', 'fillin', 'reorder', 'translate'],
+  ['chunkorder', 'fillin', 'translate', 'reorder', 'frame', 'fillin', 'choice', 'translate', 'reorder', 'fillin', 'translate', 'fillin', 'reorder', 'translate'],
   ['translate', 'reorder', 'fillin', 'translate', 'translate', 'reorder', 'fillin', 'translate', 'reorder', 'translate', 'fillin', 'translate'],
 ];
 const GUIDE_TYPE_LABELS = {
+  rule: ['ルールの確認', 'この単元で学んだ文の形を完成させる'],
+  wtable: ['単語の確認', '日本語に合う英単語を書く'],
   trace: ['なぞって写そう', '上の段の英文をなぞってから、下の段に写す（英語の形と語順を手で覚える）'],
+  chunkorder: ['まとまりを作ろう', '日本語に合うように、語をならべかえて「まとまり」を作る（文の最初でも小文字のままでよい）'],
+  frame: ['囲もう', '日本語の文と英文で、〈ポイント〉にあたるところを□で囲む'],
   choice: ['えらぼう', '日本語に合うように、（　）に入る語を選ぶ'],
-  reorder: ['ならべかえよう', '日本語に合うように、語句をならべかえて英文を書く'],
+  reorder: ['ならべかえよう', '日本語に合うように、語句をならべかえて英文を書く（まず「だれが＋どうする」の骨組みを書いてから、残りのまとまりを続ける）'],
   fillin: ['書いてみよう', '日本語に合うように、（　）に英語を1語書く'],
   translate: ['英文を書こう', '日本語を英語にする'],
 };
@@ -5538,6 +5585,10 @@ function explainHave(item, a, idx) {
 // 1問ぶんのヒントと解説
 function explainItem(stage, item) {
   const guide = STAGE_GUIDES[stage.key] || {};
+  if (item.type === 'chunkorder' || item.type === 'frame') {
+    const c = item.chunk;
+    return { hint: '', why: `「${c.jp}」＝ <b>${c.en}</b>。文の中では ${fullSentence(item)}${guide.form ? `　形は「${guide.form}」。` : ''}` };
+  }
   if (item.type === 'reorder' || item.type === 'translate' || item.type === 'trace') {
     const first = guideClean(item.tokens[0]);
     return {
@@ -5622,6 +5673,72 @@ function guideStages() {
   return (printSource.keys || []).map(k => stages.find(s => s.key === k)).filter(Boolean);
 }
 
+// 単元で使う単語の表(意味・英単語)。教科書の単語データから、問題の文に出てくる語をもとの形で選ぶ
+const GUIDE_STOP_WORDS = new Set(('i you he she it we they me him her us them my your his its our their mine yours hers ours theirs this that these those '
+  + 'is am are was were be been being do does did done the a an to in on at of for with from by and or but not no yes very so too there here').split(' '));
+let guideVocabMap = null;
+function guideVocabLookup(token) {
+  if (!guideVocabMap) {
+    guideVocabMap = new Map();
+    (typeof PROGRAM_VOCAB !== 'undefined' ? PROGRAM_VOCAB : []).forEach(v => {
+      const w = v.word.toLowerCase();
+      if (/^[a-z]+$/.test(w) && !/名）|\(.*名\)/.test(v.meaning) && !guideVocabMap.has(w)) guideVocabMap.set(w, v);
+    });
+  }
+  const t = token.toLowerCase().replace(/[^a-z]/g, '');
+  if (!t || GUIDE_STOP_WORDS.has(t)) return null;
+  const irr = guideIrregularBase();
+  const cands = [t, irr.get(t) || t, t.replace(/ies$/, 'y'), t.replace(/es$/, ''), t.replace(/s$/, ''), t.replace(/ied$/, 'y'), t.replace(/ed$/, ''), t.replace(/d$/, ''),
+    t.replace(/([a-z])\1ed$/, '$1'), t.replace(/ing$/, ''), t.replace(/ing$/, 'e'), t.replace(/([a-z])\1ing$/, '$1')];
+  // 「haveの変化形」のような意味の語は、もとの形の語で引く
+  for (const c of cands) if (guideVocabMap.has(c) && !/変化形|過去形|過去分詞|複数形|3人称|三人称/.test(guideVocabMap.get(c).meaning)) return guideVocabMap.get(c);
+  return null;
+}
+let guideIrrMap = null;
+function guideIrregularBase() {
+  if (!guideIrrMap) {
+    guideIrrMap = new Map([['has', 'have'], ['does', 'do'], ['goes', 'go']]);
+    if (typeof EXAM_TABLES !== 'undefined') EXAM_TABLES.irregular.rows.forEach(([base, , past, pp]) => {
+      [past, pp].forEach(f => f.split(' / ').forEach(x => { if (x !== base && !guideIrrMap.has(x)) guideIrrMap.set(x, base); }));
+    });
+  }
+  return guideIrrMap;
+}
+function guideUnitWords(items, max = 6) {
+  const seen = new Set(), out = [];
+  items.forEach(it => (it.tokens || []).forEach(tok => {
+    const v = guideVocabLookup(tok);
+    if (!v || seen.has(v.word)) return;
+    seen.add(v.word);
+    out.push({ en: v.word, jp: v.meaning.split(/[、；;,]/)[0].replace(/（[^）]*）/g, '').replace(/^[～〜~]/, '').trim() || v.meaning });
+  }));
+  return out.filter(w => w.jp).slice(0, max);
+}
+// 表の行(1行に2語ずつ)。blank のときは英単語を空らんにする
+function guideWordRows(words, blank) {
+  const rows = [];
+  for (let i = 0; i < words.length; i += 2) {
+    const cell = w => (w ? `<td class="wt-jp">${w.jp}</td><td class="wt-en">${blank ? '' : w.en}</td>` : '<td></td><td></td>');
+    rows.push(`<tr>${cell(words[i])}${cell(words[i + 1])}</tr>`);
+  }
+  return `<tr><th>意味</th><th>英単語</th><th>意味</th><th>英単語</th></tr>${rows.join('')}`;
+}
+// ルールの確認(確認テストの最初): 「ここがポイント」の文の形の一部を空らんにする
+function guideRuleItem(stage) {
+  const g = STAGE_GUIDES[stage.key];
+  if (!g || !g.form) return null;
+  const parts = g.form.split('　／　')[0].split(/\s*\+\s*/).map(x => x.trim()).filter(Boolean);
+  if (parts.length < 2) return null;
+  // 「主語」「名詞」のような、どの文にもある部分は空らんにしない
+  const plain = /^(主語|名詞|〜|動詞|\?|？)$/;
+  const pool = parts.map((_, i) => i).filter(i => !plain.test(parts[i]));
+  if (!pool.length) return null;
+  const idx = shuffle(pool).slice(0, Math.min(2, pool.length)).sort((a, b) => a - b);
+  const ex = (g.examples || [])[0];
+  return { type: 'rule', section: 'grammar', stageKey: stage.key, parts, blanks: idx, example: ex ? ex[0].replace(/\*/g, '') : '',
+    answer: idx.map(i => parts[i]).join(' ／ '), guide: { why: `形は「${parts.join(' + ')}」。${g.point || ''}` }, noHint: true, jp: '', tokens: [], end: '' };
+}
+
 function generateGuideWorksheet() {
   guideUnits = guideStages().map(stage => {
     const st = { order: shuffle(stage.questions.map((_, i) => i)), n: 0 };
@@ -5667,13 +5784,22 @@ function generateGuideWorksheet() {
       more.push({ stage, practice: items, nPractice: Math.min(8, items.length), round: r });
     }
     // 確認テスト: 練習が終わったら、何も見ないで解いて先生に出す
-    let test = null;
+    let test = null, rule = null;
     if (printGuideTestCheck.checked) {
       const testSeen = new Set();
       const items = GUIDE_TEST_TYPES.map(t => make(t, testSeen)).filter(Boolean);
+      rule = guideRuleItem(stage);
+      if (rule) items.unshift(rule);
       test = { stage, practice: items, nPractice: Math.min(8, items.length), isTest: true };
     }
     const unit = { stage, intro, practice, nIntro: Math.min(5, intro.length), nPractice: Math.min(8, practice.length), more, test };
+    // 1周目の練習の最初に「使う単語の確認」の表。確認テストには同じ単語の表(英単語は空らん)
+    unit.words = guideUnitWords([...intro, ...practice, ...more.flatMap(m => m.practice)]);
+    if (test && unit.words.length >= 4) {
+      const words = shuffle(unit.words.slice()).slice(0, 4);
+      test.practice.splice(rule ? 1 : 0, 0, { type: 'wtable', section: 'grammar', stageKey: stage.key, words, answer: words.map(w => `${w.jp}＝${w.en}`).join('　'),
+        guide: { why: '' }, noHint: true, jp: '', tokens: [], end: '' });
+    }
     // 最後の練習のページには「先生に提出して確認テストへ」と書く
     if (test) (more.length ? more[more.length - 1] : unit).toTest = true;
     return unit;
@@ -6023,7 +6149,7 @@ function shuffledPieces(item) {
 
 const SELECT_TYPES = new Set(['choice', 'usage', 'vmeaning', 'rchoice', 'rtf', 'cdialog', 'xchoice']);
 // 日本語で答える問題は、模範解答を見て自分で採点する
-const SELF_GRADED_TYPES = new Set(['kscene', 'rja', 'rea', 'entoja', 'vjp', 'cwtrans', 'cwcond', 'cwfree', 'cetoj']);
+const SELF_GRADED_TYPES = new Set(['frame', 'rule', 'wtable', 'kscene', 'rja', 'rea', 'entoja', 'vjp', 'cwtrans', 'cwcond', 'cwfree', 'cetoj']);
 
 function answerText(item) {
   if (item.custom && item.custom.answer != null && !SELECT_TYPES.has(item.type)) return escHtml(item.custom.answer);
@@ -6043,7 +6169,7 @@ function answerText(item) {
   if (item.type === 'kform') return item.answer;
   if (item.type === 'korder') return `${item.order.map(k => CHOICE_LABELS5[k]).join('→')}<span class="ans-why">${item.sentence}</span>`;
   if (item.type === 'kscene') return `${item.answers[0]}${item.answers.slice(1).map(a => `<span class="ans-why">別解：${a}</span>`).join('')}`;
-  if (['form', 'fillin', 'vword', 'vblank', 'vidiom', 'vjp', 'entoja', 'rfill', 'rja', 'rea'].includes(item.type)) return item.answer;
+  if (['form', 'fillin', 'vword', 'vblank', 'vidiom', 'vjp', 'entoja', 'rfill', 'rja', 'rea', 'chunkorder', 'frame', 'rule', 'wtable'].includes(item.type)) return item.answer;
   if (item.type === 'rewrite') return item.answerSentence;
   if (item.type === 'error') return `${item.wrongWord} → ${item.answer}`;
   if (item.type === 'paraphrase') return item.answer;
@@ -6100,7 +6226,7 @@ function isCorrect(item) {
     const alt = clauseAltSentence(item.tokens, item.end);
     if (alt && normalize(answer) === normalize(alt)) return true;
   }
-  const target = ['form', 'fillin', 'vword', 'vblank', 'rfill'].includes(item.type) ? item.answer : fullSentence(item);
+  const target = ['form', 'fillin', 'vword', 'vblank', 'rfill', 'chunkorder'].includes(item.type) ? item.answer : fullSentence(item);
   return normalize(answer) !== '' && normalize(answer) === normalize(target);
 }
 
@@ -6139,6 +6265,9 @@ function itemPromptHtml(item) {
   if (item.type === 'cetoj') return `<span class="ws-en">${item.en}</span>`;
   if (item.type === 'cform') return `<span class="ws-word">${item.word}</span><span class="ws-cmean">（${item.meaning}）</span>`;
   if (item.type === 'entoja') return `<span class="ws-en">${fullSentence(item)}</span>`;
+  if (item.type === 'chunkorder') return item.chunk.jp;
+  if (item.type === 'rule') return `この単元の文の形を完成させよう（例文：${item.example}）`;
+  if (item.type === 'wtable') return '次の日本語に合う英単語を書こう';
   const tags = item.jpTags.map(t => `<span class="ws-tag">＋${t}</span>`).join('');
   return `${item.jp}${tags}`;
 }
@@ -6173,6 +6302,14 @@ function itemBodyHtml(item) {
     case 'rewrite':
       return `<div class="ws-sentence">${fullSentence(item)}<span class="ws-hint">（${item.rewriteKind === 'neg' ? '否定文に' : '疑問文に'}）</span></div>
         ${answerLineHtml('書きかえた英文を書こう')}`;
+    case 'chunkorder':
+      return `<div class="ws-pieces">${item.chunkWords.map(w => `<span class="ws-piece"><span>${escHtml(w)}</span></span>`).join('')}</div>${item.noHint ? '<div class="ws-4l ws-4l-print"></div>' : ''}${answerLineHtml('まとまりを書こう')}`;
+    case 'frame':
+      return `<div class="ws-sentence ws-frame-en">${fullSentence(item)}</div>`;
+    case 'rule':
+      return `<div class="ws-sentence ws-rule-form">${item.parts.map((p, i) => (item.blanks.includes(i) ? '<span class="ws-blank">（　　　　　）</span>' : `<span>${p}</span>`)).join(' ＋ ')}</div>`;
+    case 'wtable':
+      return `<table class="ws-wtable"><tbody>${guideWordRows(item.words, true)}</tbody></table>`;
     case 'trace': {
       // 4線の上の段にうすい英文(なぞる)、下の段は写す。画面では下の段のかわりに入力欄
       const en = fullSentence(item);
@@ -6384,6 +6521,11 @@ const SECTION_NUMERALS = ['Ⅰ', 'Ⅱ', 'Ⅲ', 'Ⅳ'];
 
 // 答え合わせのページ: 答えを入れた英文・正解・解説・○×欄。最初にルールを確認してから1問ずつ見る。
 function guideAnswerSentence(item) {
+  const box = t => `<span class="ws-box">${t}</span>`;
+  if (item.type === 'chunkorder') return `${box(item.chunk.en)}<span class="ws-ans-ctx">（${fullSentence(item)}）</span>`;
+  if (item.type === 'frame') return `<span class="ws-ans-jp">${item.jp.replace(item.chunk.jp, box(item.chunk.jp))}</span><br>${fullSentence(item).replace(item.chunk.en, box(item.chunk.en))}`;
+  if (item.type === 'rule') return item.parts.map((p, i) => (item.blanks.includes(i) ? `<b class="ws-hl">${p}</b>` : p)).join(' ＋ ');
+  if (item.type === 'wtable') return item.words.map(w => `${w.jp}＝<b class="ws-hl">${w.en}</b>`).join('　');
   if (item.blankIndex == null) return fullSentence(item);
   return endWith(item.tokens.map((t, i) => (i === item.blankIndex ? `<b class="ws-hl">${t}</b>` : t)).join(' '), item.end);
 }
@@ -6482,8 +6624,16 @@ function guidePracticePage(u, mark, startNum) {
   const roundLabel = u.round ? `（${u.round + 1}周目）` : (u.more && u.more.length ? '（1周目）' : '');
   const lead = u.round ? '前の周でまちがえたところに気をつけて、もう一度。解いたら裏で答え合わせ' : 'たくさん解いて、ルールを身につけよう。解いたら裏で答え合わせ';
   page.innerHTML = `<div class="ws-part-head ws-part-practice"><b>練習問題${roundLabel}${mark ? ` ${mark}` : ''}</b>${guideUnitName(u.stage)}　${lead}</div>`;
+  if (!u.round && (u.words || []).length >= 4) {
+    page.insertAdjacentHTML('beforeend', `<div class="ws-wtable-box"><div class="ws-gtype"><b>まずは使う単語を確認しよう</b>声に出して読んでから、問題に進もう</div><table class="ws-wtable"><tbody>${guideWordRows(u.words, false)}</tbody></table></div>`);
+  }
   guideItemsInto(page, guidePracticeItems(u), startNum);
-  if (u.toTest) page.insertAdjacentHTML('beforeend', '<div class="ws-to-test">ここまでできたら、先生に提出して確認テストに挑戦しよう！</div>');
+  // 最初の「なぞる・まとまり」のあとに、途中の丸付けの案内
+  if (!u.round) {
+    const firstPart = [...page.querySelectorAll('.ws-gitem')].filter(n => n.querySelector('.t-trace, .t-chunkorder')).pop();
+    if (firstPart && firstPart.nextElementSibling) firstPart.insertAdjacentHTML('afterend', '<div class="ws-midcheck">※不安な人は、ここで一度うらの解答で丸付けしてもOK！</div>');
+  }
+  if (u.toTest) page.insertAdjacentHTML('beforeend', '<div class="ws-to-test">おつかれさまでした！ 丸付けと直しをしてから、確認テストへ！</div>');
   return page;
 }
 // 2ページ目: くわしい解説(ルールの確認 → 1問ずつの解答と解説 → 気をつけよう)
@@ -6734,7 +6884,7 @@ function markItemRow(row) {
   const correct = row.querySelector('.ws-correct');
   if (ok === null) {
     // 日本語で答える問題は模範解答を見て自分で採点する
-    mark.textContent = '';
+    if (mark) mark.textContent = '';
     correct.style.display = 'block';
     correct.className = 'ws-correct self';
     correct.textContent = `模範解答: ${item.answer}（自分で答え合わせしよう）`;
