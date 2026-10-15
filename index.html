@@ -355,6 +355,26 @@
   .ws-rewrite-label { font-size: 12.5px; font-weight: 800; }
   .ws-rewrite-line { border-bottom: 1px solid var(--ink-soft); height: 30px; }
 
+  /* 4線(英習罫): 3本目(基線)を赤に。なぞり書きの英文はうすく */
+  .ws-4l { position: relative; height: 34px; margin: 6px 0 4px 36px; -webkit-print-color-adjust: exact; print-color-adjust: exact;
+    background: linear-gradient(#8a8a8a, #8a8a8a) 0 0 / 100% 1px no-repeat, linear-gradient(#c4c4c4, #c4c4c4) 0 11px / 100% 1px no-repeat,
+      linear-gradient(#d9534f, #d9534f) 0 22px / 100% 1px no-repeat, linear-gradient(#8a8a8a, #8a8a8a) 0 33px / 100% 1px no-repeat; }
+  .ws-4l + .ws-4l { margin-top: 16px; }
+  .ws-trace span { position: absolute; left: 6px; top: 1px; line-height: 28px; white-space: nowrap; color: #b4b4b4; letter-spacing: 0.04em;
+    font-family: 'Century Gothic', 'Avenir Next', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .ws-4l-print { display: none; }
+  .print-like .ws-4l-print { display: block; }
+  .print-like .ws-4l-print ~ .ws-answer, .print-like .t-trace .ws-answer { display: none; }
+  .ws-to-test { margin-top: 14px; font-size: 13.5px; font-weight: 800; text-align: center; border: 1.5px solid var(--ink); border-radius: 999px; padding: 5px 10px; }
+  .ws-test-head { display: flex; align-items: center; gap: 12px; border: 2px solid var(--ink); border-radius: 10px; padding: 6px 12px; }
+  .ws-test-title { font-size: 18px; font-weight: 800; letter-spacing: 0.1em; }
+  .ws-test-unit { font-size: 13px; font-weight: 700; }
+  .ws-test-score { margin-left: auto; font-size: 13px; font-weight: 700; display: flex; align-items: flex-end; gap: 4px; }
+  .ws-test-score i { display: inline-block; width: 56px; border-bottom: 1px solid var(--ink); height: 20px; }
+  .ws-test-lead { font-size: 12.5px; color: var(--ink-soft); margin: 6px 0 2px; }
+  .ws-pfoot { display: none; }
+  .ws-ans-page .ws-ans-en .ws-hl, .ws-ans-page .ws-ans-key { color: #d0492a; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+
   /* 印刷したときの高さを測るための見えない箱(印刷と同じスタイル) */
   #guideMeasure { position: absolute; left: -10000px; top: 0; visibility: hidden; pointer-events: none; }
   .print-like { border: none; border-radius: 0; padding: 0; }
@@ -609,6 +629,13 @@
     .ws-ans-page { display: none !important; }
     .ws-ans-page.include { display: block !important; break-before: page; page-break-before: always; border: none; background: none; padding: 0; margin: 0; }
     .guide-paged .ws-ans-page + .ws-qpage { break-before: page; page-break-before: always; }
+    /* 4線: 印刷では入力欄のかわりに4線を出す */
+    .ws-4l-print { display: block; }
+    .ws-4l-print ~ .ws-answer, .t-trace .ws-answer { display: none !important; }
+    /* ページ番号: 1ページを同じ高さにして、右下に「n / N　単元名」 */
+    .guide-paged .ws-qpage, .guide-paged .ws-ans-page.include { position: relative; box-sizing: border-box; min-height: var(--page-h, 1000px); padding-bottom: 24px !important; }
+    .guide-paged .ws-pfoot { display: block; position: absolute; right: 0; bottom: 0; font-size: 10.5px; color: #555; text-align: right; line-height: 1.3; }
+    .guide-paged .ws-pfoot span { display: block; font-size: 9.5px; }
     /* くり返しプリント: 第1回の問題 → 解答 → 第2回の問題 → 解答 … と続けて印刷する */
     body.multi-round #sheet { display: none !important; }
     body.multi-round #roundsPrint { display: block !important; }
@@ -842,6 +869,7 @@
         <div class="opt-sec-head">印刷</div>
         <div class="opt-checks">
           <label class="opt-check"><input type="checkbox" id="printIncludeAnswers" checked> 解答ページを入れる</label>
+          <label class="opt-check" id="printGuideTestLabel"><input type="checkbox" id="printGuideTestCheck" checked> 確認テストをつける</label>
           <label class="opt-check" id="printPointsLabel"><input type="checkbox" id="printPointsCheck" checked> 配点（100点満点）</label>
           <label class="opt-check"><input type="checkbox" id="printTeacherCheck"> 先生用（答えを赤字で記入）</label>
         </div>
@@ -3689,6 +3717,8 @@ const printGlossSwitch = document.getElementById('printGlossSwitch');
 const printIncludeAnswers = document.getElementById('printIncludeAnswers');
 const printPointsCheck = document.getElementById('printPointsCheck');
 const printPointsLabel = document.getElementById('printPointsLabel');
+const printGuideTestLabel = document.getElementById('printGuideTestLabel');
+const printGuideTestCheck = document.getElementById('printGuideTestCheck');
 const printTeacherCheck = document.getElementById('printTeacherCheck');
 const sheetNo = document.getElementById('sheetNo');
 const printRegenBtn = document.getElementById('printRegenBtn');
@@ -4562,6 +4592,7 @@ function buildQuestion(stage, q, type) {
   const tokens = sentenceTokens(q.pieces);
   item.tokens = tokens;
   if (type === 'translate') { item.type = 'translate'; return item; }
+  if (type === 'trace') { item.type = 'trace'; return item; } // なぞり書き(解説つきプリント)
   // 英文和訳は修飾語なしの文で出す(模範解答の日本語が文と一致するように)
   if (type === 'entoja') return { ...item, type: 'entoja', answer: q.jp };
   if (type === 'rewrite') {
@@ -4851,7 +4882,7 @@ function makeUnitQuestion(stage, type, st, maxTier = 3) {
   let item;
   for (let tries = 0; tries < 6; tries++) {
     // 並べ替えは修飾語を足さない(場所と時の語句の順番が2通りになることがあるため)
-    const tier = ['entoja', 'reorder', 'extra'].includes(type) ? 1 : maxTier;
+    const tier = ['entoja', 'reorder', 'extra', 'trace'].includes(type) ? 1 : maxTier;
     const q = getSessionQuestion(stage, st.n++, st.order, tier);
     item = buildQuestion(stage, q, type);
     if (item.type === type && !isExcluded(item)) return item;
@@ -5248,8 +5279,10 @@ function readingItemOf(p) {
 // 複数の単元(肯定文・否定文・疑問文 など)を選んだときは、単元ごとに4ページずつ続ける。
 // 問題は修飾語なしの基本文を中心に作り、1問ずつ解説を自動でつける(ヒントは出さない)。
 const GUIDE_INTRO_TYPES = ['choice', 'choice', 'fillin', 'reorder', 'fillin', 'translate', 'choice'];
-const GUIDE_PRACTICE_TYPES = ['fillin', 'reorder', 'translate', 'choice', 'fillin', 'translate', 'reorder', 'fillin',
+const GUIDE_PRACTICE_TYPES = ['trace', 'trace', 'fillin', 'reorder', 'translate', 'choice', 'fillin', 'translate', 'reorder', 'fillin',
   'choice', 'translate', 'reorder', 'fillin'];
+// 確認テスト(練習のあと、何も見ないで解いて先生に出す)
+const GUIDE_TEST_TYPES = ['choice', 'fillin', 'fillin', 'reorder', 'reorder', 'translate', 'translate', 'fillin', 'reorder', 'translate'];
 // 2周目・3周目の練習問題: 周が進むほど「書く」問題をふやす(選ぶ → 書く → 英文を書く)
 const GUIDE_PRACTICE_TYPES_BY_ROUND = [
   GUIDE_PRACTICE_TYPES,
@@ -5257,6 +5290,7 @@ const GUIDE_PRACTICE_TYPES_BY_ROUND = [
   ['translate', 'reorder', 'fillin', 'translate', 'translate', 'reorder', 'fillin', 'translate', 'reorder', 'translate', 'fillin', 'translate'],
 ];
 const GUIDE_TYPE_LABELS = {
+  trace: ['なぞって写そう', '上の段の英文をなぞってから、下の段に写す（英語の形と語順を手で覚える）'],
   choice: ['えらぼう', '日本語に合うように、（　）に入る語を選ぶ'],
   reorder: ['ならべかえよう', '日本語に合うように、語句をならべかえて英文を書く'],
   fillin: ['書いてみよう', '日本語に合うように、（　）に英語を1語書く'],
@@ -5504,7 +5538,7 @@ function explainHave(item, a, idx) {
 // 1問ぶんのヒントと解説
 function explainItem(stage, item) {
   const guide = STAGE_GUIDES[stage.key] || {};
-  if (item.type === 'reorder' || item.type === 'translate') {
+  if (item.type === 'reorder' || item.type === 'translate' || item.type === 'trace') {
     const first = guideClean(item.tokens[0]);
     return {
       hint: item.type === 'reorder' ? `最初の語は「${first}」。` : `${item.tokens.length}語の英文。「${first} …」で始めよう。`,
@@ -5632,9 +5666,19 @@ function generateGuideWorksheet() {
       const items = types.map(t => make(t, roundSeen)).filter(Boolean);
       more.push({ stage, practice: items, nPractice: Math.min(8, items.length), round: r });
     }
-    return { stage, intro, practice, nIntro: Math.min(5, intro.length), nPractice: Math.min(8, practice.length), more };
+    // 確認テスト: 練習が終わったら、何も見ないで解いて先生に出す
+    let test = null;
+    if (printGuideTestCheck.checked) {
+      const testSeen = new Set();
+      const items = GUIDE_TEST_TYPES.map(t => make(t, testSeen)).filter(Boolean);
+      test = { stage, practice: items, nPractice: Math.min(8, items.length), isTest: true };
+    }
+    const unit = { stage, intro, practice, nIntro: Math.min(5, intro.length), nPractice: Math.min(8, practice.length), more, test };
+    // 最後の練習のページには「先生に提出して確認テストへ」と書く
+    if (test) (more.length ? more[more.length - 1] : unit).toTest = true;
+    return unit;
   });
-  printItems = guideUnits.flatMap(u => [...u.intro.slice(0, u.nIntro), ...u.practice.slice(0, u.nPractice), ...u.more.flatMap(m => m.practice.slice(0, m.nPractice))]);
+  printItems = guideUnits.flatMap(u => [...u.intro.slice(0, u.nIntro), ...u.practice.slice(0, u.nPractice), ...u.more.flatMap(m => m.practice.slice(0, m.nPractice)), ...(u.test ? u.test.practice.slice(0, u.test.nPractice) : [])]);
   vocabItems = [];
   readingItems = [];
   examItems = [];
@@ -5689,10 +5733,11 @@ function renderPrintOptions() {
   const isGuide = printSource.kind === 'guide' || isHowto;
   printGuideNote.textContent = isHowto
     ? '「例題と解き方 → 解き方チェック問題（手順にそって空欄をうめながら解く）→ 実践問題 → 解答・解説」の4ページで、問題の解き方の手順を身につけます。'
-    : '1つの単元を「説明と確認の問題 → くわしい解説と解答 → 練習問題 → 解答」の4ページで学びます。両面印刷（長辺とじ）にすると、問題の裏が解答になります。';
+    : '1つの単元を「説明と確認の問題 → くわしい解説と解答 → 練習問題（なぞり書きから）→ 解答 → 確認テスト → 解答」の順で学びます。両面印刷（長辺とじ）にすると、問題の裏が解答になります。';
   printCountRow.style.display = isTest || isGuide ? 'none' : 'flex';
   printGuideRow.style.display = isGuide ? 'block' : 'none';
   printPointsLabel.style.display = isTest ? '' : 'none';
+  printGuideTestLabel.style.display = printSource.kind === 'guide' ? '' : 'none';
   printRoundRow.style.display = isHowto || isTestRangePrint() ? 'none' : '';
   editHint.innerHTML = isGuide
     ? '✎ 問題ごとの右上の <b>直す</b> で、問題文や解答を書きかえられます。ボタンは印刷されません。'
@@ -5702,6 +5747,7 @@ function renderPrintOptions() {
   });
   roundFlow.innerHTML = printSource.kind === 'guide'
     ? `<span class="rf q">説明・確認の問題</span>→<span class="rf a">解説・解答</span>→` + Array.from({ length: printRounds }, (_, i) => `<span class="rf q">練習${'①②③④⑤⑥'[i]}</span>→<span class="rf a">解答${'①②③④⑤⑥'[i]}</span>`).join('→')
+      + (printGuideTestCheck.checked ? `→<span class="rf q">確認テスト</span>→<span class="rf a">解答</span>` : '')
     : Array.from({ length: printRounds }, (_, i) =>
     `<span class="rf q">問題${'①②③④⑤⑥'[i]}</span>${printIncludeAnswers.checked ? `→<span class="rf a">解答${'①②③④⑤⑥'[i]}</span>` : ''}`).join('→');
   printQHead.textContent = isTest ? '問題（テスト範囲の画面で設定した内容）' : '問題';
@@ -6002,7 +6048,7 @@ function answerText(item) {
   if (item.type === 'error') return `${item.wrongWord} → ${item.answer}`;
   if (item.type === 'paraphrase') return item.answer;
   if (item.type === 'extra') return `${fullSentence(item)}（不要：${item.wrongWord}）`;
-  const alt = ['reorder', 'translate'].includes(item.type) && clauseAltSentence(item.tokens, item.end);
+  const alt = ['reorder', 'translate', 'trace'].includes(item.type) && clauseAltSentence(item.tokens, item.end);
   return alt ? `${fullSentence(item)}（${alt} も可）` : fullSentence(item);
 }
 
@@ -6050,7 +6096,7 @@ function isCorrect(item) {
     return got !== '' && combos.some(c => normalize(c) === got);
   }
   if (item.type === 'fillin' && (item.altAnswers || []).some(a => normalize(a) === normalize(answer))) return true;
-  if (['reorder', 'translate', 'extra'].includes(item.type)) {
+  if (['reorder', 'translate', 'extra', 'trace'].includes(item.type)) {
     const alt = clauseAltSentence(item.tokens, item.end);
     if (alt && normalize(answer) === normalize(alt)) return true;
   }
@@ -6105,7 +6151,7 @@ function itemBodyHtml(item) {
         const jp = printGlossMode === 'glossed' && !item.noHint && item.type !== 'extra' && p.jp ? `<span class="wp-jp">${p.jp}</span>` : '';
         return `<span class="ws-piece"><span>${p.en}</span>${jp}</span>`;
       }).join('');
-      return `<div class="ws-pieces">${pieces}</div>${answerLineHtml('ここに英文を書こう')}`;
+      return `<div class="ws-pieces">${pieces}</div>${item.noHint ? '<div class="ws-4l ws-4l-print"></div>' : ''}${answerLineHtml('ここに英文を書こう')}`;
     }
     case 'choice':
       return `<div class="ws-sentence">${blankedSentence(item)}</div>${optionsHtml(item)}`;
@@ -6127,8 +6173,14 @@ function itemBodyHtml(item) {
     case 'rewrite':
       return `<div class="ws-sentence">${fullSentence(item)}<span class="ws-hint">（${item.rewriteKind === 'neg' ? '否定文に' : '疑問文に'}）</span></div>
         ${answerLineHtml('書きかえた英文を書こう')}`;
+    case 'trace': {
+      // 4線の上の段にうすい英文(なぞる)、下の段は写す。画面では下の段のかわりに入力欄
+      const en = fullSentence(item);
+      const size = en.length > 44 ? 17 : en.length > 34 ? 20 : 23;
+      return `<div class="ws-4l ws-trace"><span style="font-size:${size}px">${escHtml(en)}</span></div><div class="ws-4l ws-4l-print"></div>${answerLineHtml('上の英文を写そう')}`;
+    }
     case 'translate':
-      return `${item.noHint ? '' : `<div class="ws-sentence ws-wordcount">（${item.tokens.length}語）</div>`}${answerLineHtml('ここに英文を書こう')}`;
+      return `${item.noHint ? '<div class="ws-4l ws-4l-print"></div>' : `<div class="ws-sentence ws-wordcount">（${item.tokens.length}語）</div>`}${answerLineHtml('ここに英文を書こう')}`;
     case 'vmeaning': case 'rchoice': case 'rtf':
       return optionsHtml(item);
     case 'vword':
@@ -6420,10 +6472,18 @@ function guideIntroPage(u, mark, startNum) {
 function guidePracticePage(u, mark, startNum) {
   const page = document.createElement('div');
   page.className = 'ws-qpage';
+  if (u.isTest) {
+    const n = guidePracticeItems(u).length;
+    page.innerHTML = `<div class="ws-test-head"><span class="ws-test-title">確認テスト${mark ? ` ${mark}` : ''}</span><span class="ws-test-unit">${guideUnitName(u.stage)}</span><span class="ws-test-score">得点<i></i>／ ${n}問</span></div>
+      <div class="ws-test-lead">ポイントや前のページを見ないで解こう。終わったら先生に提出しよう。</div>`;
+    guideItemsInto(page, guidePracticeItems(u), startNum);
+    return page;
+  }
   const roundLabel = u.round ? `（${u.round + 1}周目）` : (u.more && u.more.length ? '（1周目）' : '');
   const lead = u.round ? '前の周でまちがえたところに気をつけて、もう一度。解いたら裏で答え合わせ' : 'たくさん解いて、ルールを身につけよう。解いたら裏で答え合わせ';
   page.innerHTML = `<div class="ws-part-head ws-part-practice"><b>練習問題${roundLabel}${mark ? ` ${mark}` : ''}</b>${guideUnitName(u.stage)}　${lead}</div>`;
   guideItemsInto(page, guidePracticeItems(u), startNum);
+  if (u.toTest) page.insertAdjacentHTML('beforeend', '<div class="ws-to-test">ここまでできたら、先生に提出して確認テストに挑戦しよう！</div>');
   return page;
 }
 // 2ページ目: くわしい解説(ルールの確認 → 1問ずつの解答と解説 → 気をつけよう)
@@ -6441,13 +6501,13 @@ function guideIntroAnswerHtml(u, mark, startNum) {
 function guidePracticeAnswerHtml(u, mark, startNum) {
   const items = guidePracticeItems(u);
   const roundLabel = u.round ? `（${u.round + 1}周目）` : (u.more && u.more.length ? '（1周目）' : '');
-  return `<div class="ws-ans-head">練習問題${roundLabel}の解答<span>${mark} ${guideUnitName(u.stage)} (${startNum})〜(${startNum + items.length - 1})</span></div>
+  return `<div class="ws-ans-head">${u.isTest ? '確認テスト' : `練習問題${roundLabel}`}の解答<span>${mark} ${guideUnitName(u.stage)} (${startNum})〜(${startNum + items.length - 1})</span></div>
     ${items.map((item, i) => `<div class="ws-ans-item ws-ans-short">
       <div class="ws-ans-top"><span class="ws-num">(${startNum + i})</span>
         <span class="ws-ans-en">${guideAnswerSentence(item)}</span>${item.type === 'choice' ? `<span class="ws-ans-key">${answerText(item).split(' ')[0]}</span>` : ''}
         <span class="ws-ans-check">○×</span></div>
       <div class="ws-ans-why">${item.guide.why}</div></div>`).join('')}
-    <div class="ws-ans-foot">まちがえた問題は、解説を読んで直そう。何回まちがえても、直せば身につきます。</div>`;
+    <div class="ws-ans-foot">${u.isTest ? 'まちがえた問題は、ポイントと解説をもう一度読んで直そう。' : 'まちがえた問題は、解説を読んで直そう。何回まちがえても、直せば身につきます。'}</div>`;
 }
 
 // 問題のページに入る問題の数を決める。問題のページと解答のページの両方が1ページに収まるだけ入れる
@@ -6468,6 +6528,7 @@ function layoutGuideUnit(u, first) {
   };
   fitPractice(u);
   (u.more || []).forEach(fitPractice);
+  if (u.test) fitPractice(u.test);
 }
 
 function renderGuideWorksheet() {
@@ -6488,8 +6549,8 @@ function renderGuideWorksheet() {
 
   const paged = printIncludeAnswers.checked;
   if (paged) units.forEach((u, i) => layoutGuideUnit(u, i === 0));
-  else units.forEach(u => { u.nIntro = Math.min(5, u.intro.length); u.nPractice = Math.min(8, u.practice.length); (u.more || []).forEach(m => { m.nPractice = Math.min(8, m.practice.length); }); });
-  printItems = units.flatMap(u => [...guideIntroItems(u), ...guidePracticeItems(u), ...(u.more || []).flatMap(guidePracticeItems)]);
+  else units.forEach(u => { u.nIntro = Math.min(5, u.intro.length); u.nPractice = Math.min(8, u.practice.length); [...(u.more || []), ...(u.test ? [u.test] : [])].forEach(m => { m.nPractice = Math.min(8, m.practice.length); }); });
+  printItems = units.flatMap(u => [...guideIntroItems(u), ...guidePracticeItems(u), ...(u.more || []).flatMap(guidePracticeItems), ...(u.test ? guidePracticeItems(u.test) : [])]);
   sheetTotal.textContent = countQuestions();
   sheetItems.classList.toggle('guide-paged', paged);
 
@@ -6508,13 +6569,29 @@ function renderGuideWorksheet() {
       num += guidePracticeItems(m).length;
       parts.push({ page: guidePracticePage(m, mark, start), ans: guidePracticeAnswerHtml(m, mark, start), label: `${mark}練習問題（${m.round + 1}周目）` });
     });
+    if (u.test) {
+      const start = num;
+      num += guidePracticeItems(u.test).length;
+      parts.push({ page: guidePracticePage(u.test, mark, start), ans: guidePracticeAnswerHtml(u.test, mark, start), label: `${mark}確認テスト`, unit: u });
+    }
+    parts.filter(p => !p.unit).forEach(p => { p.unit = u; });
   });
-  parts.forEach(part => {
+  // ページ番号(印刷の右下に「3 / 8　単元名」)。問題と解答を1ページずつ数える
+  const pageTotal = paged ? parts.length * 2 : 0;
+  const headH = paged ? measureHeight(document.querySelector('.sheet-head').cloneNode(true)) : 0;
+  parts.forEach((part, pi) => {
     const { page } = part;
     sheetItems.appendChild(page);
     const ans = document.createElement('div');
     ans.className = 'ws-ans-page' + (paged ? ' include' : '');
     ans.innerHTML = part.ans;
+    if (paged) {
+      const foot = n => `<div class="ws-pfoot">${n} / ${pageTotal}<span>${guideUnitName(part.unit.stage)}</span></div>`;
+      page.insertAdjacentHTML('beforeend', foot(pi * 2 + 1));
+      ans.insertAdjacentHTML('beforeend', foot(pi * 2 + 2));
+      // 1ページ目はプリントの見出しのぶんだけ低くする
+      if (pi === 0) page.style.setProperty('--page-h', `${Math.max(600, 1000 - Math.ceil(headH))}px`);
+    }
     // 画面では、問題のページの下の答え合わせボタンで解答と解説を出す
     const btn = document.createElement('div');
     btn.className = 'ws-step-check no-print';
@@ -6734,6 +6811,7 @@ window.addEventListener('beforeprint', () => { if (screenPrint.style.display !==
 window.addEventListener('afterprint', () => { roundsPrint.innerHTML = ''; document.body.classList.remove('multi-round'); });
 printNextRoundBtn.addEventListener('click', nextRound);
 printPointsCheck.addEventListener('change', renderWorksheet);
+printGuideTestCheck.addEventListener('change', () => generateWorksheet(printSeed));
 printTeacherCheck.addEventListener('change', () => document.getElementById('sheet').classList.toggle('teacher', printTeacherCheck.checked));
 
 // ---------- 印刷したプリントの履歴 ----------
