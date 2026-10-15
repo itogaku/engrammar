@@ -6177,6 +6177,7 @@ function answerText(item) {
   if (item.type === 'cetoj') return `${item.answer}${item.point ? `<span class="ans-why">ポイント：${item.point}</span>` : ''}`;
   if (item.type === 'cform') return item.answers.join('　');
   if (item.type === 'xfill' || item.type === 'xpara') return item.answers.join(' / ');
+  if (item.type === 'xask') return `${item.answers[0]}${item.answers.slice(1).map(a => `<span class="ans-why">別解：${a}</span>`).join('')}`;
   if (item.type === 'xorder') return item.answer;
   if (item.type === 'kform') return item.answer;
   if (item.type === 'korder') return `${item.order.map(k => CHOICE_LABELS5[k]).join('→')}<span class="ans-why">${item.sentence}</span>`;
@@ -6214,6 +6215,7 @@ function isCorrect(item) {
     return words.length > 0 && words[words.length - 1] === want && (words.length === 1 || (words.length === 2 && words[0] === item.wrongWord.toLowerCase()));
   }
   if (item.type === 'xorder') return normalize(answer) !== '' && normalize(answer) === normalize(item.answer);
+  if (item.type === 'xask') return normalize(answer) !== '' && item.answers.some(a => normalize(a) === normalize(answer));
   if (item.type === 'kform') return normalize(answer) !== '' && normalize(answer) === normalize(item.answer);
   if (item.type === 'korder') {
     const got = (answer.match(/[アイウエオ]/g) || []).join('');
@@ -6270,7 +6272,7 @@ function itemPromptHtml(item) {
   if (item.type === 'cphrase' || item.type === 'cfree') return item.jp.replace(/\s*(B[:：])\s*/, '<br>$1 ');
   if (item.type === 'cwtrans') return item.jp;
   if (['xchoice', 'xfill', 'xorder'].includes(item.type)) return item.jp || '';
-  if (item.type === 'xpara') return '';
+  if (item.type === 'xpara' || item.type === 'xask') return '';
   if (item.type === 'kform' || item.type === 'korder') return '';
   if (item.type === 'kscene') return item.scene;
   if (item.type === 'cwcond' || item.type === 'cwfree') return item.task;
@@ -6366,6 +6368,8 @@ function itemBodyHtml(item) {
       return `<div class="ws-sentence">${examBlanks(item.en)}</div>${answerLineHtml('（　）に入る語を順に', 'short')}`;
     case 'xorder':
       return `<div class="ws-sentence">（ ${item.words.join(' / ')} ）</div>${answerLineHtml('並べかえた英文を書こう')}`;
+    case 'xask':
+      return `<div class="ws-sentence">${escHtml(item.en).replace(/\[([^\]]+)\]/g, '<u>$1</u>')}</div>${answerLineHtml('疑問文を書こう')}`;
     case 'xpara':
       return `<div class="ws-sentence">${item.en1}</div><div class="ws-sentence">${examBlanks(item.en2)}</div>${answerLineHtml('（　）に入る語を順に', 'short')}`;
     case 'cwcond': case 'cwfree':
@@ -6803,7 +6807,7 @@ function renderGuideWorksheet() {
 const POINT_WEIGHTS = {
   vmeaning: 1, vjp: 2, vword: 2, vblank: 2, vidiom: 2,
   choice: 2, usage: 2, fillin: 2, form: 2, error: 3, extra: 3, reorder: 3, rewrite: 3, paraphrase: 3, translate: 4, entoja: 4,
-  rchoice: 3, rtf: 2, rfill: 3, rja: 4, rea: 4, cdialog: 3, cphrase: 3, cform: 2, cfree: 3, cwtrans: 4, cwcond: 5, cwfree: 10, cetoj: 4, xchoice: 2, xfill: 3, xorder: 3, xpara: 3, kform: 3, korder: 3, kscene: 6,
+  rchoice: 3, rtf: 2, rfill: 3, rja: 4, rea: 4, cdialog: 3, cphrase: 3, cform: 2, cfree: 3, cwtrans: 4, cwcond: 5, cwfree: 10, cetoj: 4, xchoice: 2, xfill: 3, xorder: 3, xpara: 3, xask: 4, kform: 3, korder: 3, kscene: 6,
 };
 function assignPoints(items) {
   items.forEach(it => { delete it.points; });
@@ -7291,6 +7295,7 @@ const EXAM_TYPES = {
   xfill: { label: '適語補充', instr: '日本語に合うように、（　）に適切な語を1語ずつ入れなさい。' },
   xorder: { label: '並べかえ', instr: '日本語に合うように、（　）内の語句を並べかえて英文を書きなさい。' },
   xpara: { label: '同意文', instr: '2つの文がほぼ同じ意味になるように、（　）に適切な語を1語ずつ入れなさい。' },
+  xask: { label: '下線部をたずねる疑問文', instr: '下線部が答えの中心となる疑問文を書きなさい。' },
   cfree: { label: '英作文の表現', instr: '日本語に合うように、（　）に適切な英語を1語ずつ入れなさい。' },
   cetoj: { label: '英文和訳', instr: '次の英文を日本語にしなさい。' },
   cwtrans: { label: '和文英訳', instr: '次の日本語を英語にしなさい。' },
@@ -7419,6 +7424,7 @@ function examGrammarItem(chapter, q) {
   if (q.type === 'choice') return { ...base, en: q.en, options: q.options, answer: q.options[q.answer] };
   if (q.type === 'fill') return { ...base, en: q.en, answers: q.answers };
   if (q.type === 'order') return { ...base, words: shuffle([...q.words]), answer: q.answer };
+  if (q.type === 'ask') return { ...base, en: q.en, answer: q.answer, answers: [q.answer, ...(q.alts || [])] };
   return { ...base, en1: q.en1, en2: q.en2, answers: q.answers };
 }
 function chibaFormItem(x) {

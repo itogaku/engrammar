@@ -64,6 +64,11 @@ EXAM_GRAMMAR.verbs = {
     { type: 'order', jp: 'だれが昨日この窓を割ったのですか。', words: ['broke', 'yesterday', 'who', 'this', 'window'], answer: 'Who broke this window yesterday?', point: '疑問詞が主語 → Who + 過去形 〜?(did は使わない)' },
     { type: 'order', jp: '父は台所で夕食を作っているところです。', words: ['dinner', 'is', 'in the kitchen', 'my father', 'cooking'], answer: 'My father is cooking dinner in the kitchen.', point: '現在進行形 is + 〜ing' },
 
+    { type: 'ask', en: 'Tom is [playing the guitar] now.', answer: 'What is Tom doing now?', point: '動作 → What + be動詞 + 主語 + doing' },
+    { type: 'ask', en: 'I was [in the library] at that time.', answer: 'Where were you at that time?', point: '場所 → Where + be動詞 + 主語。I は you にかえ、was は were に' },
+    { type: 'ask', en: 'She read [a book about space] yesterday.', answer: 'What did she read yesterday?', point: 'もの → What + did + 主語 + 原形(read → read)' },
+    { type: 'ask', en: 'We stayed in Okinawa [for five days].', answer: 'How long did you stay in Okinawa?', point: '期間 → How long + did + 主語 + 原形。we は you にかえる' },
+
     { type: 'para', en1: 'Yuki is a good swimmer.', en2: 'Yuki ( ) ( ).', answers: ['swims', 'well'], point: 'a good 〜er ⇔ 動詞 + well' },
     { type: 'para', en1: 'Mr. Sato taught us music last year.', en2: 'Mr. Sato ( ) our music ( ) last year.', answers: ['was', 'teacher'], point: 'teach(taught)⇔ be our 〜 teacher' },
     { type: 'para', en1: 'We had a lot of rain last month.', en2: 'It ( ) a lot last month.', answers: ['rained'], point: 'have a lot of rain ⇔ it rains a lot' },
@@ -270,6 +275,15 @@ EXAM_GRAMMAR.questions = {
     { type: 'order', jp: 'あなたはどの季節がいちばん好きですか。', words: ['season', 'which', 'you', 'like', 'do', 'the best'], answer: 'Which season do you like the best?', point: 'Which + 名詞 + 疑問文' },
     { type: 'order', jp: '私は彼がなぜ怒っていたのか知りませんでした。', words: ['know', 'was', 'I', 'he', 'why', 'angry', "didn't"], answer: "I didn't know why he was angry.", point: '間接疑問 why + 主語 + 動詞(過去にそろえる)' },
     { type: 'order', jp: 'あなたは泳げますよね。', words: ['can', 'you', "can't", 'swim', 'you'], answer: "You can swim, can't you?", point: '助動詞 can の付加疑問 → can\'t you?' },
+
+    { type: 'ask', en: 'My sister gets up [at six] every morning.', answer: 'What time does your sister get up every morning?', alts: ['When does your sister get up every morning?'], point: '時刻 → What time + does + 主語 + 原形。my は your にかえる' },
+    { type: 'ask', en: 'Ken went to [Kyoto] last week.', answer: 'Where did Ken go last week?', point: '場所 → Where + did + 主語 + 原形(went → go)' },
+    { type: 'ask', en: 'This is [Mika\'s] bike.', answer: 'Whose bike is this?', point: '持ち主 → Whose + 名詞 + is this?' },
+    { type: 'ask', en: 'They have [three] cats.', answer: 'How many cats do they have?', point: '数 → How many + 複数名詞 + 疑問文' },
+    { type: 'ask', en: '[Yuki] made this cake.', answer: 'Who made this cake?', point: '主語をたずねる → Who + 動詞(do / did は使わない)' },
+    { type: 'ask', en: 'He was absent [because he had a cold].', answer: 'Why was he absent?', point: '理由 → Why + be動詞 + 主語' },
+    { type: 'ask', en: 'The bag is [3,000 yen].', answer: 'How much is the bag?', point: '値段 → How much + is + 主語' },
+    { type: 'ask', en: 'I go to school [by bus].', answer: 'How do you go to school?', point: '手段 → How + do + 主語 + 原形。I は you にかえる' },
 
     { type: 'para', en1: 'Where does Tom live? I want to know that.', en2: 'I want to know ( ) Tom ( ).', answers: ['where', 'lives'], point: 'where does Tom live → where Tom lives' },
     { type: 'para', en1: 'What is his name? Do you know?', en2: 'Do you know ( ) his name ( )?', answers: ['what', 'is'], point: 'what is his name → what his name is' },
