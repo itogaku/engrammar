@@ -373,6 +373,11 @@
   .ws-test-score i { display: inline-block; width: 56px; border-bottom: 1px solid var(--ink); height: 20px; }
   .ws-test-lead { font-size: 12.5px; color: var(--ink-soft); margin: 6px 0 2px; }
   .ws-pfoot { display: none; }
+  .t-clist .ws-num::before { content: '□'; margin-right: 3px; font-weight: 400; }
+  .t-clist .ws-item, .ws-item.t-clist { padding: 5px 0; }
+  .ws-clist { margin-left: 36px; font-size: 13.5px; line-height: 1.5; }
+  .ws-clist .ws-ex-en { font-size: 14px; }
+  .ws-clist-theme { font-size: 11px; color: var(--ink-soft); border: 1px solid var(--line); border-radius: 999px; padding: 0 8px; margin-left: 8px; }
   .ws-letter { font-weight: 400; font-family: 'Georgia', serif; font-size: 14px; line-height: 1.6; border: 1px solid var(--ink-soft); border-radius: 6px; padding: 6px 12px; margin: 6px 0 2px; }
   .ws-red, .sheet.redsheet .ws-teacher { color: #e60033 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   .ws-red { font-weight: 700; padding: 0 4px; }
@@ -718,6 +723,7 @@
       <div class="exam-head">重要表現（熟語・連語）<span>日本語に合うように英文の空所をうめる</span></div>
       <div class="opt-row"><span class="opt-label">テーマ</span><div class="chip-switch" id="examPhraseThemes"></div></div>
       <div class="opt-row"><span class="opt-label">問題数</span><div class="mode-switch" id="examPhraseCount"></div></div>
+      <div class="opt-row"><span class="opt-label">作り方</span><div class="mode-switch" id="examPhraseList"></div></div>
       <button class="btn btn-primary exam-make" id="examPhraseBtn">重要表現のプリントを作る</button>
     </div>
     <div class="card test-card exam-card">
@@ -737,6 +743,7 @@
       <div class="exam-head">自由英作文で使える表現<span>意見・理由・比較・夢・感想・紹介などの書き方を身につける</span></div>
       <div class="opt-row"><span class="opt-label">テーマ</span><div class="chip-switch" id="examFreeThemes"></div></div>
       <div class="opt-row"><span class="opt-label">問題数</span><div class="mode-switch" id="examFreeCount"></div></div>
+      <div class="opt-row"><span class="opt-label">作り方</span><div class="mode-switch" id="examFreeList"></div></div>
       <button class="btn btn-primary exam-make" id="examFreeBtn">表現のプリントを作る</button>
     </div>
     <div class="card test-card exam-card">
@@ -6163,7 +6170,7 @@ function shuffledPieces(item) {
 
 const SELECT_TYPES = new Set(['choice', 'usage', 'vmeaning', 'rchoice', 'rtf', 'cdialog', 'xchoice']);
 // 日本語で答える問題は、模範解答を見て自分で採点する
-const SELF_GRADED_TYPES = new Set(['frame', 'rule', 'wtable', 'kscene', 'rja', 'rea', 'entoja', 'vjp', 'cwtrans', 'cwcond', 'cwfree', 'cetoj']);
+const SELF_GRADED_TYPES = new Set(['clist', 'frame', 'rule', 'wtable', 'kscene', 'rja', 'rea', 'entoja', 'vjp', 'cwtrans', 'cwcond', 'cwfree', 'cetoj']);
 
 function answerText(item) {
   if (item.custom && item.custom.answer != null && !SELECT_TYPES.has(item.type)) return escHtml(item.custom.answer);
@@ -6184,7 +6191,7 @@ function answerText(item) {
   if (item.type === 'kform') return item.answer;
   if (item.type === 'korder') return `${item.order.map(k => CHOICE_LABELS5[k]).join('→')}<span class="ans-why">${item.sentence}</span>`;
   if (item.type === 'kscene') return `${item.answers[0]}${item.answers.slice(1).map(a => `<span class="ans-why">別解：${a}</span>`).join('')}`;
-  if (['form', 'fillin', 'vword', 'vblank', 'vidiom', 'vjp', 'entoja', 'rfill', 'rja', 'rea', 'chunkorder', 'frame', 'rule', 'wtable'].includes(item.type)) return item.answer;
+  if (['form', 'fillin', 'vword', 'vblank', 'vidiom', 'vjp', 'entoja', 'rfill', 'rja', 'rea', 'chunkorder', 'frame', 'rule', 'wtable', 'clist'].includes(item.type)) return item.answer;
   if (item.type === 'rewrite') return item.answerSentence;
   if (item.type === 'error') return `${item.wrongWord} → ${item.answer}`;
   if (item.type === 'paraphrase') return item.answer;
@@ -6287,6 +6294,7 @@ function itemPromptHtml(item) {
   if (item.type === 'cform') return `<span class="ws-word">${item.word}</span><span class="ws-cmean">（${item.meaning}）</span>`;
   if (item.type === 'entoja') return `<span class="ws-en">${fullSentence(item)}</span>`;
   if (item.type === 'chunkorder') return item.chunk.jp;
+  if (item.type === 'clist') return `<span class="ws-word">${escHtml(item.phrase)}</span>${item.theme ? `<span class="ws-clist-theme">${item.theme}</span>` : ''}`;
   if (item.type === 'rule') return `この単元の文の形を完成させよう（例文：${item.example}）`;
   if (item.type === 'wtable') return '次の日本語に合う英単語を書こう';
   const tags = item.jpTags.map(t => `<span class="ws-tag">＋${t}</span>`).join('');
@@ -6323,6 +6331,8 @@ function itemBodyHtml(item) {
     case 'rewrite':
       return `<div class="ws-sentence">${fullSentence(item)}<span class="ws-hint">（${item.rewriteKind === 'neg' ? '否定文に' : '疑問文に'}）</span></div>
         ${answerLineHtml('書きかえた英文を書こう')}`;
+    case 'clist':
+      return `<div class="ws-clist"><div class="ws-red">${item.meaning}</div><div class="ws-ex-en">${item.enHtml}</div><div class="ws-ex-jp">${item.jp}</div></div>`;
     case 'chunkorder':
       return `<div class="ws-pieces">${item.chunkWords.map(w => `<span class="ws-piece"><span>${escHtml(w)}</span></span>`).join('')}</div>${item.noHint ? '<div class="ws-4l ws-4l-print"></div>' : ''}${answerLineHtml('まとまりを書こう')}`;
     case 'frame':
@@ -6818,7 +6828,7 @@ function renderGuideWorksheet() {
 const POINT_WEIGHTS = {
   vmeaning: 1, vjp: 2, vword: 2, vblank: 2, vidiom: 2,
   choice: 2, usage: 2, fillin: 2, form: 2, error: 3, extra: 3, reorder: 3, rewrite: 3, paraphrase: 3, translate: 4, entoja: 4,
-  rchoice: 3, rtf: 2, rfill: 3, rja: 4, rea: 4, cdialog: 3, cphrase: 3, cform: 2, cfree: 3, cwtrans: 4, cwcond: 5, cwfree: 10, cetoj: 4, xchoice: 2, xfill: 3, xorder: 3, xpara: 3, xask: 4, kform: 3, korder: 3, kscene: 6,
+  rchoice: 3, rtf: 2, rfill: 3, rja: 4, rea: 4, cdialog: 3, cphrase: 3, cform: 2, cfree: 3, cwtrans: 4, cwcond: 5, cwfree: 10, cetoj: 4, xchoice: 2, xfill: 3, xorder: 3, xpara: 3, xask: 4, clist: 1, kform: 3, korder: 3, kscene: 6,
 };
 function assignPoints(items) {
   items.forEach(it => { delete it.points; });
@@ -7306,6 +7316,7 @@ const EXAM_TYPES = {
   xfill: { label: '適語補充', instr: '日本語に合うように、（　）に適切な語を1語ずつ入れなさい。' },
   xorder: { label: '並べかえ', instr: '日本語に合うように、（　）内の語句を並べかえて英文を書きなさい。' },
   xpara: { label: '同意文', instr: '2つの文がほぼ同じ意味になるように、（　）に適切な語を1語ずつ入れなさい。' },
+  clist: { label: '表現の一覧', instr: '□にチェックしながら、例文を声に出して読もう。赤シートで意味をかくして、言えるか確かめよう。' },
   xask: { label: '下線部をたずねる疑問文', instr: '下線部が答えの中心となる疑問文を書きなさい。' },
   cfree: { label: '英作文の表現', instr: '日本語に合うように、（　）に適切な英語を1語ずつ入れなさい。' },
   cetoj: { label: '英文和訳', instr: '次の英文を日本語にしなさい。' },
@@ -7327,7 +7338,7 @@ const EXAM_ROUNDS = [
   { title: '疑問詞・間接疑問・仮定法', sub: '疑問詞の疑問文・間接疑問・I wish・If I were', match: /^(program1-where|program2-when|g1program3-whatcan|g1program4-who|g1program7-(how|candoq)|g1powerup|g1program8-wh|g1program9-whprog|g3program4-indirect|g3program7-)/ },
 ];
 const EXAM_GRAMMAR_FORMAT = { form: 4, choice: 3, fillin: 2, rewrite: 2, paraphrase: 2, reorder: 2, extra: 2, error: 2, translate: 2, entoja: 1 };
-const examState = { readingLevels: new Set(['basic']), readingCount: 1, vocabRange: 3, vocabCount: 30, writingKinds: new Set(['translate']), writingCount: 10, freeThemes: new Set(), freeCount: 20, etojCount: 10, dialogCats: new Set(), dialogCount: 10, phraseThemes: new Set(), phraseCount: 20, tableKinds: new Set(['irregular']), tableCount: 20, tableMix: false, mockRange: 3 };
+const examState = { readingLevels: new Set(['basic']), readingCount: 1, vocabRange: 3, vocabCount: 30, writingKinds: new Set(['translate']), writingCount: 10, freeThemes: new Set(), freeCount: 20, etojCount: 10, dialogCats: new Set(), dialogCount: 10, phraseThemes: new Set(), phraseCount: 20, tableKinds: new Set(['irregular']), tableCount: 20, tableMix: false, phraseList: false, freeList: false, mockRange: 3 };
 
 function examRoundKeys(r) { return stages.filter(st => r.match.test(st.key)).map(st => st.key); }
 function emptyCounts(defs) { return Object.fromEntries(Object.keys(defs).map(k => [k, 0])); }
@@ -7361,7 +7372,7 @@ function generateExamItems(cfg, used) {
   }
   if (cfg.phraseCount && typeof EXAM_PHRASES !== 'undefined') {
     const pool = EXAM_PHRASES.map((ph, i) => ({ ...ph, i })).filter(ph => !cfg.phraseThemes || !cfg.phraseThemes.length || cfg.phraseThemes.includes(ph.theme));
-    take(pool, cfg.phraseCount, ph => `e|cphrase|p${ph.i}`).forEach(ph => out.push(examPhraseItem(ph)));
+    take(pool, cfg.phraseCount, ph => `e|cphrase|p${ph.i}`).sort((a, b) => (cfg.phraseList ? a.i - b.i : 0)).forEach(ph => out.push(cfg.phraseList ? examListItem(ph, 'p', EXAM_PHRASE_THEMES) : examPhraseItem(ph)));
   }
   if (cfg.chapter && typeof EXAM_GRAMMAR !== 'undefined' && EXAM_GRAMMAR[cfg.chapter]) {
     const ch = EXAM_GRAMMAR[cfg.chapter];
@@ -7384,7 +7395,7 @@ function generateExamItems(cfg, used) {
   }
   if (cfg.freePhraseCount && typeof EXAM_FREE_PHRASES !== 'undefined') {
     const pool = EXAM_FREE_PHRASES.map((ph, i) => ({ ...ph, i })).filter(ph => !cfg.freeThemes || !cfg.freeThemes.length || cfg.freeThemes.includes(ph.theme));
-    take(pool, cfg.freePhraseCount, ph => `e|cfree|f${ph.i}`).forEach(ph => out.push(examPhraseItem(ph, 'f', 'cfree')));
+    take(pool, cfg.freePhraseCount, ph => `e|cfree|f${ph.i}`).sort((a, b) => (cfg.freeList ? a.i - b.i : 0)).forEach(ph => out.push(cfg.freeList ? examListItem(ph, 'f', EXAM_FREE_THEMES) : examPhraseItem(ph, 'f', 'cfree')));
   }
   if (cfg.etojCount && typeof EXAM_ETOJ !== 'undefined') {
     take(EXAM_ETOJ.map((x, i) => ({ ...x, i })), cfg.etojCount, x => `e|cetoj|t${x.i}`).forEach(x => out.push(examEtojItem(x)));
@@ -7405,6 +7416,12 @@ function generateExamItems(cfg, used) {
 function examDialogItem(d) {
   // 選択肢の順番はそのまま(作った人が正解の位置をばらしている)
   return { section: 'exam', type: 'cdialog', key: `d${d.i}`, lines: d.lines, options: d.options, answer: d.options[d.answer], why: d.why, cat: d.cat };
+}
+// 覚える用の一覧: □ 表現 ／ 意味(赤字。赤シートでかくせる) ／ 例文
+function examListItem(ph, prefix, themes) {
+  const words = new Set(ph.blanks || []);
+  const enHtml = ph.en.split(' ').map(t => (words.has(t.replace(/[.,!?]+$/, '')) ? `<b>${t}</b>` : t)).join(' ');
+  return { section: 'exam', type: 'clist', key: `${prefix}${ph.i}`, phrase: ph.phrase, meaning: ph.meaning, enHtml, jp: ph.jp, theme: (themes || {})[ph.theme] || '', answer: ph.meaning };
 }
 function examPhraseItem(ph, prefix = 'p', type = 'cphrase') {
   const toks = ph.en.split(' ');
@@ -7466,6 +7483,12 @@ function examWritingItem(x) {
 function newExamItem(item) {
   const used = new Set(examItems.map(it => `e|${it.type}|${it.key}`));
   const cfg = printSource.config || {};
+  if (item.type === 'clist') {
+    const free = item.key ? item.key[0] === 'f' : !!cfg.freeList;
+    const data = free ? EXAM_FREE_PHRASES : EXAM_PHRASES, themes = free ? cfg.freeThemes : cfg.phraseThemes, pre = free ? 'f' : 'p';
+    const pool = shuffle(data.map((ph, i) => ({ ...ph, i })).filter(ph => (!themes || !themes.length || themes.includes(ph.theme)) && !used.has(`e|clist|${pre}${ph.i}`) && !excludedSet.has(`e|clist|${pre}${ph.i}`)));
+    return pool[0] ? examListItem(pool[0], pre, free ? EXAM_FREE_THEMES : EXAM_PHRASE_THEMES) : null;
+  }
   if (item.type === 'cdialog') {
     const pool = shuffle(EXAM_DIALOGS.map((d, i) => ({ ...d, i })).filter(d => (!cfg.dialogCats || !cfg.dialogCats.length || cfg.dialogCats.includes(d.cat)) && !used.has(`e|cdialog|d${d.i}`) && !excludedSet.has(`e|cdialog|d${d.i}`)));
     return pool[0] ? examDialogItem(pool[0]) : null;
@@ -7800,6 +7823,7 @@ function renderExamScreen() {
   if (hasEtoj) chips(examFreeThemes, Object.entries(EXAM_FREE_THEMES), examState.freeThemes);
   renderOptionSwitch(examWritingCount, [5, 10, 15].map(n => [n, `${n}問`]), examState.writingCount, v => { examState.writingCount = v; renderExamScreen(); });
   renderOptionSwitch(examFreeCount, [10, 20, 30].map(n => [n, `${n}問`]), examState.freeCount, v => { examState.freeCount = v; renderExamScreen(); });
+  renderOptionSwitch(document.getElementById('examFreeList'), [[false, '問題（空所補充）'], [true, '一覧（覚える用）']], examState.freeList, v => { examState.freeList = v; renderExamScreen(); });
   renderOptionSwitch(examEtojCount, [5, 10, 15].map(n => [n, `${n}問`]), examState.etojCount, v => { examState.etojCount = v; renderExamScreen(); });
   const hasExamReading = typeof EXAM_READING !== 'undefined';
   examReadingLevels.innerHTML = '';
@@ -7821,6 +7845,7 @@ function renderExamScreen() {
   renderOptionSwitch(examVocabCount, [20, 30, 50].map(n => [n, `${n}問`]), examState.vocabCount, v => { examState.vocabCount = v; renderExamScreen(); });
   renderOptionSwitch(examDialogCount, [10, 15, 20].map(n => [n, `${n}問`]), examState.dialogCount, v => { examState.dialogCount = v; renderExamScreen(); });
   renderOptionSwitch(examPhraseCount, [10, 20, 30].map(n => [n, `${n}問`]), examState.phraseCount, v => { examState.phraseCount = v; renderExamScreen(); });
+  renderOptionSwitch(document.getElementById('examPhraseList'), [[false, '問題（空所補充）'], [true, '一覧（覚える用）']], examState.phraseList, v => { examState.phraseList = v; renderExamScreen(); });
   renderOptionSwitch(examTableCount, [10, 20, 30].map(n => [n, `${n}問`]), examState.tableCount, v => { examState.tableCount = v; renderExamScreen(); });
   renderOptionSwitch(document.getElementById('examTableMix'), [[false, 'もとの形から'], [true, 'どの形かばらばら']], examState.tableMix, v => { examState.tableMix = v; renderExamScreen(); });
   renderOptionSwitch(examMockRange, [[1, '中1まで'], [2, '中2まで'], [3, '中3まで']], examState.mockRange, v => { examState.mockRange = v; renderExamScreen(); });
@@ -7832,7 +7857,8 @@ examDialogBtn.onclick = () => {
 };
 examPhraseBtn.onclick = () => {
   const themes = [...examState.phraseThemes];
-  startExamPrint(`入試対策 重要表現${themes.length ? `（${themes.map(t => EXAM_PHRASE_THEMES[t]).join('・')}）` : ''}`, examConfig('入試対策 重要表現', { phraseCount: examState.phraseCount, phraseThemes: themes }));
+  startExamPrint(`入試対策 重要表現${themes.length ? `（${themes.map(t => EXAM_PHRASE_THEMES[t]).join('・')}）` : ''}`, examConfig('入試対策 重要表現', { phraseCount: examState.phraseCount, phraseThemes: themes, phraseList: examState.phraseList }));
+  if (examState.phraseList) listPrintDefaults();
 };
 examWritingBtn.onclick = () => {
   const kinds = [...examState.writingKinds];
@@ -7845,8 +7871,16 @@ examWritingBtn.onclick = () => {
 };
 examFreeBtn.onclick = () => {
   const themes = [...examState.freeThemes];
-  startExamPrint(`入試対策 自由英作文で使える表現${themes.length ? `（${themes.map(t => EXAM_FREE_THEMES[t]).join('・')}）` : ''}`, examConfig('入試対策 英作文の表現', { freePhraseCount: examState.freeCount, freeThemes: themes }));
+  startExamPrint(`入試対策 自由英作文で使える表現${themes.length ? `（${themes.map(t => EXAM_FREE_THEMES[t]).join('・')}）` : ''}`, examConfig('入試対策 英作文の表現', { freePhraseCount: examState.freeCount, freeThemes: themes, freeList: examState.freeList }));
+  if (examState.freeList) listPrintDefaults();
 };
+// 一覧(覚える用)は配点・解答ページをつけない
+function listPrintDefaults() {
+  printPointsCheck.checked = false;
+  printIncludeAnswers.checked = false;
+  renderPrintOptions();
+  renderWorksheet();
+}
 examEtojBtn.onclick = () => {
   startExamPrint('入試対策 英文和訳', examConfig('入試対策 英文和訳', { etojCount: examState.etojCount }));
 };
