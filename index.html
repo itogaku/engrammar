@@ -373,6 +373,13 @@
   .ws-test-score i { display: inline-block; width: 56px; border-bottom: 1px solid var(--ink); height: 20px; }
   .ws-test-lead { font-size: 12.5px; color: var(--ink-soft); margin: 6px 0 2px; }
   .ws-pfoot { display: none; }
+  .ws-red, .sheet.redsheet .ws-teacher { color: #e60033 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .ws-red { font-weight: 700; padding: 0 4px; }
+  .sheet.redsheet .ws-teacher { display: block; }
+  .sheet.redsheet .red-filled .ws-teacher { display: none; }
+  .sheet.redsheet .ws-answer:not(.ws-options) { display: none !important; }
+  .sheet.redsheet .ws-num::before { content: '□'; margin-right: 3px; font-weight: 400; }
+  .ws-red-mean { font-size: 12px; color: var(--ink-soft); margin: 2px 0 0 36px; }
   .ws-wtable { border-collapse: collapse; margin: 4px 0 6px 36px; font-size: 13px; }
   .ws-wtable th, .ws-wtable td { border: 1px solid var(--ink); padding: 3px 12px; min-width: 88px; height: 22px; }
   .ws-wtable th { font-size: 12px; background: var(--amber-tint); -webkit-print-color-adjust: exact; print-color-adjust: exact; }
@@ -883,6 +890,7 @@
           <label class="opt-check" id="printGuideTestLabel"><input type="checkbox" id="printGuideTestCheck" checked> 確認テストをつける</label>
           <label class="opt-check" id="printPointsLabel"><input type="checkbox" id="printPointsCheck" checked> 配点（100点満点）</label>
           <label class="opt-check"><input type="checkbox" id="printTeacherCheck"> 先生用（答えを赤字で記入）</label>
+          <label class="opt-check" id="printRedLabel"><input type="checkbox" id="printRedCheck"> 赤シート用（□チェック欄つき・答えを赤字で空らんに入れる。解答ページなし）</label>
         </div>
       </section>
 
@@ -3731,6 +3739,9 @@ const printPointsLabel = document.getElementById('printPointsLabel');
 const printGuideTestLabel = document.getElementById('printGuideTestLabel');
 const printGuideTestCheck = document.getElementById('printGuideTestCheck');
 const printTeacherCheck = document.getElementById('printTeacherCheck');
+const printRedCheck = document.getElementById('printRedCheck');
+const printRedLabel = document.getElementById('printRedLabel');
+const redSheetOn = () => printRedCheck.checked && printSource.kind !== 'guide' && printSource.kind !== 'howto';
 const sheetNo = document.getElementById('sheetNo');
 const printRegenBtn = document.getElementById('printRegenBtn');
 const printPrintBtn = document.getElementById('printPrintBtn');
@@ -5864,6 +5875,7 @@ function renderPrintOptions() {
   printGuideRow.style.display = isGuide ? 'block' : 'none';
   printPointsLabel.style.display = isTest ? '' : 'none';
   printGuideTestLabel.style.display = printSource.kind === 'guide' ? '' : 'none';
+  printRedLabel.style.display = isGuide ? 'none' : '';
   printRoundRow.style.display = isHowto || isTestRangePrint() ? 'none' : '';
   editHint.innerHTML = isGuide
     ? '✎ 問題ごとの右上の <b>直す</b> で、問題文や解答を書きかえられます。ボタンは印刷されません。'
@@ -6460,6 +6472,7 @@ function makeItemEl(item, num, typeLine) {
     <div class="ws-correct" style="display:none;"></div>
   `;
   applyCustomBody(el, item);
+  if (redSheetOn()) fillRedSheet(el, item);
   const input = el.querySelector('.ws-input');
   if (input) {
     input.value = item.userAnswer || '';
@@ -6480,6 +6493,26 @@ function makeItemEl(item, num, typeLine) {
     };
   });
   return el;
+}
+
+// 赤シート用: 空らんに答えを赤字で入れる(赤シートで隠して使う)。空らんのない問題は答えを赤字で下に書く
+function redBlankAnswers(item) {
+  if (item.custom && item.custom.answer != null) return [item.custom.answer];
+  if (['cphrase', 'cfree', 'xfill', 'xpara', 'vidiom'].includes(item.type)) return item.answers || [];
+  if (['fillin', 'vblank', 'form', 'choice'].includes(item.type)) return [item.answer];
+  return [];
+}
+function fillRedSheet(el, item) {
+  const blanks = [...el.querySelectorAll('.ws-body .ws-blank')];
+  const answers = redBlankAnswers(item);
+  if (blanks.length && blanks.length === answers.length) {
+    blanks.forEach((b, i) => { b.innerHTML = `（<span class="ws-red">${escHtml(answers[i])}</span>）`; });
+    el.classList.add('red-filled');
+  }
+  // 熟語は、空らんの下に意味をそえる
+  if ((item.type === 'cphrase' || item.type === 'cfree') && item.meaning) {
+    el.querySelector('.ws-body').insertAdjacentHTML('beforeend', `<div class="ws-red-mean">${item.phrase.replace(/[^～〜 ]+/g, m => (item.answers.includes(m) ? '<span class="ws-red">' + m + '</span>' : m))}：${item.meaning}</div>`);
+  }
 }
 
 function sectionHead(numeral, title, instr) {
@@ -6798,6 +6831,7 @@ function assignPoints(items) {
 
 function renderWorksheet() {
   document.getElementById('sheet').classList.toggle('teacher', printTeacherCheck.checked);
+  document.getElementById('sheet').classList.toggle('redsheet', redSheetOn());
   sheetNo.textContent = '';
   if (printSource.kind === 'guide') { allWorksheetItems().forEach(it => { delete it.points; }); renderGuideWorksheet(); addEditControls(); return; }
   if (printSource.kind === 'howto') { renderHowtoWorksheet(); return; }
@@ -6872,7 +6906,7 @@ function renderWorksheet() {
     }
   });
   answerList.innerHTML = answersHtml;
-  answerSheet.classList.toggle('include', printIncludeAnswers.checked);
+  answerSheet.classList.toggle('include', printIncludeAnswers.checked && !redSheetOn());
   addEditControls();
 }
 
@@ -6963,6 +6997,7 @@ printNextRoundBtn.addEventListener('click', nextRound);
 printPointsCheck.addEventListener('change', renderWorksheet);
 printGuideTestCheck.addEventListener('change', () => generateWorksheet(printSeed));
 printTeacherCheck.addEventListener('change', () => document.getElementById('sheet').classList.toggle('teacher', printTeacherCheck.checked));
+printRedCheck.addEventListener('change', renderWorksheet);
 
 // ---------- 印刷したプリントの履歴 ----------
 // 印刷したときの出題元・設定・プリント番号を保存しておき、同じプリントをもう一度作ったり、類題を作ったりできる
@@ -7016,7 +7051,7 @@ printResetBtn.addEventListener('click', resetWorksheetAnswers);
 printIncludeAnswers.addEventListener('change', () => {
   renderPrintOptions();
   if (printSource.kind === 'guide') { renderWorksheet(); return; }
-  answerSheet.classList.toggle('include', printIncludeAnswers.checked);
+  answerSheet.classList.toggle('include', printIncludeAnswers.checked && !redSheetOn());
 });
 
 
