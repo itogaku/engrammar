@@ -456,6 +456,12 @@
   .ws-wtable th { font-size: 12px; background: var(--amber-tint); -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   .ws-wtable .wt-en { font-family: 'Georgia', serif; font-size: 14.5px; color: #d0492a; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   .ws-wtable-box .ws-wtable { margin-left: 0; }
+  .ws-4l { overflow: hidden; }
+  @media (max-width: 600px) {
+    .ws-wtable { margin-left: 0; font-size: 12px; }
+    .ws-wtable th, .ws-wtable td { min-width: 0; padding: 3px 6px; }
+    .t-wtable .ws-wtable td.wt-en { min-width: 56px; }
+  }
   .t-wtable .ws-wtable td.wt-en { min-width: 120px; }
   .ws-midcheck { font-size: 12.5px; font-weight: 700; color: #d0492a; margin: 6px 0 2px; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   .ws-rule-form { font-weight: 700; }
@@ -558,6 +564,7 @@
   /* 問題の編集ボタン */
   .ws-top { position: relative; }
   .ws-edit { margin-left: auto; display: inline-flex; gap: 4px; flex-shrink: 0; }
+  @media (max-width: 600px) { .ws-top { flex-wrap: wrap; } .ws-edit { flex-shrink: 1; flex-wrap: wrap; justify-content: flex-end; max-width: 100%; } }
   .ws-pts + .ws-edit { margin-left: 8px; }
   .ws-edit button, .ws-add { font-family: inherit; font-size: 11.5px; padding: 1px 8px; border-radius: 4px; border: 1px solid var(--teal); background: var(--teal-tint); color: var(--teal); cursor: pointer; line-height: 1.6; }
   .ws-edit button.danger { border-color: var(--amber); background: var(--panel); color: var(--amber); }
@@ -5899,7 +5906,7 @@ function generateGuideWorksheet() {
     if (test && unit.words.length >= 4) {
       const words = shuffle(unit.words.slice()).slice(0, 4);
       test.practice.splice(rule ? 1 : 0, 0, { type: 'wtable', section: 'grammar', stageKey: stage.key, words, answer: words.map(w => `${w.jp}＝${w.en}`).join('　'),
-        guide: { why: '' }, noHint: true, jp: '', tokens: [], end: '' });
+        guide: { why: '書けなかった単語は、練習問題（1周目）の最初の「使う単語」の表で確かめて、3回書いて覚えよう。' }, noHint: true, jp: '', tokens: [], end: '' });
     }
     // 最後の練習のページには「先生に提出して確認テストへ」と書く
     if (test) (more.length ? more[more.length - 1] : unit).toTest = true;
@@ -6796,7 +6803,7 @@ function guidePracticePage(u, mark, startNum) {
   }
   guideItemsInto(page, guidePracticeItems(u), startNum);
   // 最初の「なぞる・まとまり」のあとに、途中の丸付けの案内
-  if (!u.round) {
+  if (!u.round && printIncludeAnswers.checked) {
     const firstPart = [...page.querySelectorAll('.ws-gitem')].filter(n => n.querySelector('.t-trace, .t-chunkorder')).pop();
     if (firstPart && firstPart.nextElementSibling) firstPart.insertAdjacentHTML('afterend', '<div class="ws-midcheck">※不安な人は、ここで一度うらの解答で丸付けしてもOK！</div>');
   }
