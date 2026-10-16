@@ -92,6 +92,7 @@ HOWTO_UNITS.push({
   example: {
     instr: "次の質問に対するあなたの考えを、理由を2つ含めて25語以上35語以内の英語で書きなさい。",
     body: "Question: Is it a good idea for students to clean their classrooms by themselves?",
+    map: { topic: '生徒が自分たちで教室をそうじするのはよい考えか', sides: [{ label: '賛成（Yes）', reasons: ['使う物を大切にすることを学べる', 'クラスメートと協力できる'] }, { label: '反対（No）', reasons: ['勉強や部活動で忙しい', 'プロのほうがきれいにできる'] }], note: '理由を思いつきやすい方を選び、その2つの理由を英語にする' },
     walkthrough: [
       { step: 1, text: "賛成・反対のどちらでも書けますが、理由を思いつきやすい方を選びます。ここでは賛成(Yes)の例で考えます。1文目は Yes, I think it is a good idea. と、質問の言葉を使って書くと簡単です。" },
       { step: 2, text: "理由を日本語で2つ考えます。①使う物を大切にすることを学べる ②クラスメートと協力できる。それぞれ First, we can learn to take care of the things we use. / Second, we can work together with our classmates. と英語にします。" },
@@ -102,6 +103,7 @@ HOWTO_UNITS.push({
   check: {
     instr: "次の質問に対するあなたの考えを、理由を2つ含めて25語以上35語以内の英語で書きなさい。",
     body: "Question: Which do you want to live in in the future, a big city or a small town?",
+    map: { topic: '将来住みたいのは、大都市？ 小さな町？', sides: [{ label: '大都市', reasons: ['お店がたくさんある', '電車やバスでどこへでも行きやすい'] }, { label: '小さな町', reasons: ['自然が多い', '人が親切で静か'] }], note: '書きやすい方を選んで、理由を2つ英語にしよう' },
     guide: [
       { step: 1, text: "まず、どちらに住みたいかを1文で書く。大都市を選ぶなら、質問の文を使って I want to 〔①〕 in a big city. となる。", blanks: ['live'] },
       { step: 2, text: "理由1の前には〔②〕、理由2の前には〔③〕をつけると、理由が2つあることがはっきりする。", blanks: ['First,', 'Second,'] },
@@ -115,18 +117,21 @@ HOWTO_UNITS.push({
     {
       instr: "次の質問に対するあなたの答えを、理由を含めて20語以上30語以内の英語で書きなさい。",
       body: "Question: Which season do you like the best?",
+      blankMap: true,
       answer: "I like summer the best because I can swim in the sea with my friends. Also, summer vacation is long, so I can read many books and visit my grandparents. / I like fall the best. First, the weather is nice, so I can enjoy running outside. Second, there are many delicious foods in fall, like apples and sweet potatoes.",
       explanation: "1文目は質問の文を使って I like 〜 the best. と書けば簡単です。理由は「その季節にできること」を書くと具体的になります。季節名は小文字で書きます(summer, fall)。上の例はそれぞれ30語・29語です。",
     },
     {
       instr: "あなたの学校のALTのスミス先生(Ms. Smith)は、先月日本に来たばかりです。次の質問に、理由を含めて20語以上30語以内の英語で答えなさい。",
       body: "Ms. Smith: I want to enjoy my life in Japan. What should I do? Please give me some advice.",
+      blankMap: true,
       answer: "You should visit Kyoto because there are many old temples and beautiful gardens. You can learn a lot about Japanese history and culture there. / I think you should join a summer festival in our town. You can wear a yukata and enjoy traditional dances with local people.",
       explanation: "アドバイスなので、You should 〜. や I think you should 〜. で始めます。理由や、そこで「何ができるか」を You can 〜. で続けると、語数も自然にふえます。上の例はそれぞれ24語・23語です。",
     },
     {
       instr: "次の意見について、賛成か反対かを明らかにし、理由を2つ含めて25語以上35語以内の英語で書きなさい。",
       body: "Opinion: Students should read newspapers every day.",
+      blankMap: true,
       answer: "I agree. First, we can learn about many things happening in the world. Second, we can learn many new words, so it is good for our studies. / I don't agree. First, students are too busy to read newspapers every day. Second, we can get news on TV or the internet more quickly.",
       explanation: "1文目は I agree. か I don't agree. と短く立場を書き、First, / Second, で理由を続けます。反対の場合も「代わりにどうすればよいか」を書くと説得力が出ます。too 〜 to … は「〜すぎて…できない」の意味です。上の例はそれぞれ27語・25語です。",
     },
