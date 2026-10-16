@@ -421,6 +421,66 @@ Reservations for This Week (○ = You can reserve. △ = Only a few spots are le
   },
 
   // ===================== 大問9 型: 対話文の空所補充 =====================
+  // ===================== 大問8 型: スピーチと話し合い・説明文 =====================
+  {
+    id: 'c8-01', level: 'chiba8', genre: 'speech', title: 'ビニール傘のゆくえ（スピーチと話し合い）',
+    text: `Do you have a plastic umbrella at home? Plastic umbrellas are cheap and easy to buy at convenience stores, so many people buy one when it suddenly starts to rain. [ ア ] But do you know what happens to them after that?
+According to one report, about 80 million umbrellas are sold in Japan every year, and many of them are plastic ones. [ イ ] A lot of people leave them on trains or forget them at stores. At one station in Tokyo, more than 300,000 umbrellas are left every year, and most of their owners never come back for them. [ ウ ] Plastic umbrellas are made of several different materials, so it is hard to recycle them. Many of them are burned or buried as waste.
+Some companies are trying to solve this problem. One company started an umbrella sharing service. You can borrow an umbrella at a station or a store with your smartphone and return it at another place. [ エ ] It is cheaper than buying a new one, and fewer umbrellas are thrown away. Another company collects lost umbrellas and lends them to people for free on rainy days.
+We can also do something. Before we leave home, we can check the weather news. We can carry a small folding umbrella in our bags. If we have a plastic umbrella, we can use it for a long time. A small action can make a big difference.
+＜ユイ (Yui) のスピーチを聞いたあとの話し合い＞
+Mika: I didn't know that so many umbrellas are thrown away. Why do people buy plastic umbrellas so often?
+Ken: I think it's because ( A ).
+Yui: I agree. People don't think plastic umbrellas are important, so they often leave them on trains.
+Ken: The umbrella sharing service is a good idea. But ( B )?
+Yui: You can use an app on your smartphone. It shows the nearest place on a map.
+Mika: That's useful. I will carry a folding umbrella in my bag. By doing so, I don't have to ( C ) when it rains.
+Yui: Great. Let's tell our classmates about this.`,
+    notes: ['plastic umbrella ビニール傘', 'according to 〜 〜によると', 'owner 持ち主', 'material 材料', 'bury 埋める', 'folding umbrella 折りたたみ傘'],
+    questions: [
+      { type: 'choice', q: '次の英文を入れるのに最も適当な場所を、本文中の〔ア〕〜〔エ〕から選びなさい。\nSo, what happens to these lost umbrellas?', options: ['〔ア〕', '〔イ〕', '〔ウ〕', '〔エ〕'], answer: 2 },
+      { type: 'ea', q: '話し合いの内容に合うように、（ A ）に入る言葉を英語で書きなさい。ただし、語の数は10〜15語（. , などの符号は語数に含まない。）とすること。', answer: 'they are cheap and people can buy them easily at convenience stores' },
+      { type: 'choice', q: '話し合いの（ B ）に入る英文として適当でないものを選びなさい。', options: ['how can we find a place to borrow one', 'where can we borrow an umbrella', 'how do we know where to return it', 'why did the company stop the service'], answer: 3 },
+      { type: 'choice', q: '話し合いの（ C ）に入る最も適当なものを選びなさい。', options: ['buy a new plastic umbrella', 'check the weather news', 'use an app on my smartphone', 'go to the station'], answer: 0 },
+      { type: 'choice', q: '本文の内容に合っている英文として最も適当なものを選びなさい。', options: ['About 300,000 umbrellas are sold at one station in Tokyo every year.', 'It is easy to recycle plastic umbrellas because they are made of one material.', 'With the sharing service, people can return an umbrella at a different place.', 'Yui says we should buy a new umbrella every time it rains.'], answer: 2 },
+    ],
+  },
+  {
+    id: 'c8-02', level: 'chiba8', genre: 'speech', title: '未来の食べ物としての昆虫（スピーチと話し合い）',
+    text: `Have you ever eaten insects? Many people in Japan may say, "No way!" But in some areas of Japan, people have eaten insects like grasshoppers for a long time. [ ア ] Today, I want to talk about insects as food for the future.
+The number of people in the world is growing. Some researchers say it will be about 10 billion in 2050. [ イ ] To feed so many people, we will need much more meat. But raising cows needs a lot of land, water, and food. Cows also give off gases that make the earth warmer.
+Insects may help us with this problem. [ ウ ] For example, crickets need much less food and water than cows to make the same amount of protein. They can be raised in a small space, even in a city. Insects are also healthy because they have a lot of protein and vitamins.
+However, many people don't want to eat insects because of the way they look. So, some companies make cricket powder. They put it into cookies, bread, and pasta. [ エ ] Last month, I tried cricket cookies at a shop near my house, and I liked them. Maybe insects will be on our tables in the future. I think we should keep an open mind about new kinds of food.
+＜ダイチ (Daichi) のスピーチを聞いたあとの話し合い＞
+Teacher: Daichi said many people don't want to eat insects. What can we do to change their minds?
+Aya: I think ( A ).
+Ben: That's a good idea. Also, ( B ).
+Aya: Daichi, ( C )?
+Daichi: They tasted like shrimp. I want to try cricket bread next time.
+Teacher: Thank you, everyone. It's important to think about food for the future.`,
+    notes: ['insect 昆虫', 'grasshopper バッタ', 'feed 食べ物を与える', 'raise 育てる', 'give off 〜を出す', 'cricket コオロギ', 'protein たんぱく質', 'powder 粉', 'shrimp エビ'],
+    questions: [
+      { type: 'choice', q: '次の英文を入れるのに最も適当な場所を、本文中の〔ア〕〜〔エ〕から選びなさい。\nYou cannot see the insects in these foods.', options: ['〔ア〕', '〔イ〕', '〔ウ〕', '〔エ〕'], answer: 3 },
+      { type: 'ea', q: '話し合いの内容に合うように、（ A ）に入る言葉を英語で書きなさい。ただし、語の数は10〜15語（. , などの符号は語数に含まない。）とすること。', answer: 'we should tell people that insects are healthy and good for the environment' },
+      { type: 'choice', q: '話し合いの（ B ）に入る英文として適当でないものを選びなさい。', options: ['we can make delicious dishes with cricket powder', 'we can hold an event to try insect foods', 'we can show that crickets are easy to raise', 'we can say that cows are better for the earth'], answer: 3 },
+      { type: 'choice', q: '話し合いの（ C ）に入る最も適当なものを選びなさい。', options: ['where did you buy them', 'how did the cricket cookies taste', 'how many cookies did you eat', 'when did you try them'], answer: 1 },
+      { type: 'choice', q: '本文の内容に合っている英文として最も適当なものを選びなさい。', options: ['People in all areas of Japan have eaten insects for a long time.', 'Raising cows needs less land and water than raising crickets.', 'Some companies use cricket powder to make foods like bread.', "Daichi didn't like the cricket cookies because they looked bad."], answer: 2 },
+    ],
+  },
+  {
+    id: 'c8-03', level: 'chiba8', genre: 'explanation', title: 'ピクトグラムの話（説明文）',
+    text: `When you are at a station or an airport, you can see many small pictures on signs. They show things like toilets, exits, and places to eat. These pictures are called pictograms. People can understand them quickly even if they cannot read the language of the country.
+Pictograms became popular in Japan in 1964, when the Olympic Games were held in Tokyo. At that time, many people came to Japan from other countries. [ ア ] Most of them couldn't read Japanese, and not many signs in Japan were written in English. So a group of Japanese designers made pictograms for the sports and for places like toilets and first aid rooms. [ イ ]
+Making good pictograms is not easy. A pictogram must be simple, so people can understand it in a second. It must also mean the same thing to people from different cultures. [ ウ ] For example, a picture of a hot spring may look like a hot dish of food to some people. So designers test their pictograms many times before they use them.
+Today, pictograms are used all over the world, and they are getting more important. More foreign people are visiting Japan, and pictograms can help them. They can also help small children and people who have difficulty reading. [ エ ] Next time you see a pictogram, think about the people who made it and the people it helps.`,
+    notes: ['sign 標識', 'exit 出口', 'designer デザイナー', 'first aid room 救護室', 'culture 文化', 'hot spring 温泉', 'difficulty 困難'],
+    questions: [
+      { type: 'choice', q: '本文の題名として最も適当なものを選びなさい。', options: ['How to Read Signs in English', 'The Story of Pictograms', 'The History of the Olympic Games', 'How to Draw Pictures'], answer: 1 },
+      { type: 'choice', q: '次の英文を入れるのに最も適当な場所を、本文中の〔ア〕〜〔エ〕から選びなさい。\nThis is difficult because people from different countries sometimes see a picture in different ways.', options: ['〔ア〕', '〔イ〕', '〔ウ〕', '〔エ〕'], answer: 2 },
+      { type: 'ea', q: '本文の内容に関する次の質問に、英語で答えなさい。\nWhy did Japanese designers make pictograms in 1964?', answer: 'Because many people from other countries couldn\'t read Japanese.' },
+      { type: 'choice', q: '本文の内容に合っている英文として最も適当なものを選びなさい。', options: ['Pictograms were first made after the Olympic Games in Tokyo.', 'Before 1964, most signs in Japan were written in English.', 'Designers test their pictograms many times before they use them.', 'Pictograms are only for people from other countries.'], answer: 2 },
+    ],
+  },
   {
     id: 'c9-01', level: 'chiba9', genre: 'dialogue', title: 'ALTとの会話：夏祭りと花火',
     text: `Ms. Brown: Hi, Ken. What did you do last weekend?

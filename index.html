@@ -5352,7 +5352,7 @@ function readingPassagesFor(stageList, level = 'both') {
     && (level === 'both' || (p.level || 'program') === level));
 }
 const EXAM_READING_LEVELS = { basic: '入門（200〜280語）', standard: '標準（300〜400語）', advanced: '発展（400語〜）' };
-const CHIBA_READING_LABELS = { chiba7p: '発表・スライド', chiba7n: 'お知らせ・広告', chiba9: '対話文' };
+const CHIBA_READING_LABELS = { chiba7p: '発表・スライド', chiba7n: 'お知らせ・広告', chiba8: 'スピーチ・説明文', chiba9: '対話文' };
 function passageLabel(p) {
   if (p.id && CHIBA_READING_LABELS[p.level]) return `千葉県形式・${CHIBA_READING_LABELS[p.level]}`;
   if (p.id) return `入試長文・${(EXAM_READING_LEVELS[p.level] || '').replace(/（.*/, '')}`;
@@ -5362,9 +5362,10 @@ function passageLabel(p) {
 function generateReadingItems(stageList, cfg, usedBefore = new Set()) {
   if (cfg.examReadingPlan && typeof EXAM_READING !== 'undefined') {
     // 大問の順に、レベル(種類)ごとに1題ずつ(前の周で使ったものはあとまわし)
+    // 「chiba8>standard|advanced」のように > で区切ると、前の種類を優先し、使い切ったら次の種類から
     const picked = cfg.examReadingPlan.map(level => {
-      const pool = shuffle(EXAM_READING.filter(p => level.split('|').includes(p.level)));
-      const p = pool.find(x => !usedBefore.has(x)) || pool[0];
+      const tiers = level.split('>').map(t => shuffle(EXAM_READING.filter(p => t.split('|').includes(p.level))));
+      const p = tiers.map(pool => pool.find(x => !usedBefore.has(x))).find(Boolean) || (tiers.find(pool => pool.length) || [])[0];
       if (p) usedBefore.add(p);
       return p;
     }).filter(Boolean);
@@ -7033,7 +7034,7 @@ function renderWorksheet() {
         const notes = (r.passage.notes || []).length ? `<div class="ws-notes">（注）${r.passage.notes.join('　')}</div>` : '';
         const table = r.passage.table ? `<table class="ws-ch-table ws-passage-table">${r.passage.table.map((row, k) => `<tr>${row.map(c => k === 0 ? `<th>${c}</th>` : `<td>${c}</td>`).join('')}</tr>`).join('')}</table>` : '';
         // 千葉県形式は本番と同じ大問番号で示す
-        const chibaNo = { chiba7p: '大問7(1)', chiba7n: '大問7(2)', chiba9: '大問9' }[r.passage.level]
+        const chibaNo = { chiba7p: '大問7(1)', chiba7n: '大問7(2)', chiba8: '大問8', chiba9: '大問9' }[r.passage.level]
           || (printSource.config && printSource.config.examReadingPlan && /^千葉/.test(printSource.config.name || '') ? '大問8' : '');
         const head = chibaNo ? `${chibaNo}　` : readingItems.length > 1 ? `[${ri + 1}] ` : '';
         box.innerHTML = `<div class="ws-passage-title">${head}${r.passage.title}</div>${paragraphs}${table}${notes}`;
@@ -7848,11 +7849,11 @@ function startChapterPrint(key) {
 }
 
 const CHIBA_PARTS = [
-  { title: '実戦問題（1回分）', sub: '大問5〜9をまとめて（100点）', make: () => ({ chibaForm: 2, chibaOrder: 3, chibaScene10: 1, chibaScene25: 1, readingCount: 4, examReadingPlan: ['chiba7p', 'chiba7n', 'standard|advanced', 'chiba9'] }) },
+  { title: '実戦問題（1回分）', sub: '大問5〜9をまとめて（100点）', make: () => ({ chibaForm: 2, chibaOrder: 3, chibaScene10: 1, chibaScene25: 1, readingCount: 4, examReadingPlan: ['chiba7p', 'chiba7n', 'chiba8>standard|advanced', 'chiba9'] }) },
   { title: '大問5 対話文完成', sub: '語形変化・並べかえ（符号で答える）', make: () => ({ chibaForm: 4, chibaOrder: 6 }) },
   { title: '大問6 場面英作文', sub: '10語程度・25語程度', make: () => ({ chibaScene10: 2, chibaScene25: 2 }) },
   { title: '大問7 資料・発表の読解', sub: 'スライドつきの発表とお知らせ・広告', make: () => ({ readingCount: 2, examReadingPlan: ['chiba7p', 'chiba7n'] }) },
-  { title: '大問8 長文読解', sub: 'スピーチ・説明文・メール（文の挿入・英問英答）', make: () => ({ readingCount: 1, examReadingPlan: ['standard|advanced'] }) },
+  { title: '大問8 長文読解', sub: 'スピーチと話し合い・説明文（文の挿入・10〜15語の英作文・英問英答）', make: () => ({ readingCount: 1, examReadingPlan: ['chiba8>standard|advanced'] }) },
   { title: '大問9 対話文読解', sub: '空所の文を選ぶ＋10語程度の英作文', make: () => ({ readingCount: 2, examReadingPlan: ['chiba9', 'chiba9'] }) },
 ];
 function renderChibaParts() {
