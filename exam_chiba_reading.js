@@ -138,6 +138,46 @@ In November, we cooked our rice and ate it with our families. It was the most de
     ],
   },
 
+  {
+    id: 'c7p-09', level: 'chiba7p', genre: 'presentation', title: '町を訪れる観光客',
+    text: `Hello, everyone. I'm Sora. Do you know how many people visit our town, Aoba? Please look at Slide 1. It shows the number of visitors from 2005 to 2020. From 2005 to 2015, the number didn't change much. It was about 20,000 every year. But in 2015, a new station opened near the old castle, and after that, the number suddenly went up. In 2020, about 60,000 people visited our town.
+Many visitors come to see the castle and eat soba. However, we found a problem. Look at Slide 2. It shows where the visitors go. Most of them visit only the castle and go home on the ( A ) day. Only a few people stay at hotels in our town, and the shops on the old street are not busy.
+So my group made a walking map in English and Japanese. It shows the old street, a soba shop, and a park with a beautiful view of the river. We hope visitors will enjoy walking around and stay longer. We want more people to know the good points of Aoba. Thank you.`,
+    table: [['Slide 2: Where do visitors go?', '%'], ['Castle only', '70'], ['Castle and old street', '20'], ['Stay at a hotel in Aoba', '10']],
+    notes: ['visitor 訪問者', 'castle 城', 'suddenly 急に', 'view 景色'],
+    questions: [
+      { type: 'choice', q: '本文の内容に合うように、Slide 1 のグラフとして最も適当なものを選びなさい。', options: ['ア', 'イ', 'ウ', 'エ'], answer: 3,
+        graphs: [
+          { type: 'line', title: 'Visitors to Aoba', unit: '千人', labels: ['2005', '2010', '2015', '2020'], series: [{ name: '', values: [20, 30, 40, 60] }] },
+          { type: 'line', title: 'Visitors to Aoba', unit: '千人', labels: ['2005', '2010', '2015', '2020'], series: [{ name: '', values: [60, 40, 30, 20] }] },
+          { type: 'line', title: 'Visitors to Aoba', unit: '千人', labels: ['2005', '2010', '2015', '2020'], series: [{ name: '', values: [20, 40, 60, 40] }] },
+          { type: 'line', title: 'Visitors to Aoba', unit: '千人', labels: ['2005', '2010', '2015', '2020'], series: [{ name: '', values: [20, 21, 20, 60] }] },
+        ] },
+      { type: 'fill', q: '本文中の（ A ）に入る最も適当な英単語1語を書きなさい。', answer: 'same' },
+      { type: 'choice', q: '発表のあと、先生とソラが話しています。（　）に入る最も適当なものを選びなさい。\nTeacher: What percent of the visitors stay at hotels in Aoba?\nSora: Only (　　) percent.', options: ['ten', 'twenty', 'seventy', 'ninety'], answer: 0 },
+      { type: 'choice', q: '本文の内容に合っている英文として最も適当なものを選びなさい。', options: ['Aoba had about 60,000 visitors every year from 2005 to 2015.', 'A new station near the castle opened in 2015.', 'Most visitors stay at hotels and visit the old street.', "Sora's group made a walking map only in English."], answer: 1 },
+    ],
+  },
+  {
+    id: 'c7p-10', level: 'chiba7p', genre: 'presentation', title: '朝ごはんを食べていますか',
+    text: `Good morning, everyone. I'm Riku from the health committee. Do you eat breakfast every day? Last month, we asked all the students in our school this question. Please look at Slide 1. It shows the percent of students who eat breakfast every day in each grade. In the first grade, 90% of the students eat breakfast every day. But the number gets ( A ) in the higher grades. In the third grade, only 75% of the students do.
+Why don't some students eat breakfast? Look at Slide 2. The most common reason is "I don't have time." The second reason is "I'm not hungry in the morning." Many students in the third grade study until late at night, so they get up late.
+Breakfast gives us energy for the morning. When we skip it, we can't think well in class. So, here is our idea. Go to bed thirty minutes earlier. Then you can get up earlier and have time for breakfast. Even a banana or a glass of milk is OK. Let's start tomorrow. Thank you.`,
+    table: [["Slide 2: Why don't you eat breakfast?", 'Students'], ["I don't have time.", '38'], ["I'm not hungry.", '25'], ['Others', '12']],
+    notes: ['health committee 保健委員会', 'grade 学年', 'reason 理由', 'energy エネルギー', 'skip 抜く'],
+    questions: [
+      { type: 'choice', q: '本文の内容に合うように、Slide 1 のグラフとして最も適当なものを選びなさい。', options: ['ア', 'イ', 'ウ', 'エ'], answer: 2,
+        graphs: [
+          { type: 'bar', title: '朝食を毎日食べる生徒', unit: '%', labels: ['1年', '2年', '3年'], series: [{ name: '', values: [75, 82, 90] }] },
+          { type: 'bar', title: '朝食を毎日食べる生徒', unit: '%', labels: ['1年', '2年', '3年'], series: [{ name: '', values: [90, 75, 82] }] },
+          { type: 'bar', title: '朝食を毎日食べる生徒', unit: '%', labels: ['1年', '2年', '3年'], series: [{ name: '', values: [90, 82, 75] }] },
+          { type: 'bar', title: '朝食を毎日食べる生徒', unit: '%', labels: ['1年', '2年', '3年'], series: [{ name: '', values: [82, 90, 75] }] },
+        ] },
+      { type: 'choice', q: '本文中の（ A ）に入る最も適当な語を選びなさい。', options: ['higher', 'lower', 'bigger', 'longer'], answer: 1 },
+      { type: 'ea', q: '発表のあと、先生とリクが話しています。（　）に入る最も適当な英単語1語を書きなさい。\nTeacher: What is your idea for having time for breakfast?\nRiku: We should go to bed thirty minutes (　　).', answer: 'earlier' },
+      { type: 'choice', q: '本文の内容に合うものとして最も適当なものを選びなさい。', options: ['リクの学校では、学年が上がるほど朝食を毎日食べる生徒が増えている。', '朝食を食べない理由で最も多いのは「おなかがすいていない」である。', 'リクは、時間がなければバナナや牛乳だけでもよいと言っている。', 'リクは、3年生は朝早く起きて勉強していると言っている。'], answer: 2 },
+    ],
+  },
   // ===================== 大問7(2) 型: お知らせ・広告・ウェブページ =====================
   {
     id: 'c7n-01', level: 'chiba7n', genre: 'notice', title: 'カフェのオープン広告',
