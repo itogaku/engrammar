@@ -373,6 +373,16 @@
   .ws-test-score i { display: inline-block; width: 56px; border-bottom: 1px solid var(--ink); height: 20px; }
   .ws-test-lead { font-size: 12.5px; color: var(--ink-soft); margin: 6px 0 2px; }
   .ws-pfoot { display: none; }
+  .print-box { display: none; }
+  .sheet.redsheet .print-box { display: none !important; }
+  .print-like .print-box { display: inline-block; }
+  .print-like .ws-boxes.print-box { display: flex; }
+  .print-like .has-boxes .ws-answer { display: none; }
+  .ws-ansbox { width: 34px; height: 26px; border: 1.5px solid var(--ink); margin-left: auto; flex-shrink: 0; }
+  .ws-top .ws-pts + .ws-ansbox { margin-left: 8px; }
+  .ws-boxes { gap: 10px; margin: 6px 0 2px 36px; }
+  .ws-boxes span { position: relative; width: 140px; height: 28px; border: 1px solid var(--ink); }
+  .ws-boxes i { position: absolute; left: 3px; top: 2px; font-size: 10px; font-style: normal; color: var(--ink-soft); }
   .ws-diagram { border: 1.5px solid var(--ink); border-radius: 8px; padding: 6px 12px; margin-bottom: 10px; font-size: 13px; line-height: 1.6; break-inside: avoid; }
   .ws-dg-title { display: block; font-size: 12px; margin-bottom: 2px; }
   .ws-dg-grid { border-collapse: collapse; margin: 2px 0; }
@@ -686,6 +696,9 @@
     .ws-ans-page { display: none !important; }
     .ws-ans-page.include { display: block !important; break-before: page; page-break-before: always; border: none; background: none; padding: 0; margin: 0; }
     .guide-paged .ws-ans-page + .ws-qpage { break-before: page; page-break-before: always; }
+    .print-box { display: inline-block; }
+    .ws-boxes.print-box { display: flex; }
+    .has-boxes .ws-answer { display: none !important; }
     /* 4線: 印刷では入力欄のかわりに4線を出す */
     .ws-4l-print { display: block; }
     .ws-4l-print ~ .ws-answer, .t-trace .ws-answer { display: none !important; }
@@ -6536,6 +6549,7 @@ function makeItemEl(item, num, typeLine) {
     <div class="ws-correct" style="display:none;"></div>
   `;
   applyCustomBody(el, item);
+  addPrintAnswerBoxes(el, item);
   if (redSheetOn()) fillRedSheet(el, item);
   const input = el.querySelector('.ws-input');
   if (input) {
@@ -6559,6 +6573,18 @@ function makeItemEl(item, num, typeLine) {
   return el;
 }
 
+// 印刷用の解答らん: 選ぶ問題は右はしに□、2語以上を入れる問題は空らんごとに番号つきのます(画面では入力欄のまま)
+function addPrintAnswerBoxes(el, item) {
+  if (SELECT_TYPES.has(item.type) && item.type !== 'rtf') {
+    el.querySelector('.ws-top').insertAdjacentHTML('beforeend', '<span class="ws-ansbox print-box"></span>');
+    return;
+  }
+  const n = ['xfill', 'xpara', 'cphrase', 'cfree', 'vidiom'].includes(item.type) ? (item.answers || []).length : 0;
+  if (n >= 2) {
+    el.querySelector('.ws-body').insertAdjacentHTML('beforeend', `<div class="ws-boxes print-box">${Array.from({ length: n }, (_, i) => `<span><i>${CIRCLED[i]}</i></span>`).join('')}</div>`);
+    el.classList.add('has-boxes');
+  }
+}
 // 赤シート用: 空らんに答えを赤字で入れる(赤シートで隠して使う)。空らんのない問題は答えを赤字で下に書く
 function redBlankAnswers(item) {
   if (item.custom && item.custom.answer != null) return [item.custom.answer];
