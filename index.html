@@ -373,6 +373,24 @@
   .ws-test-score i { display: inline-block; width: 56px; border-bottom: 1px solid var(--ink); height: 20px; }
   .ws-test-lead { font-size: 12.5px; color: var(--ink-soft); margin: 6px 0 2px; }
   .ws-pfoot { display: none; }
+  .ws-diagram { border: 1.5px solid var(--ink); border-radius: 8px; padding: 6px 12px; margin-bottom: 10px; font-size: 13px; line-height: 1.6; break-inside: avoid; }
+  .ws-dg-title { display: block; font-size: 12px; margin-bottom: 2px; }
+  .ws-dg-grid { border-collapse: collapse; margin: 2px 0; }
+  .ws-dg-grid th { font-size: 11.5px; background: var(--amber-tint); -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .ws-dg-grid th, .ws-dg-grid td { border: 1px solid var(--ink); padding: 2px 10px; text-align: center; }
+  .ws-dg-grid td { font-family: 'Georgia', serif; font-size: 14px; }
+  .ws-dg-arrow { font-family: 'Georgia', serif; font-size: 15px; margin: 14px 0 2px; }
+  .dg-n { border: 1.5px solid var(--ink); padding: 0 4px; }
+  .dg-m { position: relative; border-bottom: 2px solid var(--ink); margin-left: 6px; }
+  .dg-m i { position: absolute; left: -8px; top: -15px; font-size: 10.5px; font-style: normal; font-family: var(--gothic); white-space: nowrap; color: var(--ink-soft); }
+  .ws-dg-arrow .ws-ex-jp, .ws-ladder-row .ws-ex-jp { margin-left: 12px; }
+  .ws-dg-change { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+  .dg-to { font-weight: 800; }
+  .ws-dg-note { font-size: 12px; font-weight: 700; margin-top: 3px; }
+  .ws-ladder-row { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+  .ws-ladder-row.now .ws-ladder-label { background: var(--ink); color: #fff; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .ws-ladder-label { font-size: 11px; font-weight: 800; border: 1px solid var(--ink); border-radius: 4px; padding: 0 6px; min-width: 5em; text-align: center; }
+  .ws-ladder-arrow { font-size: 11px; line-height: 1; margin-left: 2em; color: var(--ink-soft); }
   .ws-ex-badge { display: inline-block; font-size: 10.5px; font-weight: 800; color: #fff; background: var(--ink); border-radius: 4px; padding: 0 5px; margin-right: 4px; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   .ws-example .ws-answer:not(.ws-options) { display: none !important; }
   .ws-ex-box { margin: 4px 0 2px 36px; font-size: 13px; line-height: 1.6; border-left: 3px solid var(--ink); background: var(--amber-tint); padding: 4px 10px; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
@@ -5832,7 +5850,9 @@ function generateGuideWorksheet() {
     }
     const unit = { stage, intro, practice, nIntro: Math.min(5, intro.length), nPractice: Math.min(8, practice.length), more, test };
     // 1周目の練習の最初に「使う単語の確認」の表。確認テストには同じ単語の表(英単語は空らん)
-    unit.words = guideUnitWords([...intro, ...practice, ...more.flatMap(m => m.practice)]);
+    unit.words = /疑問詞|間接疑問/.test(stage.label)
+      ? Object.entries(GUIDE_WH_MEANING).map(([en, jp]) => ({ en, jp: jp.split('・')[0] }))
+      : guideUnitWords([...intro, ...practice, ...more.flatMap(m => m.practice)]);
     if (test && unit.words.length >= 4) {
       const words = shuffle(unit.words.slice()).slice(0, 4);
       test.practice.splice(rule ? 1 : 0, 0, { type: 'wtable', section: 'grammar', stageKey: stage.key, words, answer: words.map(w => `${w.jp}＝${w.en}`).join('　'),
@@ -6720,9 +6740,50 @@ function guideIntroAnswerHtml(u, mark, startNum) {
   const tips = (g.tips || []).map(t => `<li>${t}</li>`).join('');
   return `<div class="ws-ans-head">解答と解説<span>${mark} ${guideUnitName(u.stage)}・確認の問題 (${startNum})〜(${startNum + items.length - 1})</span></div>
     ${guideRuleHtml(u.stage)}
+    ${guideDiagramHtml(u.stage)}
     ${items.map((item, i) => guideAnswerItemHtml(item, startNum + i)).join('')}
     ${tips ? `<div class="ws-ans-tips"><b>まちがえやすいところ</b><ul>${tips}</ul></div>` : ''}
     <div class="ws-ans-foot">まちがえた問題は、どのルールに合っていなかったかを確かめて直してから、練習問題へ進もう。</div>`;
+}
+// 図で見る文の形(解説のページ)。文型は S・V・O・C の表、後置修飾は「名詞 ← うしろから説明」、間接疑問は語順の変化
+const GUIDE_DIAGRAMS = {
+  'g2program5-svc': { kind: 'grid', cols: ['S（主語）', 'V（動詞）', 'C（補語）'], rows: [['She', 'looks', 'happy.'], ['He', 'became', 'a doctor.']], note: 'S ＝ C の関係（彼女 ＝ 幸せそう）' },
+  'g2program5-svoo': { kind: 'grid', cols: ['S（主語）', 'V（動詞）', 'O（人に）', 'O（ものを）'], rows: [['I', 'gave', 'her', 'flowers.'], ['He', 'showed', 'me', 'his notebook.']], note: '「人に」→「ものを」の順。もの → 人 の順なら to / for（I gave flowers to her.）' },
+  'g3program3-svoc': { kind: 'grid', cols: ['S（主語）', 'V（動詞）', 'O（目的語）', 'C（補語）'], rows: [['The news', 'made', 'me', 'sad.'], ['I', 'keep', 'my room', 'clean.']], note: 'O ＝ C の関係（私 ＝ 悲しい）' },
+  'g3program3-tellshow': { kind: 'grid', cols: ['S（主語）', 'V（動詞）', 'O（人に）', 'O（that 〜）'], rows: [['He', 'told', 'me', 'that it was true.'], ['She', 'showed', 'us', 'that she was right.']], note: '「人に」のあとに that ＋ 主語 ＋ 動詞（伝える内容）' },
+  'g3program3-makeletlelp': { kind: 'grid', cols: ['S（主語）', 'V（動詞）', 'O（人に）', '動詞の原形'], rows: [['My mother', 'made', 'me', 'wash the dishes.'], ['He', 'helped', 'me', 'do my homework.']], note: '人のあとは to をつけない原形' },
+  'g3program4-presentp': { kind: 'arrow', rows: [['The boy', 'running over there', 'is my brother.', '男の子 ← あそこで走っている']], note: '〜ing のまとまりが、うしろから名詞を説明する' },
+  'g3program4-pastp': { kind: 'arrow', pre: 'This is', rows: [['a car', 'made in Japan', '.', '車 ← 日本で作られた']], note: '過去分詞のまとまりが、うしろから名詞を説明する（〜された）' },
+  'g3program5-who': { kind: 'arrow', pre: 'I have', rows: [['a friend', 'who can speak English', '.', '友達 ← 英語を話すことができる']], note: '人のあとに who ＋ 動詞（who が主語の働き）' },
+  'g3program5-which': { kind: 'arrow', rows: [['The book', 'which is on the desk', 'is mine.', '本 ← 机の上にある']], note: 'もののあとに which ＋ 動詞' },
+  'g3program6-withpronoun': { kind: 'arrow', pre: 'This is', rows: [['the book', 'which I bought yesterday', '.', '本 ← 私が昨日買った']], note: '名詞のあとに which / that ＋ 主語 ＋ 動詞' },
+  'g3program6-omitted': { kind: 'arrow', pre: 'This is', rows: [['the book', 'I bought yesterday', '.', '本 ← 私が昨日買った']], note: '名詞のすぐあとに 主語 ＋ 動詞（which / that を省略）' },
+  'g3program4-indirect': { kind: 'change', rows: [['Where does she live?', 'Do you know where she lives?'], ['What does he want?', "I don't know what he wants."], ['Who is he?', 'Please tell me who he is.']], note: '文の中に入ると「疑問詞 ＋ 主語 ＋ 動詞」の順。do / does / did は使わない' },
+};
+// 肯定文 → 否定文 → 疑問文 → 答え方(同じ課の3つの単元の例文をならべる)
+function guideLadderHtml(stage) {
+  const m = stage.key.match(/^(.*)-(aff|neg|q)$/);
+  if (!m) return '';
+  const g = k => STAGE_GUIDES[`${m[1]}-${k}`];
+  if (!g('aff') || !g('neg') || !g('q')) return '';
+  const fmt = t => t.replace(/\*([^*]+)\*/g, '<b>$1</b>');
+  const qEx = g('q').examples || [];
+  const ans = qEx.find(([en]) => /^—/.test(en));
+  const rows = [['ふつうの文', g('aff').examples[0]], ['否定文', g('neg').examples[0]], ['疑問文', qEx.find(([en]) => !/^—/.test(en))], ['答え方', ans]].filter(r => r[1]);
+  return `<div class="ws-diagram"><b class="ws-dg-title">文の形の変わり方</b>${rows.map(([label, [en, jp]], i) => `<div class="ws-ladder-row${`${m[2]}` === ['aff', 'neg', 'q', 'q'][i] ? ' now' : ''}"><span class="ws-ladder-label">${label}</span><span class="ws-ex-en">${fmt(en.replace(/^—\s*/, ''))}</span><span class="ws-ex-jp">${jp}</span></div>`).join('<div class="ws-ladder-arrow">↓</div>')}</div>`;
+}
+function guideDiagramHtml(stage) {
+  const d = GUIDE_DIAGRAMS[stage.key];
+  if (!d) return guideLadderHtml(stage);
+  let body = '';
+  if (d.kind === 'grid') {
+    body = `<table class="ws-dg-grid"><tr>${d.cols.map(c => `<th>${c}</th>`).join('')}</tr>${d.rows.map(r => `<tr>${r.map(c => `<td>${c}</td>`).join('')}</tr>`).join('')}</table>`;
+  } else if (d.kind === 'arrow') {
+    body = d.rows.map(([n, mod, rest, jp]) => `<div class="ws-dg-arrow">${d.pre ? `${d.pre} ` : ''}<span class="dg-n">${n}</span><span class="dg-m"><i>↖ うしろから説明</i>${mod}</span>${rest === '.' ? '.' : ` ${rest}`}<span class="ws-ex-jp">${jp}</span></div>`).join('');
+  } else if (d.kind === 'change') {
+    body = d.rows.map(([a, b]) => `<div class="ws-dg-change"><span class="ws-ex-en">${a}</span><span class="dg-to">→</span><span class="ws-ex-en">${b}</span></div>`).join('');
+  }
+  return `<div class="ws-diagram"><b class="ws-dg-title">図で見る文の形</b>${body}${d.note ? `<div class="ws-dg-note">${d.note}</div>` : ''}</div>`;
 }
 // 4ページ目: 練習問題の解答(1問ずつ短い解説つき)
 function guidePracticeAnswerHtml(u, mark, startNum) {
