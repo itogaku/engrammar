@@ -373,6 +373,8 @@
   .ws-test-score i { display: inline-block; width: 56px; border-bottom: 1px solid var(--ink); height: 20px; }
   .ws-test-lead { font-size: 12.5px; color: var(--ink-soft); margin: 6px 0 2px; }
   .ws-pfoot { display: none; }
+  .ws-ch-exam { font-size: 12.5px; line-height: 1.6; border: 1.5px dashed var(--ink); border-radius: 8px; padding: 4px 10px; margin: 4px 0 8px; }
+  .ws-ch-exam b { display: inline-block; font-size: 11px; color: #fff; background: var(--ink); border-radius: 4px; padding: 0 6px; margin-right: 8px; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   .print-box { display: none; }
   .sheet.redsheet .print-box { display: none !important; }
   .print-like .print-box { display: inline-block; }
@@ -416,11 +418,11 @@
   .ws-compare table { border-collapse: collapse; width: 100%; }
   .ws-compare th, .ws-compare td { border-top: 1px dashed var(--line); padding: 2px 4px; text-align: left; vertical-align: top; }
   .ws-compare th { font-family: 'Georgia', serif; white-space: nowrap; }
-  .t-clist .ws-num::before { content: '□'; margin-right: 3px; font-weight: 400; }
+  .t-ccheck .ws-num::before, .t-clist .ws-num::before { content: '□'; margin-right: 3px; font-weight: 400; }
   .t-clist .ws-item, .ws-item.t-clist { padding: 5px 0; }
   .ws-clist { margin-left: 36px; font-size: 13.5px; line-height: 1.5; }
   .ws-clist .ws-ex-en { font-size: 14px; }
-  .ws-clist-theme { font-size: 11px; color: var(--ink-soft); border: 1px solid var(--line); border-radius: 999px; padding: 0 8px; margin-left: 8px; }
+  .ws-clist-theme { white-space: nowrap; font-size: 11px; color: var(--ink-soft); border: 1px solid var(--line); border-radius: 999px; padding: 0 8px; margin-left: 8px; }
   .ws-letter { font-weight: 400; font-family: 'Georgia', serif; font-size: 14px; line-height: 1.6; border: 1px solid var(--ink-soft); border-radius: 6px; padding: 6px 12px; margin: 6px 0 2px; }
   .ws-red, .sheet.redsheet .ws-teacher { color: #e60033 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   .ws-red { font-weight: 700; padding: 0 4px; }
@@ -808,6 +810,12 @@
       <div class="opt-row"><span class="opt-label">範囲</span><div class="mode-switch" id="examVocabRange"></div></div>
       <div class="opt-row"><span class="opt-label">問題数</span><div class="mode-switch" id="examVocabCount"></div></div>
       <button class="btn btn-primary exam-make" id="examVocabBtn">入試単語のプリントを作る</button>
+    </div>
+    <div class="card test-card exam-card">
+      <div class="exam-head">教科書の重要文 最終チェック<span>3年→2年→1年の順に、教科書の文法の重要文を□でチェック。英文は赤字（赤シートでかくして言えるか確かめる）</span></div>
+      <div class="opt-row"><span class="opt-label">範囲</span><div class="mode-switch" id="examCheckRange"></div></div>
+      <div class="opt-row"><span class="opt-label">文の数</span><div class="mode-switch" id="examCheckCount"></div></div>
+      <button class="btn btn-primary exam-make" id="examCheckBtn">最終チェックシートを作る</button>
     </div>
     <div class="card test-card exam-card chiba-card">
       <div class="exam-head">千葉県公立入試形式<span>本番と同じ大問の順番・形式（リスニングの大問1〜4はのぞく）</span></div>
@@ -6222,7 +6230,7 @@ function shuffledPieces(item) {
 
 const SELECT_TYPES = new Set(['choice', 'usage', 'vmeaning', 'rchoice', 'rtf', 'cdialog', 'xchoice']);
 // 日本語で答える問題は、模範解答を見て自分で採点する
-const SELF_GRADED_TYPES = new Set(['clist', 'frame', 'rule', 'wtable', 'kscene', 'rja', 'rea', 'entoja', 'vjp', 'cwtrans', 'cwcond', 'cwfree', 'cetoj']);
+const SELF_GRADED_TYPES = new Set(['ccheck', 'clist', 'frame', 'rule', 'wtable', 'kscene', 'rja', 'rea', 'entoja', 'vjp', 'cwtrans', 'cwcond', 'cwfree', 'cetoj']);
 
 function answerText(item) {
   if (item.custom && item.custom.answer != null && !SELECT_TYPES.has(item.type)) return escHtml(item.custom.answer);
@@ -6243,7 +6251,7 @@ function answerText(item) {
   if (item.type === 'kform') return item.answer;
   if (item.type === 'korder') return `${item.order.map(k => CHOICE_LABELS5[k]).join('→')}<span class="ans-why">${item.sentence}</span>`;
   if (item.type === 'kscene') return `${item.answers[0]}${item.answers.slice(1).map(a => `<span class="ans-why">別解：${a}</span>`).join('')}`;
-  if (['form', 'fillin', 'vword', 'vblank', 'vidiom', 'vjp', 'entoja', 'rfill', 'rja', 'rea', 'chunkorder', 'frame', 'rule', 'wtable', 'clist'].includes(item.type)) return item.answer;
+  if (['form', 'fillin', 'vword', 'vblank', 'vidiom', 'vjp', 'entoja', 'rfill', 'rja', 'rea', 'chunkorder', 'frame', 'rule', 'wtable', 'clist', 'ccheck'].includes(item.type)) return item.answer;
   if (item.type === 'rewrite') return item.answerSentence;
   if (item.type === 'error') return `${item.wrongWord} → ${item.answer}`;
   if (item.type === 'paraphrase') return item.answer;
@@ -6346,6 +6354,7 @@ function itemPromptHtml(item) {
   if (item.type === 'cform') return `<span class="ws-word">${item.word}</span>${item.meaning ? `<span class="ws-cmean">（${item.meaning}）</span>` : ''}`;
   if (item.type === 'entoja') return `<span class="ws-en">${fullSentence(item)}</span>`;
   if (item.type === 'chunkorder') return item.chunk.jp;
+  if (item.type === 'ccheck') return `${item.jp}<span class="ws-clist-theme">${item.unit}</span>`;
   if (item.type === 'clist') return `<span class="ws-word">${escHtml(item.phrase)}</span>${item.theme ? `<span class="ws-clist-theme">${item.theme}</span>` : ''}`;
   if (item.type === 'rule') return `この単元の文の形を完成させよう（例文：${item.example}）`;
   if (item.type === 'wtable') return '次の日本語に合う英単語を書こう';
@@ -6383,6 +6392,8 @@ function itemBodyHtml(item) {
     case 'rewrite':
       return `<div class="ws-sentence">${fullSentence(item)}<span class="ws-hint">（${item.rewriteKind === 'neg' ? '否定文に' : '疑問文に'}）</span></div>
         ${answerLineHtml('書きかえた英文を書こう')}`;
+    case 'ccheck':
+      return `<div class="ws-clist"><div class="ws-red ws-ex-en">${escHtml(item.en).replace(/\*([^*]+)\*/g, '<u>$1</u>')}</div></div>`;
     case 'clist':
       return `<div class="ws-clist"><div class="ws-red">${item.meaning}</div><div class="ws-ex-en">${item.enHtml}</div><div class="ws-ex-jp">${item.jp}</div></div>`;
     case 'chunkorder':
@@ -6934,7 +6945,7 @@ function renderGuideWorksheet() {
 const POINT_WEIGHTS = {
   vmeaning: 1, vjp: 2, vword: 2, vblank: 2, vidiom: 2,
   choice: 2, usage: 2, fillin: 2, form: 2, error: 3, extra: 3, reorder: 3, rewrite: 3, paraphrase: 3, translate: 4, entoja: 4,
-  rchoice: 3, rtf: 2, rfill: 3, rja: 4, rea: 4, cdialog: 3, cphrase: 3, cform: 2, cfree: 3, cwtrans: 4, cwcond: 5, cwfree: 10, cetoj: 4, xchoice: 2, xfill: 3, xorder: 3, xpara: 3, xask: 4, clist: 1, kform: 3, korder: 3, kscene: 6,
+  rchoice: 3, rtf: 2, rfill: 3, rja: 4, rea: 4, cdialog: 3, cphrase: 3, cform: 2, cfree: 3, cwtrans: 4, cwcond: 5, cwfree: 10, cetoj: 4, xchoice: 2, xfill: 3, xorder: 3, xpara: 3, xask: 4, clist: 1, ccheck: 1, kform: 3, korder: 3, kscene: 6,
 };
 function assignPoints(items) {
   items.forEach(it => { delete it.points; });
@@ -7442,6 +7453,7 @@ const EXAM_TYPES = {
   xfill: { label: '適語補充', instr: '日本語に合うように、（　）に適切な語を1語ずつ入れなさい。' },
   xorder: { label: '並べかえ', instr: '日本語に合うように、（　）内の語句を並べかえて英文を書きなさい。' },
   xpara: { label: '同意文', instr: '2つの文がほぼ同じ意味になるように、（　）に適切な語を1語ずつ入れなさい。' },
+  ccheck: { label: '教科書の重要文', instr: '日本語を見て英文を言ってみよう。赤シートで英文をかくし、言えたら□にチェック。' },
   clist: { label: '表現の一覧', instr: '□にチェックしながら、例文を声に出して読もう。赤シートで意味をかくして、言えるか確かめよう。' },
   xask: { label: '下線部をたずねる疑問文', instr: '下線部が答えの中心となる疑問文を書きなさい。' },
   cfree: { label: '英作文の表現', instr: '日本語に合うように、（　）に適切な英語を1語ずつ入れなさい。' },
@@ -7464,7 +7476,7 @@ const EXAM_ROUNDS = [
   { title: '疑問詞・間接疑問・仮定法', sub: '疑問詞の疑問文・間接疑問・I wish・If I were', match: /^(program1-where|program2-when|g1program3-whatcan|g1program4-who|g1program7-(how|candoq)|g1powerup|g1program8-wh|g1program9-whprog|g3program4-indirect|g3program7-)/ },
 ];
 const EXAM_GRAMMAR_FORMAT = { form: 4, choice: 3, fillin: 2, rewrite: 2, paraphrase: 2, reorder: 2, extra: 2, error: 2, translate: 2, entoja: 1 };
-const examState = { readingLevels: new Set(['basic']), readingCount: 1, vocabRange: 3, vocabCount: 30, writingKinds: new Set(['translate']), writingCount: 10, freeThemes: new Set(), freeCount: 20, etojCount: 10, dialogCats: new Set(), dialogCount: 10, phraseThemes: new Set(), phraseCount: 20, tableKinds: new Set(['irregular']), tableCount: 20, tableMix: false, phraseList: false, freeList: false, mockRange: 3 };
+const examState = { readingLevels: new Set(['basic']), readingCount: 1, vocabRange: 3, vocabCount: 30, writingKinds: new Set(['translate']), writingCount: 10, freeThemes: new Set(), freeCount: 20, etojCount: 10, dialogCats: new Set(), dialogCount: 10, phraseThemes: new Set(), phraseCount: 20, tableKinds: new Set(['irregular']), tableCount: 20, tableMix: false, phraseList: false, freeList: false, checkRange: 3, checkCount: 60, mockRange: 3 };
 
 function examRoundKeys(r) { return stages.filter(st => r.match.test(st.key)).map(st => st.key); }
 function emptyCounts(defs) { return Object.fromEntries(Object.keys(defs).map(k => [k, 0])); }
@@ -7499,6 +7511,12 @@ function generateExamItems(cfg, used) {
   if (cfg.phraseCount && typeof EXAM_PHRASES !== 'undefined') {
     const pool = EXAM_PHRASES.map((ph, i) => ({ ...ph, i })).filter(ph => !cfg.phraseThemes || !cfg.phraseThemes.length || cfg.phraseThemes.includes(ph.theme));
     take(pool, cfg.phraseCount, ph => `e|cphrase|p${ph.i}`).sort((a, b) => (cfg.phraseList ? a.i - b.i : 0)).forEach(ph => out.push(cfg.phraseList ? examListItem(ph, 'p', EXAM_PHRASE_THEMES) : examPhraseItem(ph)));
+  }
+  if (cfg.checkGrades) {
+    // 3年 → 2年 → 1年の順(入試に近い学年から)。各学年の中は教科書の順
+    const pool = checkSheetPool(cfg.checkGrades);
+    const picked = new Set(take(pool, cfg.checkCount, x => `e|ccheck|${x.key}`).map(x => x.key));
+    pool.filter(x => picked.has(x.key)).forEach(x => out.push(x));
   }
   if (cfg.chapter && typeof EXAM_GRAMMAR !== 'undefined' && EXAM_GRAMMAR[cfg.chapter]) {
     const ch = EXAM_GRAMMAR[cfg.chapter];
@@ -7542,6 +7560,18 @@ function generateExamItems(cfg, used) {
 function examDialogItem(d) {
   // 選択肢の順番はそのまま(作った人が正解の位置をばらしている)
   return { section: 'exam', type: 'cdialog', key: `d${d.i}`, lines: d.lines, options: d.options, answer: d.options[d.answer], why: d.why, cat: d.cat };
+}
+// 教科書の重要文(「ここがポイント」の例文)。応答の文(— Yes, 〜)は前の文につなげる
+function checkSheetPool(maxGrade) {
+  const out = [];
+  [3, 2, 1].filter(g => g <= maxGrade).forEach(g => stages.filter(st => st.grade === g && STAGE_GUIDES[st.key]).forEach(st => {
+    const ex = STAGE_GUIDES[st.key].examples || [];
+    ex.forEach(([en, jp], i) => {
+      if (/^—/.test(en)) { const prev = out[out.length - 1]; if (prev && prev.stage === st.key) { prev.en += ` ${en}`; prev.jp += ` ${jp}`; } return; }
+      out.push({ section: 'exam', type: 'ccheck', key: `${st.key}#${i}`, stage: st.key, en, jp, unit: `中${g} ${st.label.replace(/^\d年 /, '')}`, answer: en.replace(/\*/g, '') });
+    });
+  }));
+  return out;
 }
 // 覚える用の一覧: □ 表現 ／ 意味(赤字。赤シートでかくせる) ／ 例文
 function examListItem(ph, prefix, themes) {
@@ -7609,6 +7639,10 @@ function examWritingItem(x) {
 function newExamItem(item) {
   const used = new Set(examItems.map(it => `e|${it.type}|${it.key}`));
   const cfg = printSource.config || {};
+  if (item.type === 'ccheck') {
+    const pool = checkSheetPool(cfg.checkGrades || 3).filter(x => !used.has(`e|ccheck|${x.key}`) && !excludedSet.has(`e|ccheck|${x.key}`));
+    return pool.length ? pool[Math.floor(rand() * pool.length)] : null;
+  }
   if (item.type === 'clist') {
     const free = item.key ? item.key[0] === 'f' : !!cfg.freeList;
     const data = free ? EXAM_FREE_PHRASES : EXAM_PHRASES, themes = free ? cfg.freeThemes : cfg.phraseThemes, pre = free ? 'f' : 'p';
@@ -7737,11 +7771,31 @@ function renderReadingTips() {
   </ol>`;
   sheetItems.appendChild(box);
 }
+// 各章の「入試では」(どのように出るか)
+const EXAM_CHAPTER_TIPS = {
+  verbs: '語形変化（過去形・過去分詞・ing形）と、時を表す語（yesterday / now / every day）から時制を決める問題がよく出る。',
+  future: 'will と be going to の書きかえ、Can you 〜? / Shall I 〜? の会話表現、must not と don\'t have to の意味の違いがねらわれる。',
+  imperative: '命令文, and / or の書きかえ、Let\'s ⇔ Shall we ⇔ How about 〜ing? の同意文が定番。',
+  questions: '答えの文から疑問詞を選ぶ問題、間接疑問の語順（疑問詞＋主語＋動詞）の並べかえが最頻出。',
+  nouns: '複数形・所有代名詞（mine / yours）の書きかえ、one / another / the other の使い分けが出る。',
+  infinitive: '並べかえの最頻出。want 人 to / It is 〜 for 人 to / 疑問詞＋to の語順をおさえる。',
+  gerund: 'enjoy / finish / stop のあとは 〜ing。前置詞のあと（good at 〜ing）も 〜ing になる。',
+  participle: '名詞をうしろから説明する分詞（the boy running there / a car made in Japan）が並べかえ・語形変化で出る。',
+  compare: 'as 〜 as ⇔ 比較級 ⇔ 最上級の書きかえ、good → better → best などの不規則変化が出る。',
+  passive: 'be動詞＋過去分詞。by 以外の前置詞をとる表現（be known to / be made of）と書きかえが出る。',
+  perfect: '継続・経験・完了の見分け。for と since、How long / How many times の疑問文が出る。',
+  relative: 'who / which / that の選択と、関係代名詞・接触節を使った並べかえが最頻出。',
+  subjunctive: 'I wish ＋過去形、If I were 〜 の形。現実の文との書きかえで出る。',
+  svoc: 'give 人 もの ⇔ give もの to 人、make 人 〜、call A B などの語順を並べかえで問われる。',
+  prepconj: 'when / if / because / though の選択と、時・条件の文では未来でも現在形になる点がねらわれる。',
+};
 function renderChapterSummary(ch) {
   const box = document.createElement('div');
   box.className = 'ws-exam-summary ws-chapter';
   const star = n => '★'.repeat(n) + '<span class="dim">' + '★'.repeat(3 - n) + '</span>';
-  box.innerHTML = `<div class="ws-es-head">第${ch.no}章 ${ch.title} ― まとめ</div><div class="ws-ch-grid">` + ch.sections.map((sec, i) => `
+  const key = Object.keys(EXAM_GRAMMAR).find(k => EXAM_GRAMMAR[k] === ch);
+  const tip = EXAM_CHAPTER_TIPS[key];
+  box.innerHTML = `<div class="ws-es-head">第${ch.no}章 ${ch.title} ― まとめ</div>${tip ? `<div class="ws-ch-exam"><b>入試では</b>${tip}</div>` : ''}<div class="ws-ch-grid">` + ch.sections.map((sec, i) => `
     <div class="ws-ch-sec">
       <div class="ws-ch-title"><span class="ws-ch-no">${i + 1}</span>${sec.title}<span class="ws-ch-star">${star(sec.stars || 2)}</span></div>
       ${sec.key ? `<div class="ws-ch-key"><b>${sec.key[0]}</b><span>${sec.key[1]}</span></div>` : ''}
@@ -8011,6 +8065,8 @@ function renderExamScreen() {
   renderOptionSwitch(examVocabCount, [20, 30, 50].map(n => [n, `${n}問`]), examState.vocabCount, v => { examState.vocabCount = v; renderExamScreen(); });
   renderOptionSwitch(examDialogCount, [10, 15, 20].map(n => [n, `${n}問`]), examState.dialogCount, v => { examState.dialogCount = v; renderExamScreen(); });
   renderOptionSwitch(examPhraseCount, [10, 20, 30].map(n => [n, `${n}問`]), examState.phraseCount, v => { examState.phraseCount = v; renderExamScreen(); });
+  renderOptionSwitch(document.getElementById('examCheckRange'), [[1, '中1'], [2, '中1・中2'], [3, '中1〜中3']], examState.checkRange, v => { examState.checkRange = v; renderExamScreen(); });
+  renderOptionSwitch(document.getElementById('examCheckCount'), [[30, '30文'], [60, '60文'], [0, 'すべて']], examState.checkCount, v => { examState.checkCount = v; renderExamScreen(); });
   renderOptionSwitch(document.getElementById('examPhraseList'), [[false, '問題（空所補充）'], [true, '一覧（覚える用）']], examState.phraseList, v => { examState.phraseList = v; renderExamScreen(); });
   renderOptionSwitch(examTableCount, [10, 20, 30].map(n => [n, `${n}問`]), examState.tableCount, v => { examState.tableCount = v; renderExamScreen(); });
   renderOptionSwitch(document.getElementById('examTableMix'), [[false, 'もとの形から'], [true, 'どの形かばらばら']], examState.tableMix, v => { examState.tableMix = v; renderExamScreen(); });
@@ -8055,6 +8111,11 @@ examReadingBtn.onclick = () => {
   startExamPrint(`入試対策 入試長文（${levels.map(k => EXAM_READING_LEVELS[k].replace(/（.*/, '')).join('・')}）`, examConfig('入試対策 入試長文', {
     readingCount: examState.readingCount, examReadingLevels: levels,
   }));
+};
+document.getElementById('examCheckBtn').onclick = () => {
+  const g = examState.checkRange;
+  startExamPrint(`入試対策 教科書の重要文 最終チェック（中${g === 1 ? '1' : `1〜中${g}`}）`, examConfig('入試対策 重要文チェック', { checkGrades: g, checkCount: examState.checkCount || 999 }));
+  listPrintDefaults();
 };
 examVocabBtn.onclick = () => {
   const g = examState.vocabRange;
