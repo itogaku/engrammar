@@ -180,6 +180,36 @@ Breakfast gives us energy for the morning. When we skip it, we can't think well 
   },
   // ===================== 大問7(2) 型: お知らせ・広告・ウェブページ =====================
   {
+    id: 'c7p-11', level: 'chiba7p', genre: 'presentation', title: '部活動の人数',
+    text: `Hello, everyone. I'm Takumi. Our school has many clubs, and I wanted to know which clubs are popular. So I checked the number of members in each club. Please look at Slide 1. Sports clubs have more members than culture clubs. About 60% of the students are in sports clubs.
+Now, look at Slide 2. It shows the four biggest clubs in our school. The soccer club has the most members. It has 32 members. The brass band is the second. It has seven fewer members than the soccer club. The tennis club has 18 members, and the art club has 10 members. The art club is the smallest of the four, but its members won a prize at a city contest last year.
+I'm in the art club. We have only ten members, but we enjoy drawing pictures together. Some people think a small club is not fun. But in a small club, everyone can talk a lot and help each other. Big clubs and small clubs are ( A ), but every club has its good points. Thank you.`,
+    table: [['Slide 2: The four biggest clubs', 'Members'], ['ⓐ', '32'], ['ⓑ', '25'], ['ⓒ', '18'], ['ⓓ', '10']],
+    notes: ['member 部員', 'culture club 文化部', 'brass band 吹奏楽部', 'prize 賞'],
+    questions: [
+      { type: 'choice', q: '本文の内容に合うように、Slide 2 の ⓐ〜ⓓ に入るものの組み合わせとして最も適当なものを選びなさい。', options: ['ア', 'イ', 'ウ', 'エ'], answer: 1,
+        combo: { cols: ['ⓐ', 'ⓑ', 'ⓒ', 'ⓓ'], rows: [['Soccer', 'Tennis', 'Brass band', 'Art'], ['Soccer', 'Brass band', 'Tennis', 'Art'], ['Brass band', 'Soccer', 'Art', 'Tennis'], ['Soccer', 'Brass band', 'Art', 'Tennis']] } },
+      { type: 'choice', q: '本文中の（ A ）に入る最も適当な語を選びなさい。', options: ['different', 'same', 'popular', 'famous'], answer: 0 },
+      { type: 'ea', q: '発表のあと、先生とタクミが話しています。（　）に入る最も適当な英語1語を書きなさい。\nTeacher: How many members does the brass band have?\nTakumi: It has (　　) members.', answer: 'twenty-five（25）' },
+      { type: 'choice', q: '本文の内容に合うものとして最も適当なものを選びなさい。', options: ['タクミの学校では、文化部に入っている生徒のほうが多い。', '美術部の部員は、去年市のコンテストで賞をとった。', 'タクミはテニス部に入っている。', 'タクミは、小さい部活動は楽しくないと考えている。'], answer: 1 },
+    ],
+  },
+  {
+    id: 'c7p-12', level: 'chiba7p', genre: 'presentation', title: '人気の給食メニュー',
+    text: `Hi, everyone. I'm Nanami from the school lunch committee. Last month, we asked 120 students, "What is your favorite school lunch?" Please look at the slide. Curry and rice is the most popular. Forty students chose it. Fried chicken is the second. It got ten votes fewer than curry and rice. Spaghetti got half as many votes as curry and rice. Fish burgers got the fewest votes of the four, but the cooks told us they are healthy and delicious.
+We also asked, "Why do you like it?" Many students said, "Because it reminds me of my mother's cooking." Others said, "Because I can't eat it at home."
+Next month, we will have a special lunch day. On that day, the cooks will make the most popular menu. We hope everyone will enjoy it and finish all of their lunch. Let's also say "thank you" to the cooks ( A ) they work hard for us every day.`,
+    table: [['Our Favorite School Lunch (120 students)', 'Students'], ['ⓐ', '40'], ['ⓑ', '30'], ['ⓒ', '20'], ['ⓓ', '12'], ['Others', '18']],
+    notes: ['committee 委員会', 'vote 票', 'cook 調理員', 'remind 〜 of … 〜に…を思い出させる'],
+    questions: [
+      { type: 'choice', q: '本文の内容に合うように、スライドの ⓐ〜ⓓ に入るものの組み合わせとして最も適当なものを選びなさい。', options: ['ア', 'イ', 'ウ', 'エ'], answer: 2,
+        combo: { cols: ['ⓐ', 'ⓑ', 'ⓒ', 'ⓓ'], rows: [['Curry and rice', 'Spaghetti', 'Fried chicken', 'Fish burgers'], ['Curry and rice', 'Fried chicken', 'Fish burgers', 'Spaghetti'], ['Curry and rice', 'Fried chicken', 'Spaghetti', 'Fish burgers'], ['Fried chicken', 'Curry and rice', 'Fish burgers', 'Spaghetti']] } },
+      { type: 'choice', q: '本文中の（ A ）に入る最も適当な語を選びなさい。', options: ['because', 'but', 'if', 'so'], answer: 0 },
+      { type: 'choice', q: '発表のあと、先生とナナミが話しています。（　）に入る最も適当なものを選びなさい。\nTeacher: What will the cooks make on the special lunch day?\nNanami: They will make (　　).', options: ['curry and rice', 'fried chicken', 'spaghetti', 'fish burgers'], answer: 0 },
+      { type: 'choice', q: '本文の内容に合っている英文として最も適当なものを選びなさい。', options: ['Nanami asked all the students in the school about school lunch.', "Some students like their favorite lunch because they can't eat it at home.", 'Fish burgers got more votes than spaghetti.', 'The special lunch day will be held this month.'], answer: 1 },
+    ],
+  },
+  {
     id: 'c7n-01', level: 'chiba7n', genre: 'notice', title: 'カフェのオープン広告',
     text: `Green Leaf Cafe
 Grand Opening on Saturday, April 5!

@@ -387,6 +387,8 @@
   .hw-map-blank { flex: 1; border-bottom: 1px solid var(--ink); height: 20px; }
   .hw-map-inline { display: inline-block; width: 180px; vertical-align: bottom; }
   .hw-map-note { font-size: 11.5px; margin-top: 4px; font-weight: 700; }
+  table.ws-ch-table.ws-combo { margin: 4px 0 4px 36px; width: auto; }
+  .ws-combo td, .ws-combo th { padding: 2px 12px; text-align: center; }
   .ws-graphs { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 12px; margin: 4px 0 4px 36px; }
   .ws-graph { position: relative; break-inside: avoid; }
   .ws-graph > b { position: absolute; left: 0; top: 0; font-size: 13px; }
@@ -5400,7 +5402,7 @@ function readingItemOf(p) {
     section: 'reading', passage: p,
     subs: p.questions.map(q => {
       const base = { section: 'reading', q: q.q };
-      if (q.type === 'choice') return { ...base, type: 'rchoice', options: q.options, answer: q.options[q.answer], graphs: q.graphs };
+      if (q.type === 'choice') return { ...base, type: 'rchoice', options: q.options, answer: q.options[q.answer], graphs: q.graphs, combo: q.combo };
       if (q.type === 'tf') return { ...base, type: 'rtf', options: ['○', '×'], answer: q.answer ? '○' : '×' };
       if (q.type === 'fill') return { ...base, type: 'rfill', answer: q.answer };
       if (q.type === 'ea') return { ...base, type: 'rea', answer: q.answer };
@@ -6255,6 +6257,7 @@ const SELF_GRADED_TYPES = new Set(['ccheck', 'clist', 'frame', 'rule', 'wtable',
 function answerText(item) {
   if (item.custom && item.custom.answer != null && !SELECT_TYPES.has(item.type)) return escHtml(item.custom.answer);
   if (SELECT_TYPES.has(item.type)) {
+    if (item.combo) return `${item.answer}（${item.combo.rows[item.options.indexOf(item.answer)].join('／')}）`;
     return item.type === 'rtf' || item.graphs ? item.answer : `${CHOICE_LABELS[item.options.indexOf(item.answer)]} ${item.answer}`;
   }
   if (item.type === 'fillin' && (item.altAnswers || []).length) return `${item.answer}（${item.altAnswers.join(' / ')} も可）`;
@@ -6342,7 +6345,7 @@ function answerLineHtml(placeholder, size) {
 
 function optionsHtml(item) {
   const opts = item.options.map((o, k) => {
-    const label = item.type === 'rtf' || item.graphs ? '' : `<span class="ws-opt-label">${CHOICE_LABELS[k]}</span>`;
+    const label = item.type === 'rtf' || item.graphs || item.combo ? '' : `<span class="ws-opt-label">${CHOICE_LABELS[k]}</span>`;
     return `<button class="ws-opt" data-opt="${k}">${label}${o}</button>`;
   }).join('');
   return `<div class="ws-answer ws-options">${opts}<span class="ws-mark"></span></div>`;
@@ -6438,6 +6441,8 @@ function itemBodyHtml(item) {
       return `${item.noHint ? '<div class="ws-4l ws-4l-print"></div>' : `<div class="ws-sentence ws-wordcount">（${item.tokens.length}語）</div>`}${answerLineHtml('ここに英文を書こう')}`;
     case 'rchoice':
       // グラフを選ぶ問題(千葉 大問7(1) など): ア〜エのグラフをならべる
+      // 組み合わせを選ぶ問題: ア〜エの行に ⓐⓑⓒⓓ の組み合わせをならべた表
+      if (item.combo) return `<table class="ws-ch-table ws-combo"><tr><th></th>${item.combo.cols.map(c => `<th>${c}</th>`).join('')}</tr>${item.combo.rows.map((r, k) => `<tr><th>${CHOICE_LABELS[k]}</th>${r.map(c => `<td>${c}</td>`).join('')}</tr>`).join('')}</table>${optionsHtml(item)}`;
       if (item.graphs) return `<div class="ws-graphs">${item.graphs.map((g, k) => `<div class="ws-graph"><b>${CHOICE_LABELS[k]}</b>${hwChartSvg(g)}</div>`).join('')}</div>${optionsHtml(item)}`;
       return optionsHtml(item);
     case 'vmeaning': case 'rtf':
