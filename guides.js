@@ -608,12 +608,26 @@ const STAGE_GUIDES = {
     examples: [['The news *made* me sad.', 'その知らせは私を悲しくさせました。'], ['I always *keep* my room clean.', '私はいつも部屋を清潔に保ちます。'], ['She *left* the door open.', '彼女はドアを開けたままにしました。']],
     tips: ['me ＝ sad、my room ＝ clean の関係。', '人は目的格（me / him など）。', 'うしろは形容詞。made me happily のように副詞にしない。'],
   },
+  'g3program3-callname': {
+    title: 'call / name ＋ 目的語 ＋ 補語（AをBと呼ぶ・名づける）',
+    point: '「AをBと呼ぶ」は call A B、「AをBと名づける」は name A B。A と B は「＝」の関係になる。',
+    form: '主語 + call / name + 人・もの + 呼び名',
+    examples: [['We *call* the dog *Pochi*.', '私たちはそのイヌをポチと呼びます。'], ['She *named* the rabbit *Hana*.', '彼女はそのウサギをハナと名づけました。']],
+    tips: ['「〜と」にあたる語（to や as）はいらない。call the dog Pochi の順。', '「何と呼びますか」は What do you call 〜?', '受け身にすると The dog is called Pochi.（ポチと呼ばれている）'],
+  },
   'g3program3-makeletlelp': {
     title: 'make / let / help ＋ 人 ＋ 動詞の原形',
     point: 'make（無理に〜させる）、let（自由に〜させる）、help（〜するのを手伝う）のあとは 人 → 動詞の原形。to はつけない。',
     form: '主語 + make / let / help + 人 + 動詞の原形',
     examples: [['My mother *made* me *wash* the dishes.', '母は私に皿を洗わせました。'], ['My father *let* me *use* the car.', '父は私に車を使わせてくれました。'], ['He *helped* me *do* my homework.', '彼は私が宿題をするのを手伝ってくれました。']],
     tips: ['made me to wash はまちがい。to をつけないのがポイント。', 'want / tell / ask は 人 ＋ to 〜、make / let / help は 人 ＋ 原形。セットで覚えよう。', 'let の過去形も let。My father let me 〜 は過去の文。', 'help 人 with 〜 でも「（人）の〜を手伝う」と言える（help me with my homework）。'],
+  },
+  'g3powerup1': {
+    title: '電車の乗りかえ案内',
+    point: '道や乗りかえをたずねるときは Could you tell me how to get to 〜?（〜への行き方を教えていただけますか）。案内するときは命令文で順番に伝える。',
+    form: 'Could you tell me how to get to 〜?　／　Change trains at 〜.',
+    examples: [['*Could you tell me how to get to* the airport?', '空港までの行き方を教えていただけますか。'], ['Go to Nakasu-Kawabata and *change trains* there.', '中洲川端まで行って、そこで電車を乗りかえてください。']],
+    tips: ['Could you 〜? は Can you 〜? よりていねい。', '電車を乗りかえるは change trains（trains は複数形）。', 'It\'ll take about 〜 minutes. で「約〜分かかるでしょう」。'],
   },
   'g3program4-presentp': {
     title: '現在分詞の後置修飾（〜している…）',
@@ -650,6 +664,13 @@ const STAGE_GUIDES = {
     examples: [['The book *which is* on the desk is mine.', '机の上にある本は私のものです。'], ['This is a song *which is loved* by many people.', 'これは多くの人に愛されている歌です。']],
     tips: ['人なら who、ものなら which。that はどちらにも使える。', 'which のすぐあとに動詞がくるのが主格。動詞は前の名詞に合わせる（a dog which runs 〜）。', '2つの文を1つにする問題：This is a song. It is loved 〜. → It を which にかえる。'],
   },
+  'g3program5-that': {
+    title: '関係代名詞 that（主格）',
+    point: 'that は人にも、ものにも使える関係代名詞。名詞のあとに that ＋ 動詞を続けて、名詞を説明する。',
+    form: '人・もの + that + 動詞 〜',
+    examples: [["It's a movie *that has* many dramatic scenes.", 'それはたくさんの劇的な場面がある映画です。'], ['I know the girl *that is walking* with her dog.', '私は犬と歩いている女の子を知っています。']],
+    tips: ['人のときは who、ものときは which を使うことが多いが、that はどちらにも使える。', '「人と動物」のように両方をさすときは that を使う。', 'that のあとの動詞は、前の名詞に合わせる（a girl that is / girls that are）。'],
+  },
   'g3program6-withpronoun': {
     title: '関係代名詞・目的格（…が〜する もの・人）',
     point: '「私が昨日買った本」のように、名詞のうしろに which / that ＋ 主語 ＋ 動詞 を続けて説明する。人を説明するときは that を使う。',
@@ -663,6 +684,13 @@ const STAGE_GUIDES = {
     form: '名詞 + 主語 + 動詞',
     examples: [['This is the book *I bought* yesterday.', 'これは私が昨日買った本です。'], ['The teacher *I respect* is very kind.', '私が尊敬する先生はとても親切です。']],
     tips: ['The teacher I respect までが1つの主語。そのあとに is が続く。', '省略できるのは目的格だけ。主格（who / which のすぐあとに動詞）は省略できない。', 'the book I bought ＝ the book which / that I bought。書きかえ問題でよく出る。'],
+  },
+  'g3powerup3': {
+    title: 'ラジオのCMの表現',
+    point: 'CMでは、商品のよいところを短い文でたくさん伝える。You will love 〜.（〜をとても気に入るでしょう）で始まることが多い。',
+    form: 'You will love 〜.　／　It\'s on sale for 〜.　／　Don\'t miss out on 〜.',
+    examples: [['*You will love* this pen case.', 'あなたはこの筆箱をとても気に入るでしょう。'], ["It's *on sale for* 960 yen now.", 'それは今960円で販売中です。']],
+    tips: ['What\'s more,（その上）で、よいところを付け加える。', 'even if 〜（たとえ〜でも）は if よりも強い言い方。', 'go with 〜 は「〜に合う」。'],
   },
   'g3program7-subjbe': {
     title: '仮定法（be動詞：もし〜だったら）',
@@ -684,5 +712,12 @@ const STAGE_GUIDES = {
     form: 'I wish + 主語 + 過去形 / could + 動詞の原形',
     examples: [['I wish I *could* fly.', '空を飛べたらいいのに。'], ['I wish I *had* more time.', 'もっと時間があればいいのに。'], ['I wish I *were* taller.', 'もっと背が高ければいいのに。']],
     tips: ['I hope 〜 は実現しそうなこと、I wish 〜 はかなわないこと。', 'I wish のあとは過去形。can → could、have → had、am / is → were。', 'be動詞は主語に関係なく were（I wish I were 〜）。'],
+  },
+  'g3powerup4': {
+    title: 'ウェブサイトで学校を紹介する',
+    point: '行事を紹介するときは、いつ（in November）・どのくらい（for two days）・何をするか・感想 の順に書く。',
+    form: 'We have 〜 in 月.　／　It lasts for 〜.　／　Why don\'t you join us?',
+    examples: [['Every year, we *have* a school festival in November.', '毎年11月に文化祭があります。'], ['It *lasts* for two days.', 'それは2日間続きます。']],
+    tips: ['look forward to 〜 は「〜を楽しみにする」。to のあとは名詞か 〜ing。', 'compete against each other は「たがいに競い合う」。', '最後に Why don\'t you join us?（参加しませんか）とさそうと、伝わりやすい。'],
   },
 };

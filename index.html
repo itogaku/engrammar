@@ -1110,7 +1110,7 @@
 const grades = [
   { id: 1, name: "中学1年", sub: "Get Ready〜Program10・PowerUp1〜6(47項目)" },
   { id: 2, name: "中学2年", sub: "Program1〜8・PowerUp2〜5(31項目)" },
-  { id: 3, name: "中学3年", sub: "Program1〜7(19項目)" },
+  { id: 3, name: "中学3年", sub: "Program1〜7・PowerUp1/3/4(24項目)" },
 ];
 
 const stages = [
@@ -3708,6 +3708,30 @@ const stages = [
     ],
   },
   {
+    key: "g3program3-callname", grade: 3, splitLevel: 3,
+    label: "3年 P3: call/name + 目的語 + 補語",
+    eyebrow: "中3 Program 3 &middot; tell+人+that / SVOC / make+人+原形",
+    desc: "「AをBと呼ぶ」「AをBと名づける」を並べ替えよう。",
+    promptLabel: "日本語の意味",
+    typePlaceholder: "英文を入力してね",
+    questions: [
+      { jp: "私たちはそのイヌをポチと呼びます。", pieces: [{en:"We", jp:"私たちは"}, {en:"call", jp:"呼びます"}, {en:"the dog", jp:"そのイヌを"}, {en:"Pochi", jp:"ポチと"}] },
+      { jp: "私たちはそのネコをタマと名づけました。", pieces: [{en:"We", jp:"私たちは"}, {en:"named", jp:"名づけました"}, {en:"the cat", jp:"そのネコを"}, {en:"Tama", jp:"タマと"}] },
+      { jp: "友達は私をケンと呼びます。", pieces: [{en:"My friends", jp:"友達は"}, {en:"call", jp:"呼びます"}, {en:"me", jp:"私を"}, {en:"Ken", jp:"ケンと"}] },
+      { jp: "彼女はそのウサギをハナと名づけました。", pieces: [{en:"She", jp:"彼女は"}, {en:"named", jp:"名づけました"}, {en:"the rabbit", jp:"そのウサギを"}, {en:"Hana", jp:"ハナと"}] },
+      { jp: "私はこのウサギをピーターと呼びます。", pieces: [{en:"I", jp:"私は"}, {en:"call", jp:"呼びます"}, {en:"this rabbit", jp:"このウサギを"}, {en:"Peter", jp:"ピーターと"}] },
+      { jp: "人々はその山を富士山と呼びます。", pieces: [{en:"People", jp:"人々は"}, {en:"call", jp:"呼びます"}, {en:"the mountain", jp:"その山を"}, {en:"Mt. Fuji", jp:"富士山と"}] },
+      { jp: "彼らはそのチームをタイガースと名づけました。", pieces: [{en:"They", jp:"彼らは"}, {en:"named", jp:"名づけました"}, {en:"the team", jp:"そのチームを"}, {en:"the Tigers", jp:"タイガースと"}] },
+      { jp: "私たちは彼をキャプテンと呼びます。", pieces: [{en:"We", jp:"私たちは"}, {en:"call", jp:"呼びます"}, {en:"him", jp:"彼を"}, {en:"Captain", jp:"キャプテンと"}] },
+      { jp: "あなたはあなたのイヌを何と呼びますか。", pieces: [{en:"What", jp:"何と"}, {en:"do you call", jp:"あなたは呼びますか"}, {en:"your dog", jp:"あなたのイヌを"}] },
+      { jp: "父はその船を「希望」と名づけました。", pieces: [{en:"My father", jp:"父は"}, {en:"named", jp:"名づけました"}, {en:"the ship", jp:"その船を"}, {en:"Hope", jp:"「希望」と"}] },
+      { jp: "これは英語で何と呼ばれていますか。", pieces: [{en:"What", jp:"何と"}, {en:"is this called", jp:"これは呼ばれていますか"}, {en:"in English", jp:"英語で"}] },
+      { jp: "そのネコはミケと呼ばれています。", pieces: [{en:"The cat", jp:"そのネコは"}, {en:"is called", jp:"呼ばれています"}, {en:"Mike", jp:"ミケと"}] },
+      { jp: "彼らはその公園を「さくら公園」と名づけました。", pieces: [{en:"They", jp:"彼らは"}, {en:"named", jp:"名づけました"}, {en:"the park", jp:"その公園を"}, {en:"Sakura Park", jp:"「さくら公園」と"}] },
+      { jp: "私の家族は私をユキと呼びます。", pieces: [{en:"My family", jp:"私の家族は"}, {en:"calls", jp:"呼びます"}, {en:"me", jp:"私を"}, {en:"Yuki", jp:"ユキと"}] },
+    ],
+  },
+  {
     key: "g3program3-makeletlelp", grade: 3, splitLevel: 3,
     label: "3年 P3: make/let/help+目的語+原形",
     eyebrow: "中3 Program 3 &middot; tell/show+人+that / SVOC / make・let・help",
@@ -3737,6 +3761,28 @@ const stages = [
       { jp: "その映画は私を泣かせました。", pieces: [{en:"The movie", jp:"その映画は"}, {en:"made", jp:"させました"}, {en:"me", jp:"私を"}, {en:"cry", jp:"泣か"}] },
       { jp: "私たちは先生が机を運ぶのを手伝いました。", pieces: [{en:"We", jp:"私たちは"}, {en:"helped", jp:"手伝いました"}, {en:"our teacher", jp:"先生が"}, {en:"carry the desks", jp:"机を運ぶのを"}] },
       { jp: "私にあなたのギターを弾かせてください。", pieces: [{en:"Let", jp:"させてください"}, {en:"me", jp:"私に"}, {en:"play your guitar", jp:"あなたのギターを弾か"}] },
+    ],
+  },
+  {
+    key: "g3powerup1", grade: 3, splitLevel: 2,
+    label: "3年 PU1",
+    eyebrow: "中3 Power-Up 1 &middot; 電車の乗りかえ案内",
+    desc: "Could you tell me how to get to ~? / Change trains at ~. など道案内の文を並べ替えよう。",
+    promptLabel: "日本語の意味",
+    typePlaceholder: "英文を入力してね",
+    questions: [
+      { jp: "何かお手伝いが必要ですか。", pieces: [{en:"Do you need", jp:"〜が必要ですか"}, {en:"some help", jp:"何かお手伝い"}] },
+      { jp: "空港までの行き方を教えていただけますか。", pieces: [{en:"Could you tell me", jp:"教えていただけますか"}, {en:"how to get", jp:"行き方を"}, {en:"to the airport", jp:"空港までの"}] },
+      { jp: "確認させてください。", pieces: [{en:"Let me", jp:"〜させてください"}, {en:"check", jp:"確認する"}] },
+      { jp: "私たちは今、博多駅にいます。", pieces: [{en:"We are", jp:"私たちはいます"}, {en:"at Hakata Station", jp:"博多駅に"}, {en:"now", jp:"今"}] },
+      { jp: "中洲川端まで行って、そこで電車を乗りかえてください。", pieces: [{en:"Go", jp:"行ってください"}, {en:"to Nakasu-Kawabata", jp:"中洲川端まで"}, {en:"and change trains there", jp:"そしてそこで電車を乗りかえて"}] },
+      { jp: "どの線に乗ればいいですか。", pieces: [{en:"Which line", jp:"どの線に"}, {en:"should I take", jp:"私は乗るべきですか"}] },
+      { jp: "空港線に乗ってください。", pieces: [{en:"Take", jp:"乗ってください"}, {en:"the Kuko Line", jp:"空港線に"}] },
+      { jp: "ここから約20分かかるでしょう。", pieces: [{en:"It'll take", jp:"かかるでしょう"}, {en:"about 20 minutes", jp:"約20分"}, {en:"from here", jp:"ここから"}] },
+      { jp: "どういたしまして。気をつけて。", pieces: [{en:"You're welcome.", jp:"どういたしまして。"}, {en:"Take care!", jp:"気をつけて！"}] },
+      { jp: "駅までの行き方を教えていただけますか。", pieces: [{en:"Could you tell me", jp:"教えていただけますか"}, {en:"how to get", jp:"行き方を"}, {en:"to the station", jp:"駅までの"}] },
+      { jp: "天神駅で電車を乗りかえてください。", pieces: [{en:"Change", jp:"乗りかえてください"}, {en:"trains", jp:"電車を"}, {en:"at Tenjin Station", jp:"天神駅で"}] },
+      { jp: "ここから約30分かかるでしょう。", pieces: [{en:"It'll take", jp:"かかるでしょう"}, {en:"about 30 minutes", jp:"約30分"}, {en:"from here", jp:"ここから"}] },
     ],
   },
   {
@@ -3898,6 +3944,28 @@ const stages = [
     ],
   },
   {
+    key: "g3program5-that", grade: 3, splitLevel: 3,
+    label: "3年 P5: 関係代名詞that（主格）",
+    eyebrow: "中3 Program 5 &middot; 関係代名詞(主格)",
+    desc: "人・もの両方に使える that（主格）の文を並べ替えよう。",
+    promptLabel: "日本語の意味",
+    typePlaceholder: "英文を入力してね",
+    questions: [
+      { jp: "それはたくさんの劇的な場面がある映画です。", pieces: [{en:"It's", jp:"それは〜です"}, {en:"a movie", jp:"映画"}, {en:"that has many dramatic scenes", jp:"たくさんの劇的な場面がある"}] },
+      { jp: "私は犬と歩いている女の子を知っています。", pieces: [{en:"I", jp:"私は"}, {en:"know", jp:"知っています"}, {en:"the girl", jp:"女の子を"}, {en:"that is walking with her dog", jp:"犬と歩いている"}] },
+      { jp: "これは東京へ行くバスです。", pieces: [{en:"This is", jp:"これは〜です"}, {en:"the bus", jp:"バス"}, {en:"that goes to Tokyo", jp:"東京へ行く"}] },
+      { jp: "中古のジーンズを売っている店へ行きましょう。", pieces: [{en:"Let's go", jp:"行きましょう"}, {en:"to a shop", jp:"店へ"}, {en:"that sells used jeans", jp:"中古のジーンズを売っている"}] },
+      { jp: "彼はその高校で英語を教えている先生です。", pieces: [{en:"He is", jp:"彼は〜です"}, {en:"a teacher", jp:"先生"}, {en:"that teaches English in that high school", jp:"その高校で英語を教えている"}] },
+      { jp: "私はテニスコートがある公園が好きです。", pieces: [{en:"I", jp:"私は"}, {en:"like", jp:"好きです"}, {en:"the park", jp:"公園が"}, {en:"that has tennis courts", jp:"テニスコートがある"}] },
+      { jp: "あそこを走っている女の子とイヌを見てください。", pieces: [{en:"Look at", jp:"見てください"}, {en:"the girl and the dog", jp:"女の子とイヌを"}, {en:"that are running over there", jp:"あそこを走っている"}] },
+      { jp: "日本でいちばん人気のある都市は京都かもしれません。", pieces: [{en:"The city", jp:"都市は"}, {en:"that is the most popular in Japan", jp:"日本でいちばん人気のある"}, {en:"may be Kyoto", jp:"京都かもしれません"}] },
+      { jp: "これはおいしいステーキを出すレストランです。", pieces: [{en:"This is", jp:"これは〜です"}, {en:"a restaurant", jp:"レストラン"}, {en:"that serves good steak", jp:"おいしいステーキを出す"}] },
+      { jp: "私には大きな庭がある家に住んでいる友達がいます。", pieces: [{en:"I", jp:"私には"}, {en:"have", jp:"います"}, {en:"a friend", jp:"友達が"}, {en:"that lives in a house with a large yard", jp:"大きな庭がある家に住んでいる"}] },
+      { jp: "農家の人々を助けることができるロボットがあります。", pieces: [{en:"There is", jp:"〜があります"}, {en:"a robot", jp:"ロボット"}, {en:"that can help farmers", jp:"農家の人々を助けることができる"}] },
+      { jp: "ちょうど到着した電車は小樽に行きます。", pieces: [{en:"The train", jp:"電車は"}, {en:"that has just arrived", jp:"ちょうど到着した"}, {en:"goes to Otaru", jp:"小樽に行きます"}] },
+    ],
+  },
+  {
     key: "g3program6-withpronoun", grade: 3, splitLevel: 3,
     label: "3年 P6: 関係代名詞(目的格)",
     eyebrow: "中3 Program 6 &middot; 関係代名詞(目的格・省略)",
@@ -3959,6 +4027,26 @@ const stages = [
       { jp: "あなたが聞いている歌は何ですか。", pieces: [{en:"What", jp:"何ですか"}, {en:"is", jp:"は"}, {en:"the song", jp:"歌"}, {en:"you are listening to", jp:"あなたが聞いている"}] },
       { jp: "ブラウン先生は私たちがみんな好きな先生です。", pieces: [{en:"Mr. Brown", jp:"ブラウン先生は"}, {en:"is", jp:"です"}, {en:"a teacher", jp:"先生"}, {en:"we all like", jp:"私たちがみんな好きな"}] },
       { jp: "あなたが京都で買ったものを見せてください。", pieces: [{en:"Please show me", jp:"私に見せてください"}, {en:"the things", jp:"ものを"}, {en:"you bought in Kyoto", jp:"あなたが京都で買った"}] },
+    ],
+  },
+  {
+    key: "g3powerup3", grade: 3, splitLevel: 2,
+    label: "3年 PU3",
+    eyebrow: "中3 Power-Up 3 &middot; ラジオのCM",
+    desc: "You will love ~. / It's on sale for ~. / Don't miss out on ~. などCMの表現を並べ替えよう。",
+    promptLabel: "日本語の意味",
+    typePlaceholder: "英文を入力してね",
+    questions: [
+      { jp: "あなたはこの筆箱をとても気に入るでしょう。", pieces: [{en:"You will love", jp:"とても気に入るでしょう"}, {en:"this pen case", jp:"この筆箱を"}] },
+      { jp: "それは小型ですが、たくさんのものを入れられます。", pieces: [{en:"It's compact,", jp:"それは小型です"}, {en:"but you can put", jp:"しかし入れられます"}, {en:"many items in it", jp:"たくさんのものを"}] },
+      { jp: "それはイタリア製です。", pieces: [{en:"It's", jp:"それは〜です"}, {en:"made", jp:"作られた"}, {en:"in Italy", jp:"イタリアで"}] },
+      { jp: "それは今だけ2,080円で販売中です。", pieces: [{en:"It is", jp:"それは〜です"}, {en:"on sale", jp:"販売中"}, {en:"for 2,080 yen now", jp:"今2,080円で"}] },
+      { jp: "この大セールを見逃さないでください。", pieces: [{en:"Don't miss out", jp:"見逃さないでください"}, {en:"on this big sale", jp:"この大セールを"}] },
+      { jp: "お早めにお買い求めください。", pieces: [{en:"Don't wait", jp:"待たないでください"}, {en:"to buy", jp:"買うのを"}] },
+      { jp: "その上、それはとても軽いです。", pieces: [{en:"What's more,", jp:"その上"}, {en:"it's", jp:"それは〜です"}, {en:"very light", jp:"とても軽い"}] },
+      { jp: "この腕時計はどんな服にも合います。", pieces: [{en:"This watch", jp:"この腕時計は"}, {en:"will go with", jp:"合うでしょう"}, {en:"any type of clothes", jp:"どんなタイプの服にも"}] },
+      { jp: "たとえ落としても、それは決してこわれないでしょう。", pieces: [{en:"It'll never break", jp:"それは決してこわれないでしょう"}, {en:"even if you drop it", jp:"たとえ落としても"}] },
+      { jp: "5色から選べます。", pieces: [{en:"You have", jp:"あなたにはあります"}, {en:"5 colors", jp:"5色が"}, {en:"to choose from", jp:"選ぶための"}] },
     ],
   },
   {
@@ -4052,6 +4140,26 @@ const stages = [
       { jp: "私が料理を上手にできたらいいのに。", pieces: [{en:"I wish", jp:"〜たらいいのに"}, {en:"I could cook well", jp:"料理を上手にでき"}] },
       { jp: "私が忙しくなかったらいいのに。", pieces: [{en:"I wish", jp:"〜だったらいいのに"}, {en:"I weren't busy", jp:"私が忙しくない"}] },
       { jp: "彼の電話番号を知っていたらいいのに。", pieces: [{en:"I wish", jp:"〜たらいいのに"}, {en:"I knew his phone number", jp:"彼の電話番号を知ってい"}] },
+    ],
+  },
+  {
+    key: "g3powerup4", grade: 3, splitLevel: 2,
+    label: "3年 PU4",
+    eyebrow: "中3 Power-Up 4 &middot; ウェブサイトで学校紹介",
+    desc: "We have ~ in November. / It lasts for two days. など学校行事を紹介する文を並べ替えよう。",
+    promptLabel: "日本語の意味",
+    typePlaceholder: "英文を入力してね",
+    questions: [
+      { jp: "毎年11月に文化祭があります。", pieces: [{en:"Every year,", jp:"毎年"}, {en:"we have", jp:"私たちにはあります"}, {en:"a school festival", jp:"文化祭が"}, {en:"in November", jp:"11月に"}] },
+      { jp: "それは2日間続きます。", pieces: [{en:"It", jp:"それは"}, {en:"lasts", jp:"続きます"}, {en:"for two days", jp:"2日間"}] },
+      { jp: "たくさんの人が来て、私たちの祭りを楽しみます。", pieces: [{en:"Many people", jp:"たくさんの人が"}, {en:"come and enjoy", jp:"来て楽しみます"}, {en:"our festival", jp:"私たちの祭りを"}] },
+      { jp: "あなたも参加しませんか。", pieces: [{en:"Why don't", jp:"〜しませんか"}, {en:"you", jp:"あなたも"}, {en:"join us", jp:"私たちに参加する"}] },
+      { jp: "5月には運動会があります。", pieces: [{en:"We", jp:"私たちには"}, {en:"have", jp:"あります"}, {en:"a field day", jp:"運動会が"}, {en:"in May", jp:"5月に"}] },
+      { jp: "おもなイベントはクラス対抗リレーです。", pieces: [{en:"The main event", jp:"おもなイベントは"}, {en:"is", jp:"〜です"}, {en:"the inter-class relay", jp:"クラス対抗リレー"}] },
+      { jp: "全クラスがたがいに競い合います。", pieces: [{en:"All the classes", jp:"全クラスが"}, {en:"compete", jp:"競い合います"}, {en:"against each other", jp:"たがいに"}] },
+      { jp: "私たちは全員この行事を楽しみにしています。", pieces: [{en:"We", jp:"私たちは"}, {en:"all really look forward", jp:"全員とても楽しみにしています"}, {en:"to this event", jp:"この行事を"}] },
+      { jp: "10月に合唱コンテストを開催します。", pieces: [{en:"We", jp:"私たちは"}, {en:"hold", jp:"開催します"}, {en:"a chorus contest", jp:"合唱コンテストを"}, {en:"in October", jp:"10月に"}] },
+      { jp: "それぞれのクラスがコンテストで歌う曲を選びます。", pieces: [{en:"Each class", jp:"それぞれのクラスが"}, {en:"chooses", jp:"選びます"}, {en:"a song", jp:"曲を"}, {en:"to perform at the contest", jp:"コンテストで歌う"}] },
     ],
   },
 ];
@@ -4689,7 +4797,7 @@ const IRREGULAR_VERBS = {
   teach: ['taught', 'taught'], tell: ['told', 'told'], think: ['thought', 'thought'], win: ['won', 'won'],
   write: ['wrote', 'written'],
 };
-const REGULAR_VERBS = [
+const REGULAR_VERBS = ['name', 
   'ask', 'borrow', 'call', 'carry', 'clean', 'close', 'cook', 'cry', 'dance', 'enjoy', 'finish', 'help',
   'learn', 'like', 'listen', 'live', 'look', 'love', 'need', 'open', 'paint', 'play', 'practice', 'rain',
   'respect', 'ski', 'start', 'stop', 'study', 'talk', 'travel', 'use', 'visit', 'wait', 'walk', 'want',
@@ -4928,10 +5036,11 @@ const STAGE_FOCUS = {
   'g3program1-experience': ['ppForm', 'have'],
   'g3program2-completion': ['ppForm', 'have'], 'g3program2-continuation': ['ppForm', 'have'],
   'g3program2-progressive': ['ingForm', 'have'],
-  'g3program3-tellshow': ['conj'], 'g3program3-svoc': ['verb'],
+  'g3program3-tellshow': ['conj'], 'g3program3-svoc': ['verb'], 'g3program3-callname': ['verb'], 'g3powerup1': ['modal', 'verb'],
   'g3program3-makeletlelp': ['bareVerb'],
   'g3program4-presentp': ['postPart'], 'g3program4-pastp': ['postPart'], 'g3program4-indirect': ['wh'],
-  'g3program5-who': ['relative'], 'g3program5-which': ['relative'],
+  'g3program5-who': ['relative'], 'g3program5-which': ['relative'], 'g3program5-that': ['relative'],
+  'g3powerup3': ['verb', 'modal'], 'g3powerup4': ['verb'],
   'g3program6-withpronoun': ['relative', 'relThat'], 'g3program6-omitted': ['clauseVerb'],
   'g3program7-subjbe': ['be', 'modal'], 'g3program7-subjgeneral': ['verb', 'modal'],
   'g3program7-iwish': ['be', 'modal', 'verb'],
@@ -5596,7 +5705,7 @@ function stageProgram(s) {
   // 中1 P9 の be動詞の過去形・過去進行形は、教科書では Program 10 にあたる
   if (s.key === 'g1program9-be' || s.key === 'g1program9-whprog' || s.key === 'g1program9-prog') return { grade: 1, program: 10 };
   const pu = s.label.match(/PU(\d)/);
-  if (pu) return { grade: s.grade, program: (s.grade === 1 ? { 1: 3.5, 2: 5.5, 3: 7.5, 4: 8.5, 5: 9.5, 6: 10.5 } : s.grade === 2 ? { 1: 2.5, 2: 3.5, 3: 4.5, 4: 6.5, 5: 8.5 } : { 1: 3.5, 2: 5.5, 3: 7.5 })[pu[1]] };
+  if (pu) return { grade: s.grade, program: (s.grade === 1 ? { 1: 3.5, 2: 5.5, 3: 7.5, 4: 8.5, 5: 9.5, 6: 10.5 } : s.grade === 2 ? { 1: 2.5, 2: 3.5, 3: 4.5, 4: 6.5, 5: 8.5 } : { 1: 3.5, 2: 5.5, 3: 6.5, 4: 7.1 })[pu[1]] };
   const m = s.label.match(/P(?:rogram )?(\d+)/);
   return { grade: s.grade, program: m ? Number(m[1]) : 0 };
 }
@@ -7262,6 +7371,8 @@ const GUIDE_DIAGRAMS = {
   'g3program4-presentp': { kind: 'arrow', rows: [['The boy', 'running over there', 'is my brother.', '男の子 ← あそこで走っている']], note: '〜ing のまとまりが、うしろから名詞を説明する' },
   'g3program4-pastp': { kind: 'arrow', pre: 'This is', rows: [['a car', 'made in Japan', '.', '車 ← 日本で作られた']], note: '過去分詞のまとまりが、うしろから名詞を説明する（〜された）' },
   'g3program5-who': { kind: 'arrow', pre: 'I have', rows: [['a friend', 'who can speak English', '.', '友達 ← 英語を話すことができる']], note: '人のあとに who ＋ 動詞（who が主語の働き）' },
+  'g3program3-callname': { kind: 'grid', cols: ['S（主語）', 'V（動詞）', 'O（目的語）', 'C（補語）'], rows: [['We', 'call', 'the dog', 'Pochi.'], ['She', 'named', 'the rabbit', 'Hana.']], note: 'O ＝ C の関係（そのイヌ ＝ ポチ）。「A を B と呼ぶ／名づける」' },
+  'g3program5-that': { kind: 'arrow', pre: "It's", rows: [['a movie', 'that has many dramatic scenes', '.', '映画 ← たくさんの劇的な場面がある']], note: 'that は人にも、ものにも使える（that ＋ 動詞）' },
   'g3program5-which': { kind: 'arrow', rows: [['The book', 'which is on the desk', 'is mine.', '本 ← 机の上にある']], note: 'もののあとに which ＋ 動詞' },
   'g3program6-withpronoun': { kind: 'arrow', pre: 'This is', rows: [['the book', 'which I bought yesterday', '.', '本 ← 私が昨日買った']], note: '名詞のあとに which / that ＋ 主語 ＋ 動詞' },
   'g3program6-omitted': { kind: 'arrow', pre: 'This is', rows: [['the book', 'I bought yesterday', '.', '本 ← 私が昨日買った']], note: '名詞のすぐあとに 主語 ＋ 動詞（which / that を省略）' },
@@ -7940,7 +8051,7 @@ const EXAM_ROUNDS = [
   { title: '未来・助動詞・命令文', sub: 'will・be going to・can・must・have to・命令文', match: /^(program2-(imperative|lets)|g1program3-(aff|neg|q)|g2program1-(begoingto|will)|g2program4-(must|haveto))/ },
   { title: '受け身・現在完了', sub: '受け身・経験・完了・継続・現在完了進行形', match: /^(g2program8-|g3program1-experience|g3program2-)/ },
   { title: '不定詞・動名詞', sub: '不定詞の3用法・It is 〜 to・疑問詞+to・動名詞・want 人 to', match: /^(g2program1-(enjoystop|likegerund|subjgerund)|g2program3-|g2program4-emotion|g2program5-whto|g2program7-howto|g3program1-(itisfor|asktell)|g3program3-makeletlelp)/ },
-  { title: '文型・接続詞', sub: 'SVC・SVOO・SVOC・that・when・if・There is', match: /^(g2program2-|g2program5-(svc|svoo)|g3program3-(tellshow|svoc)|g1program7-(aff|neg|q))/ },
+  { title: '文型・接続詞', sub: 'SVC・SVOO・SVOC・that・when・if・There is', match: /^(g2program2-|g2program5-(svc|svoo)|g3program3-(tellshow|svoc|callname)|g1program7-(aff|neg|q))/ },
   { title: '比較', sub: '比較級・最上級・as 〜 as・like 〜 better / the best', match: /^(g2program6-|g2program7-(better|best))/ },
   { title: '分詞・関係代名詞', sub: '名詞を修飾する分詞・who・which・that・接触節', match: /^(g3program4-(presentp|pastp)|g3program5-|g3program6-)/ },
   { title: '疑問詞・間接疑問・仮定法', sub: '疑問詞の疑問文・間接疑問・I wish・If I were', match: /^(program1-where|program2-when|g1program3-whatcan|g1program4-who|g1program6-why|g1program7-(how|howmeans|candoq)|g1powerup|g1program8-wh|g1program9-whprog|g3program4-indirect|g3program7-)/ },
