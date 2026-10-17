@@ -1109,7 +1109,7 @@
 
 const grades = [
   { id: 1, name: "中学1年", sub: "Get Ready〜Program10・PowerUp1〜6(47項目)" },
-  { id: 2, name: "中学2年", sub: "Program1〜8(26項目)" },
+  { id: 2, name: "中学2年", sub: "Program1〜8・PowerUp2〜5(31項目)" },
   { id: 3, name: "中学3年", sub: "Program1〜7(19項目)" },
 ];
 
@@ -2877,6 +2877,26 @@ const stages = [
     ],
   },
   {
+    key: "g2powerup2", grade: 2, splitLevel: 2,
+    label: "2年 PU2",
+    eyebrow: "中2 Power-Up 2 &middot; 電話の表現",
+    desc: "This is ~. / May I speak to ~? / I'm calling about ~. など電話の表現を並べ替えよう。",
+    promptLabel: "日本語の意味",
+    typePlaceholder: "英文を入力してね",
+    questions: [
+      { jp: "もしもし、こちらはケンです。", pieces: [{en:"Hello.", jp:"もしもし。"}, {en:"This is", jp:"こちらは〜です"}, {en:"Ken", jp:"ケン"}] },
+      { jp: "エミと話してもいいですか。", pieces: [{en:"May I", jp:"〜してもいいですか"}, {en:"speak", jp:"話す"}, {en:"to Emi", jp:"エミと"}] },
+      { jp: "私です。", pieces: [{en:"Speaking.", jp:"私です。"}] },
+      { jp: "私は明日の試合について電話しています。", pieces: [{en:"I'm calling", jp:"電話しています"}, {en:"about the game", jp:"試合について"}, {en:"tomorrow", jp:"明日の"}] },
+      { jp: "私は何か持っていくべきですか。", pieces: [{en:"Should I", jp:"〜すべきですか"}, {en:"bring", jp:"持っていく"}, {en:"anything", jp:"何か"}] },
+      { jp: "あとで私に電話をかけ直してくれますか。", pieces: [{en:"Will you", jp:"〜してくれますか"}, {en:"call me back", jp:"私に電話をかけ直す"}, {en:"later", jp:"あとで"}] },
+      { jp: "少々お待ちください。", pieces: [{en:"Just", jp:"少々"}, {en:"a moment, please.", jp:"お待ちください。"}] },
+      { jp: "私は水筒を持っていくつもりです。", pieces: [{en:"I'm going to bring", jp:"持っていくつもりです"}, {en:"a water bottle", jp:"水筒を"}] },
+      { jp: "あなたは傘を持ってくるべきです。", pieces: [{en:"You", jp:"あなたは"}, {en:"should bring", jp:"持ってくるべきです"}, {en:"an umbrella", jp:"傘を"}] },
+      { jp: "どうしたの。", pieces: [{en:"What's", jp:"何ですか"}, {en:"up", jp:"どうした"}] },
+    ],
+  },
+  {
     key: "g2program4-emotion", grade: 2, splitLevel: 3,
     label: "2年 P4: 感情の原因の不定詞",
     eyebrow: "中2 Program 4 &middot; 感情の原因の不定詞 / must / have to",
@@ -2964,6 +2984,27 @@ const stages = [
       { jp: "メグは病院に行かなければなりませんか。", pieces: [{en:"Does Meg", jp:"メグは"}, {en:"have to go", jp:"行かなければなりませんか"}, {en:"to the hospital", jp:"病院に"}] },
       { jp: "私は学校まで歩かなければなりませんでした。", pieces: [{en:"I", jp:"私は"}, {en:"had to walk", jp:"歩かなければなりませんでした"}, {en:"to school", jp:"学校まで"}] },
       { jp: "あなたはこの質問に答える必要はありません。", pieces: [{en:"You", jp:"あなたは"}, {en:"don't have to answer", jp:"答える必要はありません"}, {en:"this question", jp:"この質問に"}] },
+    ],
+  },
+  {
+    key: "g2powerup3", grade: 2, splitLevel: 2,
+    label: "2年 PU3",
+    eyebrow: "中2 Power-Up 3 &middot; レストランの表現",
+    desc: "How many in your party? / I'd like to have ~. / What do you recommend? など注文の表現を並べ替えよう。",
+    promptLabel: "日本語の意味",
+    typePlaceholder: "英文を入力してね",
+    questions: [
+      { jp: "何名様ですか。", pieces: [{en:"How many", jp:"何名"}, {en:"in your party", jp:"ご一行は"}] },
+      { jp: "こちらへどうぞ。", pieces: [{en:"Come", jp:"来てください"}, {en:"this way, please.", jp:"こちらへ"}] },
+      { jp: "ご注文はお決まりですか。", pieces: [{en:"Are you", jp:"あなたは〜ですか"}, {en:"ready", jp:"準備ができて"}, {en:"to order", jp:"注文する"}] },
+      { jp: "私はピザがほしいです。", pieces: [{en:"I'd like", jp:"〜がほしいです"}, {en:"to have", jp:"食べること"}, {en:"pizza", jp:"ピザを"}] },
+      { jp: "おすすめは何ですか。", pieces: [{en:"What", jp:"何を"}, {en:"do you", jp:"あなたは〜ますか"}, {en:"recommend", jp:"すすめる"}] },
+      { jp: "私はコーンスープをおすすめします。", pieces: [{en:"I", jp:"私は"}, {en:"recommend", jp:"おすすめします"}, {en:"the corn soup", jp:"コーンスープを"}] },
+      { jp: "ではそれにします。", pieces: [{en:"Then", jp:"では"}, {en:"I'll have", jp:"〜にします"}, {en:"it", jp:"それ"}] },
+      { jp: "ほかに何かありますか。", pieces: [{en:"Anything", jp:"何か"}, {en:"else", jp:"ほかに"}] },
+      { jp: "ステーキの焼き加減はいかがいたしますか。", pieces: [{en:"How", jp:"どのように"}, {en:"would you like", jp:"〜したいですか"}, {en:"your steak", jp:"ステーキを"}] },
+      { jp: "何かお飲み物はいかがですか。", pieces: [{en:"Would you like", jp:"〜はいかがですか"}, {en:"something", jp:"何か"}, {en:"to drink", jp:"飲み物"}] },
+      { jp: "私たちはそれを分けたいです。", pieces: [{en:"We would like", jp:"〜したいです"}, {en:"to share", jp:"分ける"}, {en:"it", jp:"それを"}] },
     ],
   },
   {
@@ -3148,6 +3189,26 @@ const stages = [
     ],
   },
   {
+    key: "g2powerup4", grade: 2, splitLevel: 2,
+    label: "2年 PU4",
+    eyebrow: "中2 Power-Up 4 &middot; メールで近況報告",
+    desc: "How's it going? / I went to ~ last weekend. などメールの文を並べ替えよう。",
+    promptLabel: "日本語の意味",
+    typePlaceholder: "英文を入力してね",
+    questions: [
+      { jp: "あなたの学校生活はどうですか。", pieces: [{en:"How", jp:"どう"}, {en:"is", jp:"〜ですか"}, {en:"your school life", jp:"あなたの学校生活は"}] },
+      { jp: "私は先週末家族と動物園へ行きました。", pieces: [{en:"I", jp:"私は"}, {en:"went", jp:"行きました"}, {en:"to the zoo", jp:"動物園へ"}, {en:"with my family", jp:"家族と"}, {en:"last weekend", jp:"先週末"}] },
+      { jp: "私たちはそこでたくさんの動物を見ました。", pieces: [{en:"We", jp:"私たちは"}, {en:"saw", jp:"見ました"}, {en:"many animals", jp:"たくさんの動物を"}, {en:"there", jp:"そこで"}] },
+      { jp: "それは楽しかったです。", pieces: [{en:"It", jp:"それは"}, {en:"was", jp:"〜でした"}, {en:"fun", jp:"楽しい"}] },
+      { jp: "母は私の写真を何枚かとりました。", pieces: [{en:"My mother", jp:"母は"}, {en:"took", jp:"とりました"}, {en:"some pictures", jp:"何枚かの写真を"}, {en:"of me", jp:"私の"}] },
+      { jp: "そのウサギはとてもかわいく見えました。", pieces: [{en:"The rabbit", jp:"そのウサギは"}, {en:"looked", jp:"見えました"}, {en:"really cute", jp:"とてもかわいく"}] },
+      { jp: "あなたもそれを気に入ると思います。", pieces: [{en:"I", jp:"私は"}, {en:"think", jp:"思います"}, {en:"you'll like it", jp:"あなたがそれを気に入ると"}, {en:"too", jp:"〜も"}] },
+      { jp: "私は弟の誕生日パーティーを開きました。", pieces: [{en:"I", jp:"私は"}, {en:"had", jp:"開きました"}, {en:"a birthday party", jp:"誕生日パーティーを"}, {en:"for my brother", jp:"弟のために"}] },
+      { jp: "彼はそれらをとても気に入りました。", pieces: [{en:"He", jp:"彼は"}, {en:"liked", jp:"気に入りました"}, {en:"them", jp:"それらを"}, {en:"very much", jp:"とても"}] },
+      { jp: "私は彼のうれしそうな顔を見て、私もうれしくなりました。", pieces: [{en:"When I saw his happy face,", jp:"彼のうれしそうな顔を見たとき"}, {en:"I was happy", jp:"私はうれしかったです"}, {en:"too", jp:"〜も"}] },
+    ],
+  },
+  {
     key: "g2program7-better", grade: 2, splitLevel: 3,
     label: "2年 P7: like ~ better",
     eyebrow: "中2 Program 7 &middot; like better / the best / how to",
@@ -3290,6 +3351,50 @@ const stages = [
       { jp: "このお祭りは毎年夏に開かれます。", pieces: [{en:"This festival", jp:"このお祭りは"}, {en:"is held", jp:"開かれます"}, {en:"every summer", jp:"毎年夏に"}] },
       { jp: "私のかばんは電車の中で見つけられました。", pieces: [{en:"My bag", jp:"私のかばんは"}, {en:"was found", jp:"見つけられました"}, {en:"on the train", jp:"電車の中で"}] },
       { jp: "この公園は毎週日曜日にそうじされますか。", pieces: [{en:"Is this park", jp:"この公園は"}, {en:"cleaned", jp:"そうじされますか"}, {en:"every Sunday", jp:"毎週日曜日に"}] },
+    ],
+  },
+  {
+    key: "g2program8-prep", grade: 2, splitLevel: 3,
+    label: "2年 P8: 受け身(by以外)",
+    eyebrow: "中2 Program 8 &middot; 受け身",
+    desc: "be known to / be filled with / be made of / be covered with などを並べ替えよう。",
+    promptLabel: "日本語の意味",
+    typePlaceholder: "英文を入力してね",
+    questions: [
+      { jp: "その歌は多くの人に知られています。", pieces: [{en:"The song", jp:"その歌は"}, {en:"is known", jp:"知られています"}, {en:"to many people", jp:"多くの人に"}] },
+      { jp: "この場所は世界中の人々に知られています。", pieces: [{en:"This place", jp:"この場所は"}, {en:"is known", jp:"知られています"}, {en:"to people around the world", jp:"世界中の人々に"}] },
+      { jp: "その箱はりんごでいっぱいです。", pieces: [{en:"The box", jp:"その箱は"}, {en:"is filled", jp:"満たされています"}, {en:"with apples", jp:"りんごで"}] },
+      { jp: "そのびんは水で満たされていました。", pieces: [{en:"The bottle", jp:"そのびんは"}, {en:"was filled", jp:"満たされていました"}, {en:"with water", jp:"水で"}] },
+      { jp: "その机は本でおおわれています。", pieces: [{en:"The desk", jp:"その机は"}, {en:"is covered", jp:"おおわれています"}, {en:"with books", jp:"本で"}] },
+      { jp: "その公園は花でおおわれていました。", pieces: [{en:"The park", jp:"その公園は"}, {en:"was covered", jp:"おおわれていました"}, {en:"with flowers", jp:"花で"}] },
+      { jp: "この机は木でできています。", pieces: [{en:"This desk", jp:"この机は"}, {en:"is made", jp:"できています"}, {en:"of wood", jp:"木で"}] },
+      { jp: "このいすは紙でできています。", pieces: [{en:"This chair", jp:"このいすは"}, {en:"is made", jp:"できています"}, {en:"of paper", jp:"紙で"}] },
+      { jp: "チーズは牛乳から作られます。", pieces: [{en:"Cheese", jp:"チーズは"}, {en:"is made", jp:"作られます"}, {en:"from milk", jp:"牛乳から"}] },
+      { jp: "このケーキは米から作られています。", pieces: [{en:"This cake", jp:"このケーキは"}, {en:"is made", jp:"作られています"}, {en:"from rice", jp:"米から"}] },
+      { jp: "その歌手は若い人たちに知られていますか。", pieces: [{en:"Is", jp:"〜ですか"}, {en:"the singer", jp:"その歌手は"}, {en:"known", jp:"知られて"}, {en:"to young people", jp:"若い人たちに"}] },
+      { jp: "その部屋は本でいっぱいでした。", pieces: [{en:"The room", jp:"その部屋は"}, {en:"was filled", jp:"満たされていました"}, {en:"with books", jp:"本で"}] },
+      { jp: "この人形は何でできていますか。", pieces: [{en:"What", jp:"何で"}, {en:"is", jp:"〜ですか"}, {en:"this doll", jp:"この人形は"}, {en:"made of", jp:"できて"}] },
+      { jp: "その山は木々でおおわれています。", pieces: [{en:"The mountain", jp:"その山は"}, {en:"is covered", jp:"おおわれています"}, {en:"with trees", jp:"木々で"}] },
+    ],
+  },
+  {
+    key: "g2powerup5", grade: 2, splitLevel: 2,
+    label: "2年 PU5",
+    eyebrow: "中2 Power-Up 5 &middot; 機内の表現",
+    desc: "Which meal would you like? / Can I have ~? / Would you like something to drink? を並べ替えよう。",
+    promptLabel: "日本語の意味",
+    typePlaceholder: "英文を入力してね",
+    questions: [
+      { jp: "魚と鶏肉のどちらの食事がよろしいですか。", pieces: [{en:"Which meal", jp:"どちらの食事が"}, {en:"would you like,", jp:"よろしいですか"}, {en:"fish or chicken", jp:"魚と鶏肉の"}] },
+      { jp: "鶏肉をいただけますか。", pieces: [{en:"Can I", jp:"〜してもいいですか"}, {en:"have", jp:"もらう"}, {en:"chicken", jp:"鶏肉を"}] },
+      { jp: "何かお飲み物はいかがですか。", pieces: [{en:"Would you like", jp:"〜はいかがですか"}, {en:"something", jp:"何か"}, {en:"to drink", jp:"飲み物"}] },
+      { jp: "どんな種類の飲み物がありますか。", pieces: [{en:"What kinds of drinks", jp:"どんな種類の飲み物を"}, {en:"do you", jp:"あなたたちは〜ますか"}, {en:"have", jp:"持っている"}] },
+      { jp: "オレンジジュースをお願いします。", pieces: [{en:"Orange juice,", jp:"オレンジジュースを"}, {en:"please.", jp:"お願いします。"}] },
+      { jp: "搭乗口が52番から64番に変更されました。", pieces: [{en:"The boarding gate", jp:"搭乗口が"}, {en:"is changed", jp:"変更されます"}, {en:"from 52 to 64", jp:"52番から64番に"}] },
+      { jp: "ご不便をおかけして申し訳ありません。", pieces: [{en:"We", jp:"私たちは"}, {en:"apologize", jp:"おわびします"}, {en:"for the inconvenience", jp:"ご不便について"}] },
+      { jp: "今日は今年でいちばん寒い日です。", pieces: [{en:"It's", jp:"〜です"}, {en:"the coldest day", jp:"いちばん寒い日"}, {en:"of the year", jp:"今年で"}] },
+      { jp: "お気をつけください。", pieces: [{en:"Please", jp:"〜してください"}, {en:"take care", jp:"気をつける"}] },
+      { jp: "私たちは約40分後に着陸します。", pieces: [{en:"We", jp:"私たちは"}, {en:"will be landing", jp:"着陸します"}, {en:"in about 40 minutes", jp:"約40分後に"}] },
     ],
   },
   {
@@ -4232,23 +4337,31 @@ function senseGroups(pieces) {
     const subj = withTopic(stripTilde(b.jp));
     if (SENSE_BE.has(first(a))) {
       const past = /^(was|were)$/.test(first(a));
-      if (c && /ing$/.test(first(c)) && c.en.split(' ').length === 1) merge(i, 3, `${subj}${stripTilde(c.jp).replace(/(いて|いで)$/, '$1')}${past ? 'いましたか' : 'いますか'}`);
+      const cw = c && c.en.split(' ').length === 1 ? first(c) : '';
+      if (/ing$/.test(cw)) merge(i, 3, `${subj}${stripTilde(c.jp)}${past ? 'いましたか' : 'いますか'}`);
+      else if (cw && /れ$/.test(stripTilde(c.jp))) merge(i, 3, `${subj}${stripTilde(c.jp)}${past ? 'ましたか' : 'ますか'}`); // 受け身: Was the card written
       else merge(i, 2, `${subj}${past ? '〜でしたか' : '〜ですか'}`);
     } else if (!c) merge(i, 2, `${subj}〜ですか`);
-    else merge(i, 3, `${subj}${senseVerbJp(c.jp, a.jp)}`);
+    else if (VERB_BASE_OF[first(c)] && !/^(have|has) to\b/i.test(c.en)) merge(i, 3, `${subj}${senseVerbJp(c.jp, a.jp)}`);
     return out;
   }
   if (SENSE_NOT_SUBJECT.test(a.en) || VERB_BASE_OF[first(a)] === first(a) && !SUBJECT_PRONOUNS.has(first(a))) return out;
   if (/'(m|re|s)$/i.test(a.en.split(' ')[0]) && a.en.split(' ').length === 1) return out; // I'm / It's は1語で主語＋動詞
   // ふつうの文: I like / He runs and walks / My father cannot get up
+  // 主語のまとまりに動詞が入っているとき(It was raining / you are busy,)や、
+  // 次のまとまりが動詞で始まらないとき(when / to study / I will help you)はまとめない
+  const aw = a.en.toLowerCase().split(' ');
+  const hasVerb = aw.some((w, k) => SENSE_AUX.has(w) || ['will', 'can', 'must', 'should', 'not', 'may', 'would', 'could', 'shall'].includes(w) || (k > 0 && VERB_BASE_OF[w] && !/ing$/.test(w)));
   const bw = first(b);
+  const bVerb = SENSE_AUX.has(bw) || ['will', 'can', 'cannot', "can't", 'must', 'should', "don't", "doesn't", "didn't", "won't", 'never', 'always', 'often', 'usually', 'sometimes', 'also', 'have', 'has', 'had'].includes(bw) || !!VERB_BASE_OF[bw];
+  if (hasVerb || /,$/.test(a.en) || !bVerb || SUBJECT_PRONOUNS.has(bw)) return out;
   if (['can', 'cannot', "can't", 'will', 'must', 'should'].includes(bw) && b.en.split(' ').length === 1 && c) {
     merge(i, 3, `${withTopic(stripTilde(a.jp))}${senseVerbJp(c.jp, b.jp)}`);
   } else if (/^(am|are|is|was|were)( not)?$/i.test(b.en)) {
     merge(i, 2, `${withTopic(stripTilde(a.jp))}${senseBeJp(b.en, b.jp)}`);
   } else {
     const v = stripTilde(b.jp);
-    merge(i, 2, `${withTopic(stripTilde(a.jp))}${/^[でだ]/.test(v) ? '〜' + v : v}`);
+    merge(i, 2, `${withTopic(stripTilde(a.jp))}${/^(です|でし|だ)/.test(v) ? '〜' + v : v}`);
   }
   return out;
 }
@@ -4752,7 +4865,8 @@ const STAGE_FOCUS = {
   'g2program5-whto': ['wh'], 'g2program5-svc': ['verb'], 'g2program5-svoo': ['objPronoun'],
   'g2program6-comp': ['compare'], 'g2program6-sup': ['compare'], 'g2program6-asas': ['compare'],
   'g2program7-better': ['compare'], 'g2program7-best': ['compare'], 'g2program7-howto': ['wh'],
-  'g2program8-withby': ['ppForm', 'be'], 'g2program8-withoutby': ['ppForm', 'be'],
+  'g2program8-withby': ['ppForm', 'be'], 'g2program8-withoutby': ['ppForm', 'be'], 'g2program8-prep': ['ppForm', 'be'],
+  'g2powerup2': ['modal', 'verb'], 'g2powerup3': ['modal', 'toVerb'], 'g2powerup4': ['verb'], 'g2powerup5': ['modal', 'toVerb'],
   'g3program1-asktell': ['toVerb'], 'g3program1-itisfor': ['toVerb'],
   'g3program1-experience': ['ppForm', 'have'],
   'g3program2-completion': ['ppForm', 'have'], 'g3program2-continuation': ['ppForm', 'have'],
@@ -5425,7 +5539,7 @@ function stageProgram(s) {
   // 中1 P9 の be動詞の過去形・過去進行形は、教科書では Program 10 にあたる
   if (s.key === 'g1program9-be' || s.key === 'g1program9-whprog' || s.key === 'g1program9-prog') return { grade: 1, program: 10 };
   const pu = s.label.match(/PU(\d)/);
-  if (pu) return { grade: s.grade, program: (s.grade === 1 ? { 1: 3.5, 2: 5.5, 3: 7.5, 4: 8.5, 5: 9.5, 6: 10.5 } : { 1: 3.5, 2: 5.5, 3: 7.5 })[pu[1]] };
+  if (pu) return { grade: s.grade, program: (s.grade === 1 ? { 1: 3.5, 2: 5.5, 3: 7.5, 4: 8.5, 5: 9.5, 6: 10.5 } : s.grade === 2 ? { 1: 2.5, 2: 3.5, 3: 4.5, 4: 6.5, 5: 8.5 } : { 1: 3.5, 2: 5.5, 3: 7.5 })[pu[1]] };
   const m = s.label.match(/P(?:rogram )?(\d+)/);
   return { grade: s.grade, program: m ? Number(m[1]) : 0 };
 }

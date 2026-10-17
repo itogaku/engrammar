@@ -418,6 +418,13 @@ const STAGE_GUIDES = {
     examples: [['*It is* important *to study* English.', '英語を勉強することは大切です。'], ['*It is* fun *to play* soccer.', 'サッカーをすることは楽しいです。']],
     tips: ['To study English is important. と同じ意味。主語が長いので It を前に置いている。', '書きかえ問題：To 〜 is …. ⇔ It is … to 〜. がよく出る。', '過去なら It was 〜 to …. になる。'],
   },
+  'g2powerup2': {
+    title: '電話の表現',
+    point: '電話では名乗るときに This is 〜.（こちらは〜です）を使う。I am 〜. とは言わない。',
+    form: 'This is 〜.　／　May I speak to 〜?　／　I\'m calling about 〜.',
+    examples: [['Hello. *This is* Ken. *May I speak to* Emi?', 'もしもし、ケンです。エミと話してもいいですか。'], ['— *Speaking.*', '— 私です。']],
+    tips: ['May I 〜? は「〜してもいいですか」。ていねいにたずねる言い方。', 'Should I 〜? は「〜すべきですか」。', 'Just a moment, please. は「少々お待ちください」。'],
+  },
   'g2program4-emotion': {
     title: '感情の原因を表す不定詞（〜して…）',
     point: 'happy / sad / surprised などの気持ちのあとに to ＋ 動詞の原形 を続けると、「〜して（うれしい）」と気持ちの理由を表す。',
@@ -438,6 +445,13 @@ const STAGE_GUIDES = {
     form: '主語 + have / has to + 原形　／　don\'t have to（〜する必要はない）',
     examples: [['I *have to* get up early tomorrow.', '私は明日早く起きなければなりません。'], ['He *doesn\'t have to* go to school today.', '彼は今日学校に行く必要はありません。'], ['*Do* I *have to* study?', '私は勉強しなければなりませんか。']],
     tips: ['don\'t have to は「〜する必要はない」。must not（〜してはいけない）とは意味がちがう！', '否定文・疑問文は一般動詞と同じく do / does を使う。does のあとは has ではなく have。', '過去の「〜しなければならなかった」は had to 〜。'],
+  },
+  'g2powerup3': {
+    title: 'レストランの表現',
+    point: '注文するときは I\'d like to have 〜.（〜をいただきたいです）。I\'d は I would の短縮形で、want よりていねい。',
+    form: 'I\'d like to have + 料理　／　What do you recommend?',
+    examples: [["*I'd like to have* pizza.", '私はピザがほしいです。'], ['What do you *recommend*?', 'おすすめは何ですか。']],
+    tips: ['How many in your party? は「何名様ですか」。', 'Would you like 〜? は「〜はいかがですか」とすすめる表現。', 'I\'ll have it. は「それにします」。'],
   },
   'g2program5-whto': {
     title: '疑問詞 ＋ to（何を〜すべきか など）',
@@ -481,6 +495,13 @@ const STAGE_GUIDES = {
     examples: [['He runs *as fast as* I do.', '彼は私と同じくらい速く走ります。'], ['This bag is *as big as* that one.', 'このかばんはあれと同じくらいの大きさです。']],
     tips: ['as と as の間は er をつけない（原級）。', 'not as 〜 as … は「…ほど〜ない」。', '書きかえ：A is not as big as B. ⇔ B is bigger than A.'],
   },
+  'g2powerup4': {
+    title: 'メールで近況報告',
+    point: 'メールでは、あいさつ → したこと（過去形） → 感想 → 結びのことば の順に書く。',
+    form: 'Hi 〜, → How\'s it going? → 本文（過去形） → Bye, 名前',
+    examples: [["I *went* to the zoo with my family last weekend.", '私は先週末家族と動物園へ行きました。'], ['It *was* fun.', 'それは楽しかったです。']],
+    tips: ['したことは過去形（went / saw / took）で書く。', 'How\'s it going? は「元気？」「調子はどう？」。', '感想は It was fun. / I was happy. など短い文で。'],
+  },
   'g2program7-better': {
     title: 'like A better than B（BよりAが好き）',
     point: '「BよりAのほうが好き」は like A better than B。',
@@ -515,6 +536,20 @@ const STAGE_GUIDES = {
     form: '主語 + be動詞 + 過去分詞 + 〜',
     examples: [['English *is spoken* around the world.', '英語は世界中で話されています。'], ['*Was* that card *written* yesterday?', 'そのカードは昨日書かれましたか。']],
     tips: ['疑問文は be動詞を前に出し、過去分詞はそのまま。答えは Yes, it was. / No, it wasn\'t.', '否定文は be動詞のあとに not：English is not spoken here.', '主語が複数なら are / were：These cars are made in Japan.'],
+  },
+  'g2program8-prep': {
+    title: 'by 以外の前置詞を使う受け身',
+    point: '受け身の中には、決まった前置詞といっしょに使う表現がある。セットで覚えよう。',
+    form: 'be known to 人　／　be filled with 〜　／　be covered with 〜　／　be made of [from] 〜',
+    examples: [['The song *is known to* many people.', 'その歌は多くの人に知られています。'], ['This desk *is made of* wood.', 'この机は木でできています。']],
+    tips: ['be known to（〜に知られている）は by ではなく to。', '材料が見てわかるときは made of（木の机）、形が変わって見えないときは made from（牛乳のチーズ）。', 'be filled with（〜でいっぱい）、be covered with（〜でおおわれている）は with。'],
+  },
+  'g2powerup5': {
+    title: '機内の表現',
+    point: 'ていねいにたずねるときは Would you like 〜?（〜はいかがですか）。答えるときは Can I have 〜?（〜をいただけますか）や 〜, please. を使う。',
+    form: 'Which 〜 would you like, A or B?　／　Can I have 〜?',
+    examples: [['*Which meal would you like*, fish or chicken?', '魚と鶏肉のどちらの食事がよろしいですか。'], ['*Can I have* chicken?', '鶏肉をいただけますか。']],
+    tips: ['Would you like something to drink? の to drink は「飲むための」（不定詞の形容詞的用法）。', 'アナウンスの Attention, passengers. は「乗客の皆様にお知らせします」。'],
   },
   // ---------- 中3 ----------
   'g3program1-asktell': {
