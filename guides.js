@@ -200,6 +200,13 @@ const STAGE_GUIDES = {
     examples: [['This pen is *hers*.', 'このペンは彼女のものです。'], ['That dog is *ours*.', 'あの犬は私たちのものです。']],
     tips: ['her pen（彼女のペン）＝ hers（彼女のもの）。', 'his は「彼の」「彼のもの」の両方の意味がある。', '書きかえ：This is my pen. = This pen is mine.', 'mine のうしろに名詞はつけない。mine pen はまちがい。'],
   },
+  'g1program6-why': {
+    title: 'Why ～? / Because ～.（なぜ・なぜなら）',
+    point: '理由をたずねるときは Why を文のいちばん前に置き、そのあとに疑問文を続ける。答えるときは Because で文を始める。',
+    form: 'Why + do / does + 主語 + 動詞 ? 　／　 Because + 主語 + 動詞 〜 .',
+    examples: [['*Why* do you like music?', 'あなたはなぜ音楽が好きなのですか。'], ['— *Because* it is fun.', 'なぜなら楽しいからです。']],
+    tips: ['Why のあとは、ふつうの疑問文（do you 〜? / does he 〜?）の語順。', 'Because のあとは、ふつうの文（主語 + 動詞）の語順。', '答えに Yes / No は使わない。理由を答えよう。'],
+  },
   'g1program7-aff': {
     title: 'There is / are ～.（〜があります）',
     point: '「（どこかに）〜があります・います」は There is / are で文を始める。1つなら is、2つ以上なら are。',
@@ -227,6 +234,13 @@ const STAGE_GUIDES = {
     form: 'How many + 名詞s + are there + 場所 ?',
     examples: [['*How many* books are there?', '何冊の本がありますか。'], ['— There are ten.', '— 10冊あります。']],
     tips: ['How many のあとの名詞は、かならず複数形。', '答えは Yes / No ではなく、There are 〜. と数を答える。', 'How many dogs do you have? のように do you 〜 を続ける形もある。'],
+  },
+  'g1program7-howmeans': {
+    title: 'How ～?（どのようにして・手段）',
+    point: '「どのようにして〜しますか」と手段や方法をたずねるときは、How を文のいちばん前に置き、そのあとに疑問文を続ける。',
+    form: 'How + do / does / can + 主語 + 動詞 〜 ?　／　答え：by + 乗り物',
+    examples: [['*How* do you come to school?', 'あなたはどのようにして学校に来ますか。'], ['— I come to school *by bike*.', '— 自転車で来ます。']],
+    tips: ['答えは方法を具体的に言うので、Yes / No は使わない。', '乗り物は by bus / by train / by bike のように、by のあとに a や the をつけない。', '歩いて行くときは by ではなく walk を使う（I walk to school.）。'],
   },
   'g1program7-candoq': {
     title: 'Can you ～? と Do you ～? の使い分け',
@@ -270,12 +284,26 @@ const STAGE_GUIDES = {
     examples: [['*What* are you doing now?', 'あなたは今何をしていますか。'], ['— I\'m reading a book.', '— 本を読んでいます。']],
     tips: ['What are you doing? の doing は do（する）の ing形。', '答えは I\'m 〜ing. のように進行形で答える。', '疑問詞はいちばん前、そのあとは Are you 〜ing? の形。'],
   },
+  'g1powerup4': {
+    title: 'ショッピングの表現',
+    point: 'お店では Can I help you?（いらっしゃいませ）と声をかけられる。ほしいものは I want 〜 for …（…のための〜がほしい）で伝える。',
+    form: 'I want + もの + for + 人 　／　 Do you have + the same one + in 色 ?',
+    examples: [['*Can I help you*? — Yes, please.', 'いらっしゃいませ。— はい、お願いします。'], ['Do you have *the same one* in blue?', '青で同じものはありますか。']],
+    tips: ['one は前に出たもの（Tシャツなど）をくり返さないために使う。this blue one = この青いの。', '色は in 〜 で表す（in black / in red）。', 'How much is it? で値段をたずねる。'],
+  },
   'g1program9-general': {
     title: '一般動詞の過去形（〜しました）',
     point: '過去のことは動詞を過去形にする。多くの動詞は ed をつけるが、形が変わる動詞（不規則動詞）もある。',
     form: '主語 + 動詞の過去形 + 〜　／　did not + 原形　／　Did + 主語 + 原形 ?',
     examples: [['I *played* tennis yesterday.', '私は昨日テニスをしました。'], ['I *did not* play tennis.', '私はテニスをしませんでした。'], ['*Did* you play tennis?', 'あなたはテニスをしましたか。']],
     tips: ['go → went、see → saw のように形が変わる動詞は1つずつ覚えよう。', '否定文・疑問文では did を使い、動詞は原形にもどす。', 'ed のつけ方：like → liked、study → studied、stop → stopped。', 'Did you 〜? には Yes, I did. / No, I didn\'t. と答える。'],
+  },
+  'g1powerup5': {
+    title: 'インタビューの表現（過去のことをたずねる）',
+    point: '過去のことをたずねるときは Did を使う。いつ・何をなどを聞くときは、疑問詞を Did の前に置く。',
+    form: '疑問詞 + did + 主語 + 動詞の原形 〜 ?',
+    examples: [['*When did* you come to Japan?', 'あなたはいつ日本に来ましたか。'], ['— I *came* here last week.', '— 先週ここに来ました。']],
+    tips: ['Did のあとの動詞は原形（came ではなく come）。', '答えるときは過去形を使う（came / bought / visited）。', 'Did you 〜? には Yes, I did. / No, I didn\'t. と答える。'],
   },
   'g1program9-be': {
     title: 'be動詞の過去形（was / were）',
@@ -284,12 +312,26 @@ const STAGE_GUIDES = {
     examples: [['I *was* busy yesterday.', '私は昨日忙しかったです。'], ['*Were* you busy?', 'あなたは忙しかったですか。'], ['We *were not* busy.', '私たちは忙しくありませんでした。']],
     tips: ['I / he / she → was、you / we / they → were。', '否定文・疑問文の作り方は am / are / is と同じ。', 'was not = wasn\'t、were not = weren\'t'],
   },
+  'g1program9-prog': {
+    title: '過去進行形（〜していました）',
+    point: '過去のある時に「〜しているところだった」と言うときは、was / were のあとに動詞の ing形を続ける。',
+    form: '主語 + was / were + 動詞ing 〜　／　Was / Were + 主語 + 動詞ing 〜 ?',
+    examples: [['I *was reading* a book then.', '私はそのとき本を読んでいました。'], ['*Were* you *cooking* then? — Yes, I was.', 'あなたはそのとき料理をしていましたか。— はい、していました。']],
+    tips: ['I / he / she → was、you / we / they → were。', '否定文は was / were のあとに not。疑問文は was / were を主語の前に出す。', '今のことなら am / are / is 〜ing、過去なら was / were 〜ing。'],
+  },
   'g1program9-whprog': {
     title: '過去進行形（〜していました）',
     point: '「（そのとき）〜していました」は was / were ＋ 動詞の ing形。疑問詞はいちばん前に置く。',
     form: '疑問詞 + was / were + 主語 + 動詞ing + 〜 ?',
     examples: [['What *was* he *doing* then?', '彼はそのとき何をしていましたか。'], ['— He *was reading* a book.', '— 本を読んでいました。']],
     tips: ['今のことなら am / are / is、過去なら was / were。', 'then（そのとき）や at that time といっしょによく使う。', '答えは He was 〜ing. のように過去進行形で答える。'],
+  },
+  'g1powerup6': {
+    title: '絵はがきの表現',
+    point: '絵はがきでは、今いる場所（I\'m in 〜 now.）、したこと（過去形）、気持ち（I miss you.）を短い文で書く。',
+    form: 'Dear 〜, → 本文 → Best wishes, / 名前',
+    examples: [["I'm *in* Kyoto now.", '私は今京都にいます。'], ['I *went* there with my family.', '私は家族とそこへ行きました。']],
+    tips: ['書き出しは Dear 〜,（〜様）、結びは Best wishes,（幸運を祈ります）。', 'したことは過去形（went / saw / enjoyed）で書く。', 'I miss you. は「あなたがいなくてさびしい」。'],
   },
   // ---------- 中2 ----------
   'g2program1-begoingto': {
