@@ -418,6 +418,13 @@ const STAGE_GUIDES = {
     examples: [['*It is* important *to study* English.', '英語を勉強することは大切です。'], ['*It is* fun *to play* soccer.', 'サッカーをすることは楽しいです。']],
     tips: ['To study English is important. と同じ意味。主語が長いので It を前に置いている。', '書きかえ問題：To 〜 is …. ⇔ It is … to 〜. がよく出る。', '過去なら It was 〜 to …. になる。'],
   },
+  'g2powerup1': {
+    title: '天気予報の表現',
+    point: '天気予報では will を使って「〜でしょう」と言う。天気を言うときの主語は it（「それは」とは訳さない）。',
+    form: 'It will be ＋ 天気.　／　The high (low) will be 〜 degrees.',
+    examples: [['It *will be* sunny all day tomorrow.', '明日は一日中晴れるでしょう。'], ['The high *will be* 18 degrees.', '最高気温は18度でしょう。']],
+    tips: ['sunny（晴れ）・cloudy（曇り）・rainy（雨）・snowy（雪）・windy（風が強い）は名詞 sun / cloud / rain / snow / wind に y をつけた形。', 'It will rain. のように rain を動詞として使うこともできる。', '天気をたずねるときは How will the weather be tomorrow?、気温は What will the temperature be?', 'the high は「最高気温」、the low は「最低気温」。'],
+  },
   'g2powerup2': {
     title: '電話の表現',
     point: '電話では名乗るときに This is 〜.（こちらは〜です）を使う。I am 〜. とは言わない。',
