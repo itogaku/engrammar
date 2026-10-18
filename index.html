@@ -505,6 +505,13 @@
   .ws-st .st-jp { font-style: normal; font-size: 10px; color: var(--ink-soft); white-space: nowrap; }
   .ws-st .st-en { font-size: 13px; font-weight: 600; border-bottom: 1px solid currentColor; padding: 0 1px; white-space: nowrap; }
   .ws-st .st-r { font-size: 10.5px; font-weight: 800; color: var(--accent, #c0392b); letter-spacing: .5px; }
+  .ws-st-inline { display: inline-flex; margin: 0; vertical-align: top; }
+  .ws-svo { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 4px 12px; margin: 6px 0 4px; }
+  .ws-svo .svo-c { display: inline-flex; flex-direction: column; align-items: center; gap: 3px; }
+  .ws-svo .svo-en { font-size: 15px; border-bottom: 1.5px solid currentColor; padding: 0 2px; white-space: nowrap; }
+  .ws-svo .svo-box { width: 34px; height: 22px; border: 1px solid var(--ink-soft); border-radius: 3px; }
+  .ws-svo .svo-none { height: 22px; }
+  .ws-svo .svo-end { font-size: 15px; align-self: flex-start; margin-left: -10px; }
   .ws-st-legend { font-size: 10.5px; line-height: 1.5; color: var(--ink-soft); border-top: 1px dashed var(--line, #ccc); margin-top: 6px; padding-top: 4px; }
   .ws-st-legend b { color: var(--ink); margin-right: 4px; }
   .ws-ans-top .ws-ans-key { margin: 0; }
@@ -5249,7 +5256,7 @@ function stFiniteStart(w) {
 }
 
 // pieces → [{ en, jp, roles: ['S'] , br: '(' | '[' | '' }] または null
-function sentenceStructure(pieces, jp) {
+function sentenceStructure(pieces, jp, wantTokens) {
   const ps = pieces.map(p => ({ en: p.en, jp: p.jp, w: stWords(p.en), roles: [] }));
   if (!ps.length || ps.some(p => !p.w.length)) return null;
   const sentence = pieces.map(p => p.en).join(' ');
@@ -5258,7 +5265,8 @@ function sentenceStructure(pieces, jp) {
   const toks = [];
   ps.forEach((p, pi) => {
     const raws = String(p.en).replace(/[.!?"]/g, '').trim().split(/\s+/).filter(Boolean);
-    p.w.forEach((w, k) => toks.push({ w, raw: (raws[k] || w).toLowerCase(), cap: /^[A-Z]/.test(raws[k] || '') && !(pi === 0 && k === 0) && w !== 'i', pi, k, role: null }));
+    const origs = String(p.en).replace(/"/g, '').trim().split(/\s+/).filter(Boolean);
+    p.w.forEach((w, k) => toks.push({ w, orig: origs[k] || raws[k] || w, raw: (raws[k] || w).toLowerCase(), cap: /^[A-Z]/.test(raws[k] || '') && !(pi === 0 && k === 0) && w !== 'i', pi, k, role: null }));
   });
   const W = i => (toks[i] ? toks[i].w : '');
   const set = (from, to, role) => { for (let i = from; i < to; i++) if (toks[i].role == null) toks[i].role = role; };
@@ -5286,6 +5294,7 @@ function sentenceStructure(pieces, jp) {
   if (pieces.slice(0, -1).some(p => /[.!?]$/.test(p.en)) || pieces.some((p, k) => /,$/.test(p.en) && pieces[k + 1] && / or /.test(pieces[k + 1].en))) return null;
   for (const [a, b] of clauses) if (!stParseClause(toks, a, b, isQ)) return null;
   if (toks.some(t => t.role == null)) return null;
+  if (wantTokens) return toks;
   // まとまりごとに、役割をまとめる。( ) [ ] は、まとまりの始まりと終わりのまとまりにつける
   ps.forEach((p, pi) => {
     const ts = toks.filter(t => t.pi === pi);
@@ -5300,6 +5309,33 @@ function sentenceStructure(pieces, jp) {
     p.close = last.span != null && toks.filter(t => t.span === last.span).pop() === last && spanOk(last.span) ? (last.br === '(' ? ')' : ']') : '';
   });
   return ps.map(({ en, jp, roles, open, close }) => ({ en, jp, roles, open, close }));
+}
+
+// 「文の要素に分けよう」の区切り: 役割が同じ語どうしをまとめる。( ) [ ] のまとまりは1つ。
+// not / always などは動詞のまとまりに入れる。There・and などの役割のない語は記号なし
+const ST_SEG_IN_VERB = new Set(['not', 'never', 'always', 'often', 'usually', 'sometimes', 'also', 'really', 'just', 'already', 'still', 'ever', 'only', 'all', 'both']);
+function sentenceSegments(pieces, jp) {
+  const toks = sentenceStructure(pieces, jp, true);
+  if (!toks) return null;
+  const base = t => t.role.replace(/^[(\[]/, '');
+  const segs = [];
+  toks.forEach((t, i) => {
+    let role = base(t).replace('+', '・');
+    if (role === 'm') {
+      // 動詞のまとまりの中の not / always / never などは V に入れる。それ以外(here / well / now など)は M
+      const prev = toks[i - 1], next = toks[i + 1];
+      const nearV = prev && base(prev) === 'V' && prev.span == null || next && base(next) === 'V' && next.span == null;
+      role = nearV && ST_SEG_IN_VERB.has(t.w) && !(t.w === 'all' && !(next && base(next) === 'V')) ? 'V' : 'M';
+    }
+    const last = segs[segs.length - 1];
+    const sameSpan = t.span != null && last && last.span === t.span;
+    // 同じ役割でも、V 以外はまとまり(並べかえのピース)が変われば区切る(gave | her | flowers → O と O)
+    const samePiece = last && last.pi === t.pi;
+    if (sameSpan || (last && t.span == null && last.span == null && last.role === role && role !== '' && !role.includes('・') && (role === 'V' || samePiece) && !/,$/.test(last.words[last.words.length - 1]))) { last.words.push(t.orig); last.pi = t.pi; }
+    else segs.push({ role, span: t.span, br: t.span != null ? t.br : '', words: [t.orig], pi: t.pi });
+  });
+  const out = segs.map(g => ({ en: g.words.join(' ').replace(/[.!?]$/, ''), role: g.role, open: g.br, close: g.br === '(' ? ')' : g.br === '[' ? ']' : '' }));
+  return out.filter(g => g.role).length >= 2 ? out : null;
 }
 
 function stIsPieceLast(toks, t) { const n = toks[toks.indexOf(t) + 1]; return !n || n.pi !== t.pi; }
@@ -5475,6 +5511,9 @@ function stNounPhrase(toks, i, b, subject) {
   while (e < pe) {
     const x = W(e);
     if (ST_PREPS.has(x) && !['of', 'than', 'as', 'like'].includes(x) && e > j) break;
+    // 名詞のあとの better / today / too などは名詞のまとまりに入れない(cats better / busy today)
+    if (e > j && ['better', 'best', 'well', 'together', 'again', 'too', 'also', 'today', 'now', 'here', 'there', 'yesterday', 'tomorrow', 'then', 'tonight'].includes(x)) break;
+    if (e > j && x === 'the' && /^(best|most|\w+est)$/.test(W(e + 1))) break;
     if (x === 'to' && ST_VERB_BASE[W(e + 1)]) break;
     // 名詞と同じ形の語が、まとまりの最後にあって、次のまとまりが動詞なら名詞(Hot drinks | keep)
     const nounHere = (ST_NOUNISH.has(x) || ST_NOUNISH.has(ST_VERB_BASE[x])) && (DETERMINERS.has(W(e - 1)) || /'s$/.test(W(e - 1)) || e === pe - 1 && pe < b && stFiniteStart(W(pe)) && !SUBJECT_PRONOUNS.has(W(e - 1)) && !toks[e - 1].cap);
@@ -5492,6 +5531,7 @@ function stNounPhrase(toks, i, b, subject) {
 // 前置詞のまとまり: 前置詞＋名詞句(まとまりの終わりまで)
 function stPrepPhrase(toks, i, b) {
   if (i + 1 >= b) return i; // 文末の前置詞だけ(Where are you from?)は ( ) にしない
+  if (['then', 'now', 'here', 'there', 'today', 'yesterday', 'tomorrow'].includes(toks[i + 1].w) && (i + 2 >= b || toks[i + 2].k === 0)) return i; // talking about | then
   let e = stPieceEnd(toks, i, b);
   // 前置詞だけのまとまり(in / at)のときは次のまとまりまで
   if (e === i + 1 && e < b) e = stPieceEnd(toks, e, b);
@@ -5673,7 +5713,8 @@ function stComplements(toks, j, b, main, itS) {
     // 動名詞の目的語(enjoy playing tennis / stop drinking coffee)
     if (/ing$/.test(w) && ST_VERB_BASE[w] && ST_ING_OBJ.has(baseMain) && objs === 0) {
       let e = stPieceEnd(toks, j, b);
-      while (e < b && toks[e].k === 0 && !ST_PREPS.has(W(e)) && !ST_TIME_NOUN.test(toks.slice(e, stPieceEnd(toks, e, b)).map(t => t.w).join(' ')) && !ST_ADV.has(W(e)) && !ST_SUBCONJ.has(W(e)) && !['and', 'but', 'or'].includes(W(e))) e = stPieceEnd(toks, e, b);
+      while (e - 1 > j && ['better', 'best', 'well', 'together', 'again', 'too', 'now', 'here', 'there'].includes(W(e - 1))) e--;
+      while (e < b && toks[e].k === 0 && toks[e - 1].pi !== toks[e].pi && !ST_PREPS.has(W(e)) && !ST_TIME_NOUN.test(toks.slice(e, stPieceEnd(toks, e, b)).map(t => t.w).join(' ')) && !ST_ADV.has(W(e)) && !ST_SUBCONJ.has(W(e)) && !['and', 'but', 'or'].includes(W(e))) e = stPieceEnd(toks, e, b);
       set(j, e, 'O'); objs++; j = e; continue;
     }
     // 動詞の原形(make / let / help ＋ 人 ＋ 原形)
@@ -6028,6 +6069,7 @@ const QUESTION_TYPES = {
   error:     { label: '誤文訂正', instr: '次の英文には誤りが1か所あります。誤っている語を正しい形に直しなさい。' },
   usage:     { label: '用法の識別', instr: '下線部の用法として最も適切なものを選びなさい。' },
   paraphrase: { label: '同意文書きかえ', instr: '上の文とほぼ同じ意味になるように、下の文の（　）に適する語を1語ずつ書きなさい。' },
+  svo:       { label: '文の要素', instr: '英文の区切りごとに、下の□に S（主語）・V（動詞）・O（目的語）・C（補語）・M（修飾語）のどれにあたるかを書きなさい。' },
 };
 
 // 文法のポイントになる「まとまり」(3語以上の語句。囲む問題は2語以上で、日本語の文に同じ言葉があるもの)。
@@ -6051,6 +6093,11 @@ function buildQuestion(stage, q, type) {
   item.tokens = tokens;
   if (type === 'translate') { item.type = 'translate'; return item; }
   if (type === 'trace') { item.type = 'trace'; return item; } // なぞり書き(解説つきプリント)
+  // 文の要素に分ける(S・V・O・C・M)。構造がはっきりわからない文は並べかえにする
+  if (type === 'svo') {
+    const segs = sentenceSegments(q.pieces, q.jp);
+    if (segs) { item.type = 'svo'; item.segs = segs; item.answer = segs.filter(g => g.role).map(g => g.role).join(' '); return item; }
+  }
   // まとまりづくり・囲む問題(解説つきプリント): 文法のポイントになる「まとまり」を使う。作れない文は並べかえにする
   if (type === 'chunkorder' || type === 'frame') {
     const piece = guideKeyPiece(stage, item, type);
@@ -6358,7 +6405,7 @@ function makeUnitQuestion(stage, type, st, maxTier = 3) {
   let item;
   for (let tries = 0; tries < 6; tries++) {
     // 並べ替えは修飾語を足さない(場所と時の語句の順番が2通りになることがあるため)
-    const tier = ['entoja', 'reorder', 'extra', 'trace', 'chunkorder', 'frame'].includes(type) ? 1 : maxTier;
+    const tier = ['entoja', 'reorder', 'extra', 'trace', 'chunkorder', 'frame', 'svo'].includes(type) ? 1 : maxTier;
     const q = getSessionQuestion(stage, st.n++, st.order, tier);
     item = buildQuestion(stage, q, type);
     if (item.type === type && !isExcluded(item)) return item;
@@ -6756,15 +6803,15 @@ function readingItemOf(p) {
 // 複数の単元(肯定文・否定文・疑問文 など)を選んだときは、単元ごとに4ページずつ続ける。
 // 問題は修飾語なしの基本文を中心に作り、1問ずつ解説を自動でつける(ヒントは出さない)。
 const GUIDE_INTRO_TYPES = ['choice', 'choice', 'fillin', 'reorder', 'fillin', 'translate', 'choice'];
-const GUIDE_PRACTICE_TYPES = ['trace', 'trace', 'chunkorder', 'fillin', 'reorder', 'frame', 'translate', 'choice', 'fillin', 'translate', 'reorder', 'fillin',
+const GUIDE_PRACTICE_TYPES = ['trace', 'trace', 'chunkorder', 'fillin', 'svo', 'reorder', 'frame', 'translate', 'choice', 'fillin', 'translate', 'reorder', 'fillin',
   'choice', 'translate', 'reorder', 'fillin'];
 // 確認テスト(練習のあと、何も見ないで解いて先生に出す)
-const GUIDE_TEST_TYPES = ['choice', 'fillin', 'reorder', 'chunkorder', 'translate', 'reorder', 'fillin', 'translate', 'reorder', 'translate'];
+const GUIDE_TEST_TYPES = ['choice', 'fillin', 'reorder', 'chunkorder', 'svo', 'translate', 'reorder', 'fillin', 'translate', 'reorder', 'translate'];
 // 2周目・3周目の練習問題: 周が進むほど「書く」問題をふやす(選ぶ → 書く → 英文を書く)
 const GUIDE_PRACTICE_TYPES_BY_ROUND = [
   GUIDE_PRACTICE_TYPES,
-  ['chunkorder', 'fillin', 'translate', 'reorder', 'frame', 'fillin', 'choice', 'translate', 'reorder', 'fillin', 'translate', 'fillin', 'reorder', 'translate'],
-  ['translate', 'reorder', 'fillin', 'translate', 'translate', 'reorder', 'fillin', 'translate', 'reorder', 'translate', 'fillin', 'translate'],
+  ['chunkorder', 'fillin', 'svo', 'translate', 'reorder', 'frame', 'fillin', 'choice', 'translate', 'reorder', 'fillin', 'translate', 'fillin', 'reorder', 'translate'],
+  ['translate', 'reorder', 'svo', 'fillin', 'translate', 'translate', 'reorder', 'fillin', 'translate', 'reorder', 'translate', 'fillin', 'translate'],
 ];
 const GUIDE_TYPE_LABELS = {
   rule: ['ルールの確認', 'この単元で学んだ文の形を完成させる'],
@@ -6772,6 +6819,7 @@ const GUIDE_TYPE_LABELS = {
   trace: ['なぞって写そう', '上の段の英文をなぞってから、下の段に写す（英語の形と語順を手で覚える）'],
   chunkorder: ['まとまりを作ろう', '日本語に合うように、語をならべかえて「まとまり」を作る（文の最初でも小文字のままでよい）'],
   frame: ['囲もう', '日本語の文と英文で、〈ポイント〉にあたるところを□で囲む'],
+  svo: ['文の要素に分けよう', '区切りの下の□に、S（主語〜は）・V（動詞）・O（目的語〜を）・C（補語）・M（修飾語）を書く。まず V をさがしてから、その前の S を見つけよう'],
   choice: ['えらぼう', '日本語に合うように、（　）に入る語を選ぶ'],
   reorder: ['ならべかえよう', '日本語に合うように、語句をならべかえて英文を書く（まず「だれが＋どうする」の骨組みを書いてから、残りのまとまりを続ける）'],
   fillin: ['書いてみよう', '日本語に合うように、（　）に英語を1語書く'],
@@ -7019,6 +7067,10 @@ function explainHave(item, a, idx) {
 // 1問ぶんのヒントと解説
 function explainItem(stage, item) {
   const guide = STAGE_GUIDES[stage.key] || {};
+  if (item.type === 'svo') {
+    const v = item.segs.find(g => g.role.includes('V'));
+    return { hint: '', st: '', why: `まず動詞（V）の「${v ? v.en : ''}」を見つける。その前が主語（S）、うしろが O・C、いつ・どこで などは M。( ) [ ] のまとまりは1つの要素。` };
+  }
   if (item.type === 'chunkorder' || item.type === 'frame') {
     const c = item.chunk;
     return { hint: '', why: `「${c.jp}」＝ <b>${c.en}</b>。文の中では ${fullSentence(item)}${guide.form ? `　形は「${guide.form}」。` : ''}` };
@@ -7089,6 +7141,10 @@ function structureHtml(pieces, jp) {
   const st = pieces && pieces.length > 1 ? sentenceStructure(pieces, jp) : null;
   if (!st) return '';
   return `<div class="ws-st">${st.map(p => `<span class="st-c"><i class="st-jp">${(p.jp || '').replace(/[〜~]/g, '')}</i><span class="st-en">${p.open}${p.en.replace(/[.!?]$/, '')}${p.close}</span><b class="st-r">${p.roles.join('・')}</b></span>`).join('')}</div>`;
+}
+// 「文の要素に分けよう」の答え: 区切りごとに、下に記号
+function segmentsHtml(segs) {
+  return `<span class="ws-st ws-st-inline">${segs.map(g => `<span class="st-c"><span class="st-en">${g.open}${escHtml(g.en)}${g.close}</span><b class="st-r">${g.role || '　'}</b></span>`).join('')}</span>`;
 }
 const STRUCTURE_LEGEND = '<div class="ws-st-legend"><b>記号の見かた</b> S＝主語（〜は・〜が）　V＝動詞　O＝目的語（〜を・〜に）　C＝補語（S＝C／O＝C の関係）　M＝修飾語（いつ・どこで・どのように など）　( )＝前置詞や to 〜 のまとまり　[ ]＝文の中の文（接続詞・関係代名詞・疑問詞のまとまり）　仮S・真S＝It の文で、本当の主語は to 〜</div>';
 
@@ -7623,6 +7679,7 @@ function answerText(item) {
   if (item.type === 'korder') return `${item.order.map(k => CHOICE_LABELS5[k]).join('→')}<span class="ans-why">${item.sentence}</span>`;
   if (item.type === 'kscene') return `${item.answers[0]}${item.answers.slice(1).map(a => `<span class="ans-why">別解：${a}</span>`).join('')}`;
   if (['form', 'fillin', 'vword', 'vblank', 'vidiom', 'vjp', 'entoja', 'rfill', 'rja', 'rea', 'chunkorder', 'frame', 'rule', 'wtable', 'clist', 'ccheck'].includes(item.type)) return item.answer;
+  if (item.type === 'svo') return segmentsHtml(item.segs);
   if (item.type === 'rewrite') return item.answerSentence;
   if (item.type === 'error') return `${item.wrongWord} → ${item.answer}`;
   if (item.type === 'paraphrase') return item.answer;
@@ -7655,6 +7712,7 @@ function isCorrect(item) {
     return words.length > 0 && words[words.length - 1] === want && (words.length === 1 || (words.length === 2 && words[0] === item.wrongWord.toLowerCase()));
   }
   if (item.type === 'xorder') return normalize(answer) !== '' && normalize(answer) === normalize(item.answer);
+  if (item.type === 'svo') { const sv = x => x.toUpperCase().replace(/[^SVOCM仮真]/g, ''); return sv(answer) !== '' && sv(answer) === sv(item.answer); }
   if (item.type === 'xask') return normalize(answer) !== '' && item.answers.some(a => normalize(a) === normalize(answer));
   if (item.type === 'kform') return normalize(answer) !== '' && normalize(answer) === normalize(item.answer);
   if (item.type === 'korder') {
@@ -7775,6 +7833,9 @@ function itemBodyHtml(item) {
       return `<div class="ws-pieces">${item.chunkWords.map(w => `<span class="ws-piece"><span>${escHtml(w)}</span></span>`).join('')}</div>${item.noHint ? '<div class="ws-4l ws-4l-print"></div>' : ''}${answerLineHtml('まとまりを書こう')}`;
     case 'frame':
       return `<div class="ws-sentence ws-frame-en">${fullSentence(item)}</div>`;
+    case 'svo':
+      // 区切りごとに英語と、その下に記号を書く□。There・and などの役割のない語は□なし
+      return `<div class="ws-svo">${item.segs.map(g => `<span class="svo-c"><span class="svo-en">${g.open}${escHtml(g.en)}${g.close}</span>${g.role ? '<span class="svo-box"></span>' : '<span class="svo-none"></span>'}</span>`).join('')}<span class="svo-end">${item.end || ''}</span></div>${answerLineHtml('記号を順に（例：S V O M）', 'short')}`;
     case 'rule':
       return `<div class="ws-sentence ws-rule-form">${item.parts.map((p, i) => (item.blanks.includes(i) ? '<span class="ws-blank">（　　　　　）</span>' : `<span>${p}</span>`)).join(' ＋ ')}</div>`;
     case 'wtable':
@@ -8038,6 +8099,7 @@ const SECTION_NUMERALS = ['Ⅰ', 'Ⅱ', 'Ⅲ', 'Ⅳ'];
 function guideAnswerSentence(item) {
   const box = t => `<span class="ws-box">${t}</span>`;
   if (item.type === 'chunkorder') return `${box(item.chunk.en)}<span class="ws-ans-ctx">（${fullSentence(item)}）</span>`;
+  if (item.type === 'svo') return segmentsHtml(item.segs);
   if (item.type === 'frame') return `<span class="ws-ans-jp">${item.jp.replace(item.chunk.jp, box(item.chunk.jp))}</span><br>${fullSentence(item).replace(item.chunk.en, box(item.chunk.en))}`;
   if (item.type === 'rule') return item.parts.map((p, i) => (item.blanks.includes(i) ? `<b class="ws-hl">${p}</b>` : p)).join(' ＋ ');
   if (item.type === 'wtable') return item.words.map(w => `${w.jp}＝<b class="ws-hl">${w.en}</b>`).join('　');
@@ -8329,7 +8391,7 @@ function renderGuideWorksheet() {
 // 配点: 形式ごとの重み(書く問題・長い問題ほど高く)を、合計がちょうど100点になるように整数にする。同じ形式は同じ点
 const POINT_WEIGHTS = {
   vmeaning: 1, vjp: 2, vword: 2, vblank: 2, vidiom: 2,
-  choice: 2, usage: 2, fillin: 2, form: 2, error: 3, extra: 3, reorder: 3, rewrite: 3, paraphrase: 3, translate: 4, entoja: 4,
+  choice: 2, usage: 2, svo: 3, fillin: 2, form: 2, error: 3, extra: 3, reorder: 3, rewrite: 3, paraphrase: 3, translate: 4, entoja: 4,
   rchoice: 3, rtf: 2, rfill: 3, rja: 4, rea: 4, cdialog: 3, cphrase: 3, cform: 2, cfree: 3, cwtrans: 4, cwcond: 5, cwfree: 10, cetoj: 4, xchoice: 2, xfill: 3, xorder: 3, xpara: 3, xask: 4, clist: 1, ccheck: 1, kform: 3, korder: 3, kscene: 6,
 };
 function assignPoints(items) {
