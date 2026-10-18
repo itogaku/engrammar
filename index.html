@@ -500,6 +500,13 @@
   .ws-ans-tips ul { margin: 2px 0 0; padding-left: 18px; }
   .ws-ans-short { padding: 5px 0; }
   .ws-ans-short .ws-ans-why { font-size: 12px; line-height: 1.5; }
+  .ws-st { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 2px 10px; margin: 3px 0 1px 36px; }
+  .ws-st .st-c { display: inline-flex; flex-direction: column; align-items: center; line-height: 1.2; }
+  .ws-st .st-jp { font-style: normal; font-size: 10px; color: var(--ink-soft); white-space: nowrap; }
+  .ws-st .st-en { font-size: 13px; font-weight: 600; border-bottom: 1px solid currentColor; padding: 0 1px; white-space: nowrap; }
+  .ws-st .st-r { font-size: 10.5px; font-weight: 800; color: var(--accent, #c0392b); letter-spacing: .5px; }
+  .ws-st-legend { font-size: 10.5px; line-height: 1.5; color: var(--ink-soft); border-top: 1px dashed var(--line, #ccc); margin-top: 6px; padding-top: 4px; }
+  .ws-st-legend b { color: var(--ink); margin-right: 4px; }
   .ws-ans-top .ws-ans-key { margin: 0; }
   .ws-round { margin-top: 10px; }
   .ws-round-head { font-size: 12.5px; color: var(--ink-soft); border-top: 2px solid var(--ink); padding-top: 6px; }
@@ -5169,6 +5176,719 @@ function findBlank(stage, tokens, needHint, skip = new Set()) {
 const REWRITE_MODALS = ['can', 'will', 'must', 'should', 'could', 'would', 'may'];
 const MID_ADVERBS = new Set(['always', 'usually', 'sometimes', 'often', 'really', 'also']);
 const SUBJECT_PRONOUNS = new Set(['i', 'he', 'she', 'we', 'they', 'you', 'it']);
+
+// ---------- 文の構造(S・V・O・C・M)の自動判定 ----------
+// 並べ替え用のまとまり(pieces)ごとに、文の中での役割を判定する。解説で「上に訳・下に記号」の図にする。
+// 判定に自信がないとき(動詞が見つからない、役割の決まらない語があるなど)は null を返し、図は出さない。
+const ST_VERB_LIST = ['agree', 'answer', 'apologize', 'arrive', 'ask', 'believe', 'borrow', 'call', 'carry', 'change', 'check', 'clean', 'climb', 'close', 'compete',
+  'cook', 'cover', 'cry', 'dance', 'decide', 'die', 'drop', 'enjoy', 'excite', 'fill', 'finish', 'help', 'hope', 'hurry', 'introduce', 'join', 'jump', 'land', 'last',
+  'laugh', 'learn', 'like', 'listen', 'live', 'look', 'love', 'move', 'name', 'need', 'open', 'order', 'paint', 'perform', 'plan', 'play', 'practice', 'protect',
+  'rain', 'recommend', 'remember', 'respect', 'return', 'serve', 'share', 'ski', 'skate', 'smile', 'snow', 'start', 'stay', 'stop', 'study', 'surprise', 'talk',
+  'taste', 'touch', 'travel', 'try', 'turn', 'use', 'visit', 'wait', 'walk', 'want', 'wash', 'watch', 'wish', 'work', 'worry', 'happen', 'improve', 'invite',
+  'exercise', 'fix', 'kick', 'miss', 'pick', 'push', 'save', 'shout', 'type', 'look', 'like', 'collect', 'clap', 'cheer', 'enter', 'explain', 'follow', 'guess',
+  'imagine', 'kill', 'marry', 'notice', 'pass', 'plant', 'pray', 'prepare', 'produce', 'reach', 'relax', 'repeat', 'solve', 'support', 'tour', 'communicate'];
+const ST_IRREGULAR = {
+  build: ['built', 'built'], hold: ['held', 'held'], sell: ['sold', 'sold'], break: ['broke', 'broken'], lend: ['lent', 'lent'], lose: ['lost', 'lost'],
+  fall: ['fell', 'fallen'], grow: ['grew', 'grown'], spend: ['spent', 'spent'], wear: ['wore', 'worn'], understand: ['understood', 'understood'],
+  choose: ['chose', 'chosen'], mean: ['meant', 'meant'], catch: ['caught', 'caught'], bring: ['brought', 'brought'], drive: ['drove', 'driven'],
+  throw: ['threw', 'thrown'], hurt: ['hurt', 'hurt'], pay: ['paid', 'paid'], hide: ['hid', 'hidden'], fight: ['fought', 'fought'], feed: ['fed', 'fed'],
+  shake: ['shook', 'shaken'], wake: ['woke', 'woken'], ring: ['rang', 'rung'], forgive: ['forgave', 'forgiven'], lie: ['lay', 'lain'],
+};
+const ST_VERB_BASE = Object.assign({}, VERB_BASE_OF);
+ST_VERB_LIST.forEach(b => verbForms(b).forEach(f => { if (!ST_VERB_BASE[f]) ST_VERB_BASE[f] = b; }));
+Object.entries(ST_IRREGULAR).forEach(([b, [p, pp]]) => [b, verbThirdPerson(b), p, pp, verbIng(b)].forEach(f => { if (!ST_VERB_BASE[f]) ST_VERB_BASE[f] = b; }));
+['am', 'is', 'are', 'was', 'were', 'be', 'been', 'being'].forEach(f => { ST_VERB_BASE[f] = 'be'; });
+['have', 'has', 'had', 'having'].forEach(f => { ST_VERB_BASE[f] = 'have'; });
+['do', 'does', 'did', 'done', 'doing'].forEach(f => { ST_VERB_BASE[f] = 'do'; });
+// 名詞と同じ形の語は、名詞としてよく使うものだけ(動詞としては文脈で判定)
+const ST_NOUNISH = new Set(['play', 'study', 'watch', 'work', 'visit', 'help', 'rain', 'snow', 'cook', 'answer', 'dance', 'name', 'call', 'change', 'drink', 'walk', 'talk',
+  'love', 'smile', 'plan', 'ride', 'swim', 'run', 'cry', 'stop', 'start', 'show', 'turn', 'use', 'wish', 'look', 'check', 'order', 'ski', 'skate', 'jump', 'fall',
+  'land', 'drop', 'break', 'hope', 'need', 'paint', 'practice', 'type', 'catch', 'face', 'water', 'trip', 'stay', 'wait', 'pass', 'kick', 'save', 'return', 'cover',
+  'taste', 'touch', 'dream', 'fly', 'last', 'sleep', 'tour', 'support', 'plant', 'fight', 'ring', 'lie', 'live', 'like', 'meeting', 'building', 'painting', 'drawing', 'singer']);
+const ST_AUX = new Set(['do', 'does', 'did', "don't", "doesn't", "didn't", 'am', 'is', 'are', 'was', 'were', "isn't", "aren't", "wasn't", "weren't",
+  'will', "won't", 'can', "can't", 'cannot', 'could', "couldn't", 'would', "wouldn't", 'should', 'must', 'may', 'might', 'shall', 'have', 'has', 'had', "haven't", "hasn't"]);
+const ST_BE = new Set(['am', 'is', 'are', 'was', 'were', "isn't", "aren't", "wasn't", "weren't", 'be', 'been', 'being']);
+const ST_PREPS = new Set(['in', 'on', 'at', 'to', 'with', 'for', 'from', 'about', 'of', 'by', 'after', 'before', 'near', 'under', 'over', 'around', 'into',
+  'through', 'during', 'without', 'between', 'among', 'across', 'along', 'behind', 'since', 'until', 'than', 'as', 'like', 'against', 'off', 'up', 'out', 'inside', 'outside']);
+const ST_SUBCONJ = new Set(['when', 'if', 'because', 'while', 'though', 'although', 'until', 'before', 'after', 'since', 'as', 'so']);
+const ST_WH = new Set(['what', 'where', 'when', 'who', 'whose', 'which', 'how', 'why']);
+const ST_OBJ_PRON = new Set(['me', 'you', 'him', 'her', 'us', 'them', 'it']);
+const ST_SUBJ_PRON = new Set(['i', 'you', 'he', 'she', 'we', 'they', 'it', 'this', 'that', 'these', 'those', 'there', 'everyone', 'someone', 'nobody']);
+const ST_ADV = new Set(['yesterday', 'today', 'tomorrow', 'now', 'then', 'here', 'there', 'again', 'together', 'too', 'also', 'always', 'often', 'usually', 'sometimes',
+  'never', 'already', 'yet', 'just', 'still', 'ever', 'soon', 'later', 'early', 'late', 'well', 'hard', 'fast', 'home', 'abroad', 'once', 'twice', 'very', 'really',
+  'much', 'so', 'tonight', 'someday', 'alone', 'first', 'finally', 'outside', 'inside', 'away', 'back', 'up', 'down', 'carefully', 'slowly', 'quickly', 'loudly',
+  'well', 'everywhere', 'ago', 'high', 'far', 'loud', 'straight', 'more often', 'enough', 'only', 'even', 'please', 'off', 'all', 'more', 'most', 'better', 'best', 'earlier', 'faster', 'harder', 'longer', 'not', 'else']);
+const ST_TIME_NOUN = /^(every|last|next|this|that|each|one|some)\s+(day|days|morning|afternoon|evening|night|week|weekend|month|year|summer|winter|spring|fall|sunday|monday|tuesday|wednesday|thursday|friday|saturday|time|other day)s?\b|\b(ago|o'clock|a\.m\.|p\.m\.)$|^(tomorrow|yesterday) (morning|afternoon|evening|night)$|^(every|last|next|this) (january|february|march|april|may|june|july|august|september|october|november|december)$|^next time$|^(all day|all night|a lot|very much|so much|a little|at home|these days|right now|a week|an hour|two hours|for a long time)$|^(many|a few|three|two|four|five|ten|several) times$|^(once|twice) a (day|week|month|year)$/i;
+const ST_EMO_ADJ = new Set(['interested', 'excited', 'surprised', 'tired', 'married', 'worried', 'pleased', 'satisfied', 'shocked', 'bored', 'scared', 'disappointed']);
+const ST_ADJ_ING = new Set(['exciting', 'interesting', 'boring', 'amazing', 'surprising', 'relaxing', 'tiring', 'shocking', 'moving', 'amusing', 'charming', 'touching', 'missing', 'living', 'outstanding']);
+const ST_LINKING = new Set(['be', 'become', 'look', 'feel', 'sound', 'get', 'seem', 'smell', 'taste', 'turn', 'stay']);
+const ST_DITRANS = new Set(['give', 'show', 'tell', 'teach', 'send', 'buy', 'make', 'bring', 'lend', 'ask', 'cook', 'write', 'pass', 'get', 'find']);
+const ST_SVOC = new Set(['call', 'name', 'make', 'keep', 'find', 'leave', 'paint']);
+const ST_CAUSE = new Set(['make', 'let', 'help']);
+const ST_TOOBJ = new Set(['want', 'tell', 'ask', 'would']);
+const ST_THINK = new Set(['think', 'know', 'hope', 'believe', 'say', 'hear', 'guess', 'wish', 'feel', 'remember', 'forget', 'understand', 'learn', 'find', 'show', 'tell', 'teach', 'ask', 'wonder', 'see', 'mean']);
+const ST_TOVERB = new Set(['want', 'like', 'love', 'try', 'need', 'hope', 'decide', 'begin', 'start', 'plan', 'wish', 'forget', 'remember', 'learn', 'promise']);
+const ST_ING_OBJ = new Set(['enjoy', 'like', 'love', 'stop', 'finish', 'start', 'begin', 'practice', 'keep']);
+
+// 過去分詞か(made / written / read)
+function stIsPP(w) { const b = ST_VERB_BASE[w]; if (!b || b === 'be' || b === 'have' || b === 'do') return false; const pp = ST_IRREGULAR[b] ? ST_IRREGULAR[b][1] : verbPastParticiple(b); return pp === w && (w !== b || !!IRREGULAR_VERBS[b] || !!ST_IRREGULAR[b]); }
+function stWords(s) { return String(s).replace(/[.!?"]/g, '').trim().split(/\s+/).filter(Boolean).map(w => w.toLowerCase().replace(/,$/, '')); }
+function stIsVerbForm(w) { return !!ST_VERB_BASE[w] || ST_AUX.has(w) || /^(i|you|he|she|it|we|they|that|there|what|who|where|how|here)'(m|re|s|ll|ve|d)$/.test(w); }
+// 主語のあとで動詞として使える語か(名詞と同じ形でも、ここでは動詞とみなす)
+function stFiniteStart(w) {
+  if (ST_AUX.has(w) || ['never', 'always', 'often', 'usually', 'sometimes', 'also', 'really', 'just', 'still', 'already', 'only'].includes(w)) return true;
+  const b = ST_VERB_BASE[w];
+  if (!b) return false;
+  return !/ing$/.test(w) || w === 'being' ? true : false;
+}
+
+// pieces → [{ en, jp, roles: ['S'] , br: '(' | '[' | '' }] または null
+function sentenceStructure(pieces, jp) {
+  const ps = pieces.map(p => ({ en: p.en, jp: p.jp, w: stWords(p.en), roles: [] }));
+  if (!ps.length || ps.some(p => !p.w.length)) return null;
+  const sentence = pieces.map(p => p.en).join(' ');
+  const isQ = /\?\s*$/.test(sentence) || /(か|の|？|\?)[。]?$/.test(String(jp || '').replace(/\s+$/, ''));
+  // 1語ずつの役割
+  const toks = [];
+  ps.forEach((p, pi) => {
+    const raws = String(p.en).replace(/[.!?"]/g, '').trim().split(/\s+/).filter(Boolean);
+    p.w.forEach((w, k) => toks.push({ w, raw: (raws[k] || w).toLowerCase(), cap: /^[A-Z]/.test(raws[k] || '') && !(pi === 0 && k === 0) && w !== 'i', pi, k, role: null }));
+  });
+  const W = i => (toks[i] ? toks[i].w : '');
+  const set = (from, to, role) => { for (let i = from; i < to; i++) if (toks[i].role == null) toks[i].role = role; };
+  const pieceStart = i => toks[i] && toks[i].k === 0;
+  const pieceEnd = i => { const pi = toks[i].pi; let j = i; while (toks[j] && toks[j].pi === pi) j++; return j; };
+  const restOfPiece = i => pieceEnd(i);
+
+  // 文末までで、等位接続詞(and / but / so / or)＋主語＋動詞 で文を区切る
+  let pos = 0;
+  const clauses = [];
+  let start = 0;
+  for (let i = 0; i < toks.length; i++) {
+    const w = W(i);
+    if (i > 0 && ['and', 'but', 'so', 'or'].includes(w) && pieceStart(i)) {
+      // and のあとに主語＋動詞が続くときだけ文の区切り
+      const n1 = W(i + 1), n2 = W(i + 2), n3 = W(i + 3);
+      if ((ST_SUBJ_PRON.has(n1) && stFiniteStart(n2)) || (DETERMINERS.has(n1) && stFiniteStart(n3)) || /'(m|re|s|ll)$/.test(n1)) {
+        clauses.push([start, i]); toks[i].role = ''; start = i + 1;
+      }
+    }
+  }
+  clauses.push([start, toks.length]);
+  toks.jp = String(jp || '');
+  // 1つの答えに文が2つ(You're welcome. Take care!)や、「〜, A or B?」の文はあつかわない
+  if (pieces.slice(0, -1).some(p => /[.!?]$/.test(p.en)) || pieces.some((p, k) => /,$/.test(p.en) && pieces[k + 1] && / or /.test(pieces[k + 1].en))) return null;
+  for (const [a, b] of clauses) if (!stParseClause(toks, a, b, isQ)) return null;
+  if (toks.some(t => t.role == null)) return null;
+  // まとまりごとに、役割をまとめる。( ) [ ] は、まとまりの始まりと終わりのまとまりにつける
+  ps.forEach((p, pi) => {
+    const ts = toks.filter(t => t.pi === pi);
+    const out = [];
+    ts.forEach(t => t.role.replace(/^[(\[]/, '').split('+').forEach(base => { if (base && base !== 'm' && !out.includes(base)) out.push(base); }));
+    if (!out.length && ts.some(t => t.role === 'm')) out.push('M');
+    p.roles = out;
+    const first = ts[0], last = ts[ts.length - 1];
+    // ( ) [ ] は、まとまりの区切りと一致するときだけ出す(まとまりの途中で始まる・終わるものは出さない)
+    const spanOk = sp => { const all = toks.filter(t => t.span === sp); return all[0].k === 0 && stIsPieceLast(toks, all[all.length - 1]); };
+    p.open = first.span != null && toks.find(t => t.span === first.span) === first && spanOk(first.span) ? first.br : '';
+    p.close = last.span != null && toks.filter(t => t.span === last.span).pop() === last && spanOk(last.span) ? (last.br === '(' ? ')' : ']') : '';
+  });
+  return ps.map(({ en, jp, roles, open, close }) => ({ en, jp, roles, open, close }));
+}
+
+function stIsPieceLast(toks, t) { const n = toks[toks.indexOf(t) + 1]; return !n || n.pi !== t.pi; }
+
+// from〜to の語を ( ) または [ ] のまとまりにして、全体に1つの役割をつける(中の役割は図には出さない)
+function stWrap(toks, from, to, br, role) {
+  toks.spanSeq = (toks.spanSeq || 0) + 1;
+  for (let k = from; k < to; k++) { toks[k].role = br + role; toks[k].span = toks.spanSeq; toks[k].br = br; }
+}
+
+// a〜b の語を1つの文(節)として、役割をつける。成功したら true
+function stParseClause(toks, a, b, isQ, inner) {
+  const W = i => (i < b && toks[i] ? toks[i].w : '');
+  const piece = i => toks[i].pi;
+  const set = (from, to, role) => { for (let i = from; i < to && i < b; i++) if (toks[i].role == null) toks[i].role = role; };
+  let i = a;
+  // 前置きの語: Yes, / No, / Oh, / Well, / Hello. など
+  while (i < b && /^(yes|no|oh|wow|well|hello|hi|sure|okay|ok|excuse|sorry|thank|thanks|look|ah|um)$/.test(W(i)) && i < b - 1 && !(W(i) === 'look' && W(i + 1) === 'at') && !(W(i) === 'thank' || W(i) === 'excuse')) { toks[i].role = ''; i++; }
+  if (/^(thank|excuse)$/.test(W(i))) {
+    // Thank you (for 〜). / Excuse me.
+    toks[i].role = 'V'; if (ST_OBJ_PRON.has(W(i + 1))) toks[i + 1].role = 'O'; i += 2; return stRest(toks, i, b, 'done');
+  }
+  if (W(i) === "what's" && W(i + 1) === 'more') { toks[i].role = ''; toks[i + 1].role = ''; i += 2; }
+  // Here it is. / Here you are.
+  if (W(i) === 'here' && ['it', 'you', 'they'].includes(W(i + 1)) && ST_BE.has(W(i + 2)) && i + 3 === b) { toks[i].role = 'M'; toks[i + 1].role = 'S'; toks[i + 2].role = 'V'; return true; }
+  // 文頭の修飾語: 前置詞のまとまり、時を表す語、従属節(When I 〜, / If 〜,)
+  const lead = stLeadingM(toks, i, b);
+  i = lead;
+  if (i >= b) return false;
+  let w = W(i);
+  // There is / are 〜
+  if (w === 'there' && ST_BE.has(W(i + 1)) || w === "there's") {
+    toks[i].role = '';
+    if (w === "there's") { toks[i].role = 'V'; i++; } else { i++; let j = i; while (j < b && (ST_AUX.has(W(j)) || W(j) === 'not' || W(j) === 'be' || W(j) === 'been')) j++; set(i, j, 'V'); i = j; }
+    let e = stNounPhrase(toks, i, b); if (e === i) return false; set(i, e, 'S'); e = stPostModifier(toks, e, b, 'S'); return stRest(toks, e, b, 'done');
+  }
+  if (/^(is|are|was|were)$/.test(w) && W(i + 1) === 'there') {
+    toks[i].role = 'V'; toks[i + 1].role = ''; let e = stNounPhrase(toks, i + 2, b); if (e === i + 2) return false; set(i + 2, e, 'S'); e = stPostModifier(toks, e, b, 'S'); return stRest(toks, e, b, 'done');
+  }
+  // 疑問詞で始まる疑問文
+  if (ST_WH.has(w) && !inner) return stWhQuestion(toks, i, b);
+  // 助動詞・be動詞で始まる疑問文
+  if (ST_AUX.has(w) && (isQ || ST_SUBJ_PRON.has(W(i + 1)) && w !== "don't") && !inner) return stYesNoQuestion(toks, i, b);
+  // Because 〜.(答えの文): Because は接続詞として、残りを文として見る
+  if (ST_SUBCONJ.has(w) && i === a && !inner && w !== 'so' && w !== 'as') { toks[i].role = ''; return stParseClause(toks, i + 1, b, false, true); }
+  // 命令文: 動詞の原形・Please・Don't・Let's で始まる
+  if (w === "let's" || w === 'please' || w === "don't" && !inner || (w === 'be' && !inner) || (ST_VERB_BASE[w] === w && !ST_SUBJ_PRON.has(w) && !DETERMINERS.has(w) && w !== 'have' && i === a + 0 + (lead - a) && !inner && !stLooksNoun(toks, i, b))) {
+    if (w === 'please') { toks[i].role = 'm'; i++; w = W(i); }
+    if (w === "let's") { toks[i].role = 'V'; i++; }
+    let j = i; while (j < b && (W(j) === "don't" || W(j) === 'never' || W(j) === 'not')) { toks[j].role = W(j) === "don't" ? 'V' : 'm'; j++; }
+    if (j >= b) return true;
+    return stVerbGroup(toks, j, b, i);
+  }
+  // ふつうの文: 主語 → 動詞
+  // 主語のまとまり(動名詞・to 不定詞・名詞句)
+  let s = i;
+  let e;
+  if (/'(m|re|s|ll|ve|d)$/.test(w) && w !== "let's") {
+    // I'm / It's / He's / You'll: 主語と動詞が1語
+    toks[i].role = W(i).startsWith('it') && stItTo(toks, i, b) ? '仮S' : 'S';
+    const tail = w.split("'")[1];
+    // 1語の中に主語と動詞があるので、この語は S、続く語から V とする(図では S・V と出す)
+    toks[i].role = (toks[i].role === '仮S' ? '仮S' : 'S') + '+V';
+    i++;
+    return stAfterVerbStart(toks, i, b, tail === 'll' ? 'will' : tail === 'd' ? 'would' : tail === 've' ? 'have' : 'be', toks[i - 1].role.startsWith('仮S'));
+  }
+  if (/ing$/.test(w) && ST_VERB_BASE[w]) {
+    // 動名詞の主語: Playing soccer is fun.
+    e = i + 1; while (e < b && !stFiniteStart(W(e))) e++;
+  } else if (w === 'to' && ST_VERB_BASE[W(i + 1)]) {
+    e = i + 2; while (e < b && !stFiniteStart(W(e))) e++;
+  } else {
+    e = stNounPhrase(toks, i, b, true);
+  }
+  if (e === i || e >= b) return false;
+  const it = W(s) === 'it' && e === s + 1 && stItTo(toks, e, b);
+  set(s, e, it ? '仮S' : 'S');
+  // 主語のうしろの説明(The boy running over there / The book which is on the desk)
+  // 主語のあとに、もう1つ動詞のまとまりがあるか(The boy | running over there | is 〜)
+  const laterVerb = k0 => { for (let k = stPieceEnd(toks, k0, b); k < b; k++) { const x = toks[k].w; if (toks[k].k === 0 && (ST_AUX.has(x) || ST_VERB_BASE[x] && !ST_NOUNISH.has(ST_VERB_BASE[x]) && !/ing$/.test(x)) && !toks[k].cap) return true; } return false; };
+  const multi = stPieceEnd(toks, e, b) - e >= 2;
+  if (!it && (ST_PREPS.has(W(e)) && W(e) !== 'to' || ['who', 'which', 'that'].includes(W(e)) || toks[e].k === 0 && multi && (/(ing|ed|en)$/.test(W(e)) || ST_IRREGULAR[ST_VERB_BASE[W(e)]] || IRREGULAR_VERBS[ST_VERB_BASE[W(e)]]) && laterVerb(e) || (ST_SUBJ_PRON.has(W(e)) || toks[e].cap) && toks[e].k === 0 && multi && laterVerb(e))) e = stPostModifier(toks, e, b, 'S');
+  if (e >= b) return false;
+  return stVerbGroup(toks, e, b, null, it);
+}
+
+// It is 〜 to … / It is 〜 for 人 to … の形か
+function stItTo(toks, i, b) {
+  if (/それ[はが]/.test(toks.jp || '')) return false; // それは洗うのがかんたん(it はものを指す)
+  for (let j = i; j < b; j++) if (toks[j].w === 'to' && ST_VERB_BASE[toks[j + 1] ? toks[j + 1].w : ''] && j > i) {
+    const prev = toks[j - 1].w;
+    if (!['want', 'wants', 'wanted', 'like', 'likes', 'have', 'has', 'had', 'going', 'went', 'go', 'goes', 'come', 'came', 'need', 'try', 'tried', 'time'].includes(prev)) return true;
+  }
+  return false;
+}
+
+function stLooksNoun(toks, i, b) {
+  // Swimming is fun などの -ing、Play という名詞などはまれ。命令文として扱えない形: 次が動詞
+  const n = toks[i + 1] ? toks[i + 1].w : '';
+  return ST_BE.has(n) || ['can', 'will', 'must', 'should', 'has', 'have', 'is'].includes(n) && toks[i + 1].k === 0;
+}
+
+// 文頭の修飾語(前置詞のまとまり・時の語句・従属節)。終わりの位置を返す
+function stLeadingM(toks, i, b) {
+  const W = j => (j < b && toks[j] ? toks[j].w : '');
+  for (let guard = 0; guard < 6 && i < b; guard++) {
+    const w = W(i);
+    const pe = stPieceEnd(toks, i, b);
+    const pw = toks.slice(i, pe).map(t => t.w).join(' ');
+    if (ST_SUBCONJ.has(w) && w !== 'so' && w !== 'as' && stHasClause(toks, i + 1, b)) {
+      // When I was a child, 〜
+      let e = i + 1; while (e < b && !/,$/.test(stRaw(toks, e - 1))) e++;
+      // コンマがないときは、主語＋動詞が2組あるかで判断(区切りがわからなければあきらめる)
+      if (e >= b) { const e2 = stClauseEndNoComma(toks, i + 1, b); if (e2 < 0) return i; e = e2; }
+      if (!stParseClause(toks, i + 1, e, false, true)) return i;
+      stWrap(toks, i, e, '[', 'M');
+      i = e; continue;
+    }
+    if (ST_PREPS.has(w) && w !== 'to' && !['as', 'than', 'like', 'up', 'out', 'off'].includes(w)) {
+      const e = stPrepPhrase(toks, i, b); if (e === i) return i; stWrap(toks, i, e, '(', 'M'); i = e; continue;
+    }
+    if ((ST_TIME_NOUN.test(pw) || (pe === i + 1 && ['yesterday', 'today', 'tomorrow', 'now', 'then', 'first', 'finally', 'someday', 'sometimes', 'usually', 'also', 'later', 'once'].includes(w))) && pe < b && !stFiniteStart(W(pe))) {
+      for (let j = i; j < pe; j++) toks[j].role = 'M'; i = pe; continue;
+    }
+    break;
+  }
+  return i;
+}
+function stRaw(toks, i) { return toks[i] ? toks[i].raw || toks[i].w : ''; }
+function stPieceEnd(toks, i, b) { const pi = toks[i].pi; let j = i; while (j < b && toks[j].pi === pi) j++; return j; }
+function stHasClause(toks, i, b) {
+  const w = toks[i] ? toks[i].w : '';
+  if (/'(m|re|s|ll)$/.test(w)) return true;
+  // 主語になる語(代名詞・冠詞・所有格・人名)で始まり、そのあとに動詞があれば文
+  if (!(ST_SUBJ_PRON.has(w) || DETERMINERS.has(w) || (toks[i] && toks[i].cap) || /'s$/.test(w) || ['everyone', 'people', 'many', 'some', 'all'].includes(w) || ['today', 'tomorrow'].includes(w) && ST_BE.has(toks[i + 1] ? toks[i + 1].w : ''))) return false;
+  for (let j = i + 1; j < Math.min(b, i + 6); j++) {
+    const x = toks[j].w;
+    if (toks[j].cap) continue;
+    if (ST_PREPS.has(x) && x !== 'like') return false;
+    if (stFiniteStart(x) && !/ing$/.test(x) && !(ST_NOUNISH.has(ST_VERB_BASE[x]) && (DETERMINERS.has(toks[j - 1].w) || /'s$/.test(toks[j - 1].w)))) return true;
+  }
+  return false;
+}
+// コンマのない従属節の終わり(主節の主語の始まり)
+function stClauseEndNoComma(toks, i, b) {
+  // 従属節の主語＋動詞のあと、次の主語代名詞の位置
+  let seenVerb = false;
+  for (let j = i; j < b; j++) {
+    const w = toks[j].w;
+    if (j > i && stFiniteStart(w)) seenVerb = true;
+    if (seenVerb && j > i + 1 && toks[j].k === 0 && ST_SUBJ_PRON.has(w) && w !== 'it' && w !== 'that' && w !== 'this' && stFiniteStart(toks[j + 1] ? toks[j + 1].w : '')) return j;
+  }
+  return -1;
+}
+
+// 名詞のまとまり(冠詞＋形容詞＋名詞、名詞 and 名詞、名詞 of 名詞、所有格 's)。終わりの位置を返す
+function stNounPhrase(toks, i, b, subject) {
+  const W = j => (j < b && toks[j] ? toks[j].w : '');
+  let j = i;
+  if (j >= b) return i;
+  const w = W(j);
+  if (ST_PREPS.has(w) && !['like'].includes(w) || stFiniteStart(w) && !ST_NOUNISH.has(w) && !/ing$/.test(w) && !(ST_VERB_BASE[w] === undefined)) {
+    if (!(ST_NOUNISH.has(w) || /ing$/.test(w))) return i;
+  }
+  // 人称代名詞は1語で名詞句(Is it difficult / Are you ready)
+  if (['i', 'you', 'he', 'she', 'it', 'we', 'they', 'me', 'him', 'her', 'us', 'them'].includes(w) && !(w === 'her' && j + 1 < b && toks[j + 1].pi === toks[j].pi && !ST_AUX.has(W(j + 1)) && !ST_PREPS.has(W(j + 1)) && !ST_ADV.has(W(j + 1)))) {
+    if (!(W(j + 1) === 'and' && toks[j + 1].pi === toks[j].pi)) return j + 1;
+  }
+  // まとまりの終わりまでを名詞句とみなす(まとまりは意味の区切りなので、たいていそのまま名詞句)
+  const pe = stPieceEnd(toks, j, b);
+  // まとまりの中に動詞があれば、そこまで(例: "My father cannot" → My father)
+  let e = j + 1;
+  while (e < pe) {
+    const x = W(e);
+    if (ST_PREPS.has(x) && !['of', 'than', 'as', 'like'].includes(x) && e > j) break;
+    if (x === 'to' && ST_VERB_BASE[W(e + 1)]) break;
+    // 名詞と同じ形の語が、まとまりの最後にあって、次のまとまりが動詞なら名詞(Hot drinks | keep)
+    const nounHere = (ST_NOUNISH.has(x) || ST_NOUNISH.has(ST_VERB_BASE[x])) && (DETERMINERS.has(W(e - 1)) || /'s$/.test(W(e - 1)) || e === pe - 1 && pe < b && stFiniteStart(W(pe)) && !SUBJECT_PRONOUNS.has(W(e - 1)) && !toks[e - 1].cap);
+    if (stFiniteStart(x) && !/ing$/.test(x) && !nounHere) break;
+    if (subject && /'(m|re|s|ll)$/.test(x)) break;
+    e++;
+  }
+  // 名詞句の続き: of 〜 / and 〜 のまとまり、関係代名詞・分詞・to 不定詞の後置修飾は修飾として別に扱う
+  if (e === pe) {
+    while (e < b && toks[e].k === 0 && (W(e) === 'and' || W(e) === 'or') && !stFiniteStart(W(e + 1)) && !ST_SUBJ_PRON.has(W(e + 1))) { e = stPieceEnd(toks, e, b); }
+  }
+  return e;
+}
+
+// 前置詞のまとまり: 前置詞＋名詞句(まとまりの終わりまで)
+function stPrepPhrase(toks, i, b) {
+  if (i + 1 >= b) return i; // 文末の前置詞だけ(Where are you from?)は ( ) にしない
+  let e = stPieceEnd(toks, i, b);
+  // 前置詞だけのまとまり(in / at)のときは次のまとまりまで
+  if (e === i + 1 && e < b) e = stPieceEnd(toks, e, b);
+  // まとまりの中に動詞の形があれば前置詞句ではない
+  for (let j = i + 1; j < e; j++) if (!toks[j].cap && stFiniteStart(toks[j].w) && !/ing$/.test(toks[j].w) && !ST_NOUNISH.has(toks[j].w) && !ST_NOUNISH.has(ST_VERB_BASE[toks[j].w]) && !(DETERMINERS.has(toks[j - 1].w))) return i;
+  return e;
+}
+
+// 動詞のまとまり(助動詞・not・副詞・be ＋ -ing / 過去分詞・have ＋ 過去分詞)。そのあとの O・C・M も判定する
+function stVerbGroup(toks, i, b, impStart, itS) {
+  const W = j => (j < b && toks[j] ? toks[j].w : '');
+  let j = i;
+  let main = null;
+  let sawBe = false;
+  const hasAuxOnly = [];
+  while (j < b) {
+    const w = W(j);
+    if (ST_AUX.has(w) || ['not', 'never', 'always', 'often', 'usually', 'sometimes', 'also', 'really', 'just', 'still', 'already', 'ever', 'only', 'even', 'once', 'cannot', 'all', 'both'].includes(w) || w === 'be' || w === 'been' || w === 'being' || w === "let's" || w === 'please') {
+      if (ST_BE.has(w)) sawBe = true;
+      if (['have', 'has', 'had'].includes(w) && W(j + 1) === 'to') { toks[j].role = 'V'; toks[j + 1].role = 'V'; j += 2; continue; }
+      toks[j].role = toks[j].role || (['not', 'never', 'always', 'often', 'usually', 'sometimes', 'also', 'really', 'just', 'still', 'already', 'ever', 'only', 'even', 'once', 'please', 'all', 'both'].includes(w) ? 'm' : 'V');
+      if (['have', 'has', 'had'].includes(w) && !ST_VERB_BASE[W(j + 1)] && !['not', 'never', 'just', 'already', 'ever', 'been', 'to'].includes(W(j + 1))) { main = 'have'; toks[j].role = 'V'; j++; break; }
+      if (['do', 'does', 'did'].includes(w) && !ST_VERB_BASE[W(j + 1)] && !['not', 'never'].includes(W(j + 1)) && !ST_SUBJ_PRON.has(W(j + 1))) { main = 'do'; toks[j].role = 'V'; j++; break; }
+      j++;
+      continue;
+    }
+    // have to / has to / going to
+    if (w === 'going' && W(j + 1) === 'to' && ST_VERB_BASE[W(j + 2)] === W(j + 2)) { toks[j].role = 'V'; toks[j + 1].role = 'V'; j += 2; continue; }
+    if (['have', 'has', 'had'].includes(w) && W(j + 1) === 'to') { toks[j].role = 'V'; toks[j + 1].role = 'V'; j += 2; continue; }
+    if (w === 'used' && W(j + 1) === 'to') { toks[j].role = 'V'; toks[j + 1].role = 'V'; j += 2; continue; }
+    const base = ST_VERB_BASE[w];
+    if (base && sawBe && (ST_EMO_ADJ.has(w) || ST_ADJ_ING.has(w))) break; // be surprised / be interested は形容詞(C)
+    if (base) { toks[j].role = 'V'; main = base; j++; break; }
+    break;
+  }
+  if (!main) {
+    // be動詞・助動詞だけ(I am a student / Yes, I can.)
+    const lastV = (() => { for (let k = j - 1; k >= i; k--) if (toks[k].role === 'V') return toks[k].w; return null; })();
+    if (!lastV) return false;
+    main = ST_BE.has(lastV) || lastV === 'be' || lastV === 'been' ? 'be' : 'aux';
+  }
+  // 句動詞の副詞(get up / come back / look at)は動詞のまとまりに入れる
+  while (j < b && ['up', 'down', 'back', 'out', 'away', 'off', 'on', 'forward'].includes(W(j)) && toks[j].pi === toks[j - 1].pi) { toks[j].role = 'V'; j++; if (!main.includes('+')) main += '+prt'; }
+  if (j < b && ['at', 'for', 'after', 'to'].includes(W(j)) && toks[j].pi === toks[j - 1].pi && ['look', 'wait', 'listen', 'take', 'look', 'talk', 'go', 'come'].includes(main) && !(W(j) === 'to' && ['go', 'come', 'talk'].includes(main))) {
+    if (['look', 'wait', 'listen', 'take'].includes(main)) { toks[j].role = 'V'; j++; main = main + '+prep'; }
+  }
+  return stComplements(toks, j, b, main, itS);
+}
+
+// 主語と動詞が1語(I'm / It's)のあと
+function stAfterVerbStart(toks, i, b, base, itS) {
+  const W = j => (j < b && toks[j] ? toks[j].w : '');
+  // I'm going to 〜 / It's raining / You'll love 〜 / I've been 〜
+  if (base === 'be' || base === 'will' || base === 'would' || base === 'have') {
+    let j = i;
+    while (j < b && ['not', 'never', 'always', 'often', 'usually', 'sometimes', 'also', 'really', 'just', 'still', 'already', 'very', 'so', 'ever'].includes(W(j)) && !(['very', 'so'].includes(W(j)))) { toks[j].role = 'm'; j++; }
+    if (W(j) === 'going' && W(j + 1) === 'to' && ST_VERB_BASE[W(j + 2)]) { toks[j].role = 'V'; toks[j + 1].role = 'V'; j += 2; return stVerbGroup(toks, j, b, null, itS); }
+    if (base === 'be' && /ing$/.test(W(j)) && ST_VERB_BASE[W(j)] && !ST_ADJ_ING.has(W(j))) { return stVerbGroup(toks, j, b, null, itS); }
+    if (base === 'be' && stIsPP(W(j)) && W(j) !== ST_VERB_BASE[W(j)] && !ST_EMO_ADJ.has(W(j))) return stVerbGroup(toks, j, b, null, itS);
+    if (base !== 'be') return stVerbGroup(toks, j, b, null, itS);
+    return stComplements(toks, j, b, 'be', itS);
+  }
+  return false;
+}
+
+// 動詞のあとの O・C・M
+function stComplements(toks, j, b, main, itS) {
+  const W = k => (k < b && toks[k] ? toks[k].w : '');
+  const set = (from, to, role) => { for (let k = from; k < to && k < b; k++) if (toks[k].role == null) toks[k].role = role; };
+  let objs = 0, comps = 0;
+  const baseMain = main.replace(/\+.*$/, '');
+  toks.curMain = baseMain;
+  const linking = ST_LINKING.has(baseMain) && !main.includes('+');
+  while (j < b) {
+    const w = W(j);
+    if (toks[j].role != null) { j++; continue; }
+    const pe = stPieceEnd(toks, j, b);
+    const pw = toks.slice(j, pe).map(t => t.w).join(' ');
+    // 等位接続詞＋動詞(He runs and walks)
+    if (['and', 'or', 'but'].includes(w) && stFiniteStart(W(j + 1)) && !ST_SUBJ_PRON.has(W(j + 1)) && !/ing$/.test(W(j + 1))) {
+      toks[j].role = ''; j++;
+      // 2つ目の動詞
+      const ok = stVerbGroup(toks, j, b, null, itS); return ok;
+    }
+    // 従属節(when / if / because 〜)
+    if (ST_SUBCONJ.has(w) && w !== 'as' && stHasClause(toks, j + 1, b) && !(ST_WH.has(w) && ST_THINK.has(baseMain) && objs <= 1 && baseMain !== 'call')) {
+      if (w === 'so' && !/,$/.test(stRaw(toks, j - 1)) && false) break;
+      const e = stSubClauseEnd(toks, j + 1, b);
+      if (!stParseClause(toks, j + 1, e, false, true)) return false;
+      stWrap(toks, j, e, '[', 'M');
+      j = e; continue;
+    }
+    // 疑問詞 ＋ to 〜(what to do / how to cook)は名詞のまとまり
+    const whTo = ST_WH.has(w) && (W(j + 1) === 'to' && ST_VERB_BASE[W(j + 2)] ? j + 1 : W(j + 2) === 'to' && ST_VERB_BASE[W(j + 3)] && toks[j + 1].pi === toks[j].pi ? j + 2 : -1);
+    if (whTo > 0) {
+      const e = stInfEnd(toks, whTo, b);
+      stWrap(toks, j, e, '[', baseMain === 'be' ? 'C' : 'O'); objs++; j = e; continue;
+    }
+    // than 〜 / as 〜 のあとの文(than I do / as I do)
+    if ((w === 'than' || w === 'as') && stHasClause(toks, j + 1, b) && (ST_SUBJ_PRON.has(W(j + 1)) || DETERMINERS.has(W(j + 1)))) {
+      stWrap(toks, j, b, '[', 'M'); j = b; continue;
+    }
+    // as 〜 as(be動詞のあとは C、それ以外は M)。続く比べる相手は M
+    if (w === 'as' && W(j + 2) === 'as' && toks[j].k === 0 && stPieceEnd(toks, j, b) === j + 3) {
+      set(j, j + 3, baseMain === 'be' && comps === 0 ? 'C' : 'M'); if (baseMain === 'be') comps++;
+      const e2 = j + 3 < b ? (stHasClause(toks, j + 3, b) ? b : stPieceEnd(toks, j + 3, b)) : j + 3;
+      if (e2 > j + 3) stWrap(toks, j + 3, e2, e2 === b && stHasClause(toks, j + 3, b) ? '[' : '(', 'M');
+      j = e2; continue;
+    }
+    // 名詞節(that 〜 / 疑問詞 〜 / that のない節)を目的語に
+    const whClause = ST_WH.has(w) && (() => { let k = j + 1; while (k < b && k < j + 4 && !ST_SUBJ_PRON.has(W(k)) && !DETERMINERS.has(W(k)) && !toks[k].cap && !stFiniteStart(W(k))) k++; return stHasClause(toks, k, b) || stFiniteStart(W(j + 1)) && !ST_AUX.has(W(j + 1)) || ['is', 'was'].includes(W(j + 1)) && false; })();
+    if ((ST_THINK.has(baseMain) || baseMain === 'be' && comps > 0) && (w === 'that' && stHasClause(toks, j + 1, b) || whClause || w === 'if' && baseMain !== 'be' && stHasClause(toks, j + 1, b))) {
+      const role = baseMain === 'be' ? 'm' : 'O';
+      // 疑問詞＋to 〜(how to 〜 / what to 〜)
+      toks[j].role = '[' + role;
+      const e = stSubClauseEnd(toks, j + 1, b);
+      if (ST_WH.has(w) && W(j + 1) !== 'to') {
+        // 間接疑問: what he likes / where she lives / how many books he has / what time it is
+        let k = j + 1;
+        while (k < e && !ST_SUBJ_PRON.has(W(k)) && !DETERMINERS.has(W(k)) && !stFiniteStart(W(k)) && !/^[A-Z]/.test(toks[k].raw || '')) { toks[k].role = '[' + role; k++; }
+        if (stFiniteStart(W(k)) && !ST_SUBJ_PRON.has(W(k))) {
+          // who is 〜 / what happened: 疑問詞が主語
+          if (!stVerbGroup(toks, k, e, null)) return false;
+        } else if (!stParseClause(toks, k, e, false, true)) return false;
+      } else if (W(j + 1) === 'to') {
+        for (let k = j + 1; k < e; k++) toks[k].role = '[' + role;
+      } else if (!stParseClause(toks, j + 1, e, false, true)) return false;
+      stWrap(toks, j, e, '[', role);
+      if (role === 'O') objs++;
+      j = e; continue;
+    }
+    if (ST_THINK.has(baseMain) && objs === (['tell', 'show', 'teach', 'ask'].includes(baseMain) ? 1 : 0) && (ST_SUBJ_PRON.has(w) && w !== 'it' || w === 'it' && stFiniteStart(W(j + 1)) || DETERMINERS.has(w) || /'s$/.test(w) || toks[j].cap || ST_BE.has(W(j + 1)) || /'(ll|re|s|m)$/.test(w)) && (stHasClauseHere(toks, j, b) || /'(ll|re|m)$/.test(w)) && toks[j].k === 0) {
+      // that のない名詞節: I think he is kind.
+      const e = stSubClauseEnd(toks, j, b);
+      if (!stParseClause(toks, j, e, false, true)) return false;
+      stWrap(toks, j, e, '[', 'O');
+      objs++; j = e; continue;
+    }
+    // to 不定詞
+    if (w === 'to' && ST_VERB_BASE[W(j + 1)] && (ST_VERB_BASE[W(j + 1)] === W(j + 1) || W(j + 1) === 'be') && !(['go', 'come', 'get', 'walk', 'return'].includes(baseMain) && ['work', 'bed'].includes(W(j + 1)))) {
+      const e = stInfEnd(toks, j, b);
+      let role;
+      if (itS) role = '真S';
+      else if (ST_TOVERB.has(baseMain) && objs === 0 && comps === 0) { role = 'O'; objs++; }
+      else if (ST_TOOBJ.has(baseMain) && objs === 1 && toks[j].k === 0 && !['something', 'anything', 'nothing', 'time'].includes(W(j - 1))) { role = 'C'; comps++; }
+      else if (baseMain === 'be' && comps === 0 && !itS && W(j - 1) && toks[j - 1].role === 'V') { role = 'C'; comps++; }
+      else role = 'M';
+      stWrap(toks, j, e, '(', role);
+      j = e; continue;
+    }
+    // 前置詞のまとまり
+    if (ST_PREPS.has(w) && !(w === 'like' && false)) {
+      const e = stPrepPhrase(toks, j, b);
+      if (e === j) { toks[j].role = 'm'; j++; continue; }
+      // 前置詞のまとまりの名詞を説明する関係代名詞(to a shop | that sells 〜)
+      if (e < b && toks[e].k === 0 && ['who', 'which', 'that'].includes(W(e)) && stFiniteStart(W(e + 1))) {
+        const e2 = stPieceEnd(toks, e, b);
+        if (stVerbGroup(toks, e + 1, e2, null)) { stWrap(toks, j, e2, '(', 'M'); j = e2; continue; }
+      }
+      stWrap(toks, j, e, '(', 'M');
+      j = stPostModifier(toks, e, b, 'M');
+      continue;
+    }
+    // 時・様子の副詞
+    if (ST_TIME_NOUN.test(pw) && !(objs === 0 && ['forget', 'remember', 'enjoy', 'spend', 'love', 'like'].includes(baseMain))) { set(j, pe, 'M'); j = pe; continue; }
+    const placeTime = ['here', 'there', 'home', 'today', 'now', 'yesterday', 'tomorrow', 'then', 'too', 'also', 'always', 'often', 'sometimes', 'usually', 'never', 'not', 'already', 'still', 'just', 'again', 'together', 'tonight', 'soon', 'ago', 'only', 'ever', 'yet', 'abroad', 'outside', 'inside', 'away', 'back', 'up', 'down', 'off', 'please', 'once', 'twice', 'first'].includes(w);
+    if (ST_ADV.has(w) && !(linking && comps === 0 && objs === 0 && !placeTime)) {
+      // very / so ＋ 形容詞は C のまとまりの一部
+      if ((['very', 'so', 'really', 'too', 'much', 'more', 'most', 'a'].includes(w)) && linking && comps === 0 && W(j + 1) && !ST_PREPS.has(W(j + 1)) && !ST_ADV.has(W(j + 1))) {
+        // fall through to C
+      } else if (w === 'home' && objs === 0 && ['clean', 'build', 'buy'].includes(baseMain)) {
+        // fall through
+      } else { toks[j].role = 'm'; j++; continue; }
+    }
+    // go shopping / go fishing の -ing は M
+    if (/ing$/.test(w) && w.length > 5 && baseMain === 'go' && objs === 0) { const e = stPieceEnd(toks, j, b); set(j, e, 'M'); j = e; continue; }
+    // 一般動詞のあとの the ＋ 最上級(runs the fastest)は M
+    if (w === 'the' && !linking && /^(\w+est|best|most \w+)$/.test(toks.slice(j + 1, stPieceEnd(toks, j, b)).map(t => t.w).join(' '))) { const e = stPieceEnd(toks, j, b); set(j, e, 'M'); j = e; continue; }
+    // 動名詞の目的語(enjoy playing tennis / stop drinking coffee)
+    if (/ing$/.test(w) && ST_VERB_BASE[w] && ST_ING_OBJ.has(baseMain) && objs === 0) {
+      let e = stPieceEnd(toks, j, b);
+      while (e < b && toks[e].k === 0 && !ST_PREPS.has(W(e)) && !ST_TIME_NOUN.test(toks.slice(e, stPieceEnd(toks, e, b)).map(t => t.w).join(' ')) && !ST_ADV.has(W(e)) && !ST_SUBCONJ.has(W(e)) && !['and', 'but', 'or'].includes(W(e))) e = stPieceEnd(toks, e, b);
+      set(j, e, 'O'); objs++; j = e; continue;
+    }
+    // 動詞の原形(make / let / help ＋ 人 ＋ 原形)
+    if (ST_CAUSE.has(baseMain) && objs === 1 && ST_VERB_BASE[w] === w) {
+      const e = stInfEnd(toks, j - 1, b, true);
+      set(j, e, 'C'); comps++; j = e; continue;
+    }
+    // 名詞・形容詞のまとまり
+    let e = stNounPhrase(toks, j, b);
+    if (e === j) { e = pe; }
+    // 現在分詞・過去分詞・関係代名詞の後置修飾(the girl running there / the book written by / the boy who 〜)
+    const role = (() => {
+      if (linking && baseMain !== 'be' && baseMain !== 'become' && objs === 0 && comps === 0 && /^(a|an|the|some|my|his|her|our|their|your|this|that)$/.test(w) && ['get', 'keep', 'turn', 'taste', 'smell', 'feel'].includes(baseMain)) { objs++; return 'O'; }
+      if (baseMain === 'be' || linking && objs === 0) {
+        if (comps === 0 && !(linking && baseMain !== 'be' && objs > 0)) { comps++; return 'C'; }
+        return comps > 0 ? 'C' : 'M';
+      }
+      if (baseMain === 'aux' || baseMain === 'do' && objs > 0) return 'M';
+      if (objs === 0 && ['call', 'name'].includes(baseMain) && toks.slice(0, j).some(t => t.role === 'V' && ST_BE.has(t.w))) { comps++; return 'C'; }
+      if (objs === 0) { objs++; return 'O'; }
+      if (objs === 1 && ST_SVOC.has(baseMain) && !ST_OBJ_PRON.has(w) && comps === 0 && !(ST_DITRANS.has(baseMain) && /^(a|an|the|some|my|his|her|our|their|your)$/.test(w))) { comps++; return 'C'; }
+      if (objs === 1 && ST_DITRANS.has(baseMain)) { objs++; return 'O'; }
+      if (objs === 1 && ST_SVOC.has(baseMain) && comps === 0) { comps++; return 'C'; }
+      return null;
+    })();
+    if (!role) return false;
+    set(j, e, role);
+    j = e;
+    // 名詞のあとの説明(関係代名詞・分詞・to 不定詞)は、その名詞と同じ役割の中の修飾
+    j = stPostModifier(toks, j, b, role, itS);
+  }
+  return true;
+}
+function stHasClauseHere(toks, j, b) {
+  // j から始まるまとまりの中または次に、動詞があるか
+  // 名詞のまとまりのすぐあとに動詞が来るときだけ(I think he is kind)。the girl who 〜 / the pictures you took は文ではない
+  const e = stNounPhrase(toks, j, b, true);
+  if (e === j || e >= b) return false;
+  const n = toks[e].w;
+  return stFiniteStart(n) && !ST_SUBJ_PRON.has(n) && !/ing$/.test(n);
+}
+// 名詞のうしろの説明: 関係代名詞(who / which / that)、分詞、to 不定詞、前置詞のまとまり
+function stPostModifier(toks, j, b, role, itS) {
+  const vmain = toks.curMain || '';
+  const W = k => (k < b && toks[k] ? toks[k].w : '');
+  for (let guard = 0; guard < 4 && j < b; guard++) {
+    const w = W(j);
+    if (toks[j].role != null) return j;
+    if (['who', 'which', 'that', 'whose'].includes(w) && toks[j].k === 0 && !ST_OBJ_PRON.has(toks[j - 1] ? toks[j - 1].w : '') && !(w === 'that' && role === 'O' && ['tell', 'show', 'teach', 'ask'].includes(vmain) && stHasClause(toks, j + 1, b))) {
+      const e = stPieceEnd(toks, j, b);
+      toks[j].role = '[M';
+      // 関係代名詞が主語(who lives 〜)か目的語(that I bought)か
+      if (stFiniteStart(W(j + 1)) && !ST_SUBJ_PRON.has(W(j + 1))) { if (!stVerbGroup(toks, j + 1, e, null)) return j; }
+      else if (!stParseClause(toks, j + 1, e, false, true)) return j;
+      stWrap(toks, j, e, '[', 'M');
+      j = e; continue;
+    }
+    // 接触節: the book I bought yesterday
+    if ((ST_SUBJ_PRON.has(w) && w !== 'it' && w !== 'that' && w !== 'there' || ['my', 'his', 'her', 'your', 'our', 'their'].includes(w) || toks[j].cap) && toks[j].k === 0 && role !== 'V' && stContactClause(toks, j, b)) {
+      const e = stPieceEnd(toks, j, b);
+      if (!stParseClause(toks, j, e, false, true)) return j;
+      stWrap(toks, j, e, '[', 'M');
+      j = e; continue;
+    }
+    const vb = ST_VERB_BASE[w];
+    if (vb && (vb !== w || stIsPP(w) && ST_PREPS.has(W(j + 1))) && (w === verbIng(vb) || stIsPP(w)) && toks[j].k === 0 && !(role === 'O' && ST_SVOC.has(vmain)) && !ST_ADJ_ING.has(w) && !ST_EMO_ADJ.has(w)) {
+      const e = stPieceEnd(toks, j, b);
+      stWrap(toks, j, e, '(', 'M');
+      j = e; continue;
+    }
+    // 名詞のうしろの to 不定詞(something to eat)・前置詞のまとまり(the high in Sapporo)
+    if (w === 'to' && ST_VERB_BASE[W(j + 1)] === W(j + 1) && role !== 'V' && role !== 'M' && !itS && !(role === 'O' && ST_TOOBJ.has(vmain))) {
+      const e = role === 'S' ? stPieceEnd(toks, j, b) : stInfEnd(toks, j, b);
+      stWrap(toks, j, e, '(', 'M'); j = e; continue;
+    }
+    if (ST_PREPS.has(w) && !['than', 'as', 'like', 'up', 'out', 'off', 'to', 'for', 'since', 'until', 'before', 'after', 'during', 'by', 'with', 'at', 'on', 'from', 'about'].includes(w) && role === 'S') {
+      const e = stPrepPhrase(toks, j, b); if (e === j) return j;
+      stWrap(toks, j, e, '(', 'M'); j = e; continue;
+    }
+    return j;
+  }
+  return j;
+}
+function stContactClause(toks, j, b) {
+  // 代名詞＋動詞(I bought / you like)で、そのあとが文の残り
+  let n = toks[j + 1] ? toks[j + 1].w : '';
+  if (n === 'all' && toks[j + 2]) n = toks[j + 2].w;
+  return stFiniteStart(n) && !/ing$/.test(n) && n !== 'all' || (['my', 'his', 'her', 'your', 'our', 'their'].includes(toks[j].w) && stFiniteStart(toks[j + 2] ? toks[j + 2].w : ''));
+}
+// 従属節の終わり: コンマ・文末、または(関係代名詞節なら)主節の動詞の前
+function stSubClauseEnd(toks, i, b, relative) {
+  for (let k = i; k < b; k++) if (/,$/.test(stRaw(toks, k)) && k + 1 < b) return k + 1;
+  return b;
+}
+// to 不定詞のまとまりの終わり(to ＋ 動詞 ＋ 目的語 …)
+function stInfEnd(toks, j, b, bare) {
+  let e = j + (bare ? 1 : 2);
+  const think = !bare && ST_THINK.has(ST_VERB_BASE[toks[j + 1] ? toks[j + 1].w : '']);
+  // まとまりの終わりまで、次のまとまりも目的語・修飾語なら含める
+  while (e < b && toks[e].k !== 0) e++;
+  while (e < b && toks[e].k === 0 && !(ST_SUBCONJ.has(toks[e].w) && !(think && ST_WH.has(toks[e].w)) && (stHasClause(toks, e + 1, b) || !['so', 'as', 'before', 'after', 'since', 'until'].includes(toks[e].w))) && !['and', 'but', 'or'].includes(toks[e].w) && !/,$/.test(stRaw(toks, e - 1))) {
+    e = stPieceEnd(toks, e, b);
+  }
+  return e;
+}
+
+// Yes / No 疑問文: 助動詞 ＋ 主語 ＋ 動詞 …
+function stYesNoQuestion(toks, i, b) {
+  const W = j => (j < b && toks[j] ? toks[j].w : '');
+  toks[i].role = 'V';
+  const aux = W(i);
+  let j = i + 1;
+  if (W(j) === 'not') { toks[j].role = 'm'; j++; }
+  const e = stNounPhrase(toks, j, b, true);
+  if (e === j) return false;
+  for (let k = j; k < e; k++) toks[k].role = W(j) === 'it' && stItTo(toks, e, b) ? '仮S' : 'S';
+  const itS = W(j) === 'it' && stItTo(toks, e, b);
+  if (e >= b) return true;
+  if (ST_BE.has(aux)) {
+    // Are you busy? / Is he playing 〜? / Was it written 〜?
+    // Is the girl | singing over there | your sister?(進行形でなく、主語の説明)
+    if (toks[e].k === 0 && (/ing$/.test(W(e)) || stIsPP(W(e))) && !stJpProgressive(toks) && !ST_SUBJ_PRON.has(W(j)) && stPieceEnd(toks, e, b) < b && !ST_PREPS.has(W(stPieceEnd(toks, e, b))) && !ST_TIME_NOUN.test(toks.slice(stPieceEnd(toks, e, b), b).map(t => t.w).join(' '))) { const e2 = stPostModifier(toks, e, b, 'S'); if (e2 > e && e2 < b) return stComplements(toks, e2, b, 'be', itS); }
+    if (e < b && toks[e].k === 0 && ['who', 'which', 'that'].includes(W(e)) || toks[e].k === 0 && (ST_SUBJ_PRON.has(W(e)) || toks[e].cap) && W(e) !== 'it') { const e2 = stPostModifier(toks, e, b, 'S'); if (e2 > e && e2 < b) return stComplements(toks, e2, b, 'be', itS); }
+    if (ST_VERB_BASE[W(e)] && (/ing$/.test(W(e)) || stIsPP(W(e)) && W(e) !== ST_VERB_BASE[W(e)]) && !ST_EMO_ADJ.has(W(e)) && !ST_ADJ_ING.has(W(e))) return stVerbGroup(toks, e, b, null, itS);
+    if (W(e) === 'going' && W(e + 1) === 'to') { toks[e].role = 'V'; toks[e + 1].role = 'V'; return stVerbGroup(toks, e + 2, b, null, itS); }
+    return stComplements(toks, e, b, 'be', itS);
+  }
+  if (['have', 'has', 'had'].includes(aux) && !ST_VERB_BASE[W(e)] && !['ever', 'never', 'already', 'just'].includes(W(e))) return stComplements(toks, e, b, 'have');
+  return stVerbGroup(toks, e, b, null, itS);
+}
+
+// 疑問詞の疑問文
+function stWhQuestion(toks, i, b) {
+  const W = j => (j < b && toks[j] ? toks[j].w : '');
+  // 疑問詞のまとまり: what / what time / how many books / which bus / whose bag / how old
+  let j = i + 1;
+  const wh = W(i);
+  while (j < b && toks[j].pi === toks[i].pi && !ST_AUX.has(W(j)) && (!stFiniteStart(W(j)) || ['of', 'many', 'kinds', 'kind'].includes(W(j - 1)) && ST_NOUNISH.has(ST_VERB_BASE[W(j)]))) j++;
+  // 次のまとまりが名詞(How many / books)
+  if (j < b && toks[j].pi !== toks[i].pi && ['many', 'much', 'old', 'long', 'far', 'tall', 'big'].includes(W(j - 1)) === false && /^(how many|how much|what|which|whose)$/.test(toks.slice(i, j).map(t => t.w).join(' ')) && !ST_AUX.has(W(j)) && !stFiniteStart(W(j))) {
+    j = stPieceEnd(toks, j, b);
+  }
+  const whWords = toks.slice(i, j).map(t => t.w).join(' ');
+  const advWh = /^(where|when|why|how)$/.test(whWords) || /^what time|^how (often|long|far|soon|many times)|^what day/.test(whWords);
+  const howAdj = /^how (old|tall|big|many|much)$/.test(whWords) && false;
+  if (j >= b) return false;
+  const n = W(j);
+  // 疑問詞が主語: Who plays 〜? / What happened? / Which bus goes 〜?
+  if (!ST_AUX.has(n) || (ST_BE.has(n) && false)) {
+    if (stFiniteStart(n) && !advWh) {
+      for (let k = i; k < j; k++) toks[k].role = 'S';
+      return stVerbGroup(toks, j, b, null);
+    }
+    if (/'s$/.test(toks[i].w)) { toks[i].role = 'C'; }
+    return false;
+  }
+  // How many books are there? / What is there 〜?: 疑問詞のまとまりが主語
+  if (ST_BE.has(n) && W(j + 1) === 'there') {
+    for (let x = i; x < j; x++) toks[x].role = 'S';
+    toks[j].role = 'V'; toks[j + 1].role = '';
+    return stComplements(toks, j + 2, b, 'done');
+  }
+  // 助動詞 ＋ 主語 ＋ 動詞
+  toks[j].role = 'V';
+  let k = j + 1;
+  if (W(k) === 'not') { toks[k].role = 'm'; k++; }
+  if (k >= b) {
+    // Who is he? → 主語がない(Who are you の形でまとまりが2つ)
+    return false;
+  }
+  const e = stNounPhrase(toks, k, b, true);
+  if (e === k) return false;
+  for (let x = k; x < e; x++) toks[x].role = 'S';
+  // be動詞の疑問文
+  if (ST_BE.has(n)) {
+    // Who is the girl | reading a book? / What is the sport | that you like?: 主語の説明
+    if (e < b && toks[e].k === 0 && !ST_SUBJ_PRON.has(W(k)) && ((/ing$/.test(W(e)) || stIsPP(W(e))) && !stJpProgressive(toks) && W(e) !== 'going' || ['who', 'which', 'that'].includes(W(e)) || (ST_SUBJ_PRON.has(W(e)) || toks[e].cap) && W(e) !== 'it')) {
+      const e2 = stPostModifier(toks, e, b, 'S');
+      if (e2 > e) { for (let x = i; x < j; x++) toks[x].role = advWh && wh !== 'how' ? 'M' : 'C'; return stComplements(toks, e2, b, 'done'); }
+    }
+    if (e < b && ST_VERB_BASE[W(e)] && (/ing$/.test(W(e)) || W(e) === 'going' || stIsPP(W(e)) && W(e) !== ST_VERB_BASE[W(e)])) {
+      for (let x = i; x < j; x++) toks[x].role = advWh ? 'M' : 'O';
+      if (W(e) === 'going' && W(e + 1) === 'to') { toks[e].role = 'V'; toks[e + 1].role = 'V'; return stVerbGroup(toks, e + 2, b, null) && stWhFix(toks, i, j, b, advWh); }
+      return stVerbGroup(toks, e, b, null) && stWhFix(toks, i, j, b, advWh);
+    }
+    for (let x = i; x < j; x++) toks[x].role = advWh && wh !== 'how' ? 'M' : 'C';
+    if (/^how$/.test(whWords)) for (let x = i; x < j; x++) toks[x].role = 'C';
+    // Which is bigger, A or B? はあつかわない。Who is the youngest? は疑問詞が S、最上級が C
+    const after = toks.slice(k, e).map(t => t.w).join(' ');
+    if ((COMPARE_BASE_OF[after] && COMPARE_BASE_OF[after] !== after && !/est$/.test(after)) || /^(more \w+|better)$/.test(after)) return false;
+    if (/^the (\w+est|best|most \w+)$/.test(after)) { for (let x = i; x < j; x++) toks[x].role = 'S'; for (let x = k; x < e; x++) toks[x].role = 'C'; return stComplements(toks, e, b, 'done'); }
+    return stComplements(toks, e, b, 'be') && true;
+  }
+  // do / can / will ＋ 主語 ＋ 動詞
+  for (let x = i; x < j; x++) toks[x].role = advWh ? 'M' : null;
+  const ok = stVerbGroup(toks, e, b, null);
+  if (!ok) return false;
+  return stWhFix(toks, i, j, b, advWh);
+}
+// 日本語が「〜していますか / 〜しているの」で終わる(進行形の疑問文)
+function stJpProgressive(toks) { return /(てい|でい)(ます|る|ました|た)(か|の)?[。？?]?$/.test(toks.jp || ''); }
+// 疑問詞の役割を決める: 動詞のあとに目的語がなければ、疑問詞が O
+function stWhFix(toks, i, j, b, advWh) {
+  if (advWh) { for (let x = i; x < j; x++) toks[x].role = 'M'; return true; }
+  const rest = toks.slice(j, b).map(t => t.role);
+  const hasO = rest.some(r => r && r.replace(/^[(\[]/, '') === 'O');
+  const hasC = rest.some(r => r && r.replace(/^[(\[]/, '') === 'C');
+  // 目的語がない → 疑問詞が O(What do you like?)。前置詞で終わる(Who are you waiting for?)も O とみなさず M
+  // 目的語が to 不定詞だけ(What do you want to eat?)なら、疑問詞は不定詞の動詞の目的語
+  const lastT = toks[b - 1], prevT = toks[b - 2];
+  const infO = rest.some(r => r === '(O') || (prevT && prevT.w === 'to' && ST_VERB_BASE[lastT.w] === lastT.w);
+  let role = hasO && !infO ? (hasC ? 'M' : 'C') : 'O';
+  // 他動詞でない(be / go / live / come)なら C か M
+  for (let x = i; x < j; x++) toks[x].role = role;
+  return true;
+}
+
+// 主語・動詞・目的語 などのあとの語の残り(Thank you のあとなど)
+function stRest(toks, i, b) {
+  return stComplements(toks, i, b, 'done');
+}
 const LOWERCASE_SUBJECT_HEADS = new Set(['he', 'she', 'it', 'we', 'they', 'you', 'this', 'that', 'these', 'those',
   'the', 'my', 'your', 'his', 'her', 'our', 'their', 'there', 'a', 'an', 'some', 'its']);
 const REWRITE_SKIP_WORDS = new Set(['not', 'never', 'cannot', 'who', 'which', 'whose', 'when', 'if', 'because',
@@ -6299,10 +7019,12 @@ function explainItem(stage, item) {
   }
   if (item.type === 'reorder' || item.type === 'translate' || item.type === 'trace') {
     const first = guideClean(item.tokens[0]);
+    // 文の構造(上に訳・下に S・V・O・C・M)がわかる文は図にする。わからない文は、まとまりごとに意味をそえて英語の順番を見せる
+    const st = structureHtml(item.pieces, item.jp);
     return {
       hint: item.type === 'reorder' ? `最初の語は「${first}」。` : `${item.tokens.length}語の英文。「${first} …」で始めよう。`,
-      // まとまりごとに意味をそえて、英語の順番を見せる
-      why: `${item.pieces.map(p => (p.jp ? `${p.en}（${p.jp}）` : p.en)).join(' → ')}。${guide.form ? `語順は「${guide.form}」。` : ''}`,
+      st,
+      why: st ? (guide.form ? `語順は「${guide.form}」。` : '') : `${item.pieces.map(p => (p.jp ? `${p.en}（${p.jp}）` : p.en)).join(' → ')}。${guide.form ? `語順は「${guide.form}」。` : ''}`,
     };
   }
   if (item.blankIndex == null) return { hint: '', why: guide.point || '' };
@@ -6355,6 +7077,14 @@ function explainItem(stage, item) {
   }
   return r || { hint: '', why: guide.point || '' };
 }
+
+// 構文図: まとまりごとに、上に訳、下に文の中での役割(S・V・O・C・M)。( ) は前置詞・to 〜 のまとまり、[ ] は文の中の文
+function structureHtml(pieces, jp) {
+  const st = pieces && pieces.length > 1 ? sentenceStructure(pieces, jp) : null;
+  if (!st) return '';
+  return `<div class="ws-st">${st.map(p => `<span class="st-c"><i class="st-jp">${(p.jp || '').replace(/[〜~]/g, '')}</i><span class="st-en">${p.open}${p.en.replace(/[.!?]$/, '')}${p.close}</span><b class="st-r">${p.roles.join('・')}</b></span>`).join('')}</div>`;
+}
+const STRUCTURE_LEGEND = '<div class="ws-st-legend"><b>記号の見かた</b> S＝主語（〜は・〜が）　V＝動詞　O＝目的語（〜を・〜に）　C＝補語（S＝C／O＝C の関係）　M＝修飾語（いつ・どこで・どのように など）　( )＝前置詞や to 〜 のまとまり　[ ]＝文の中の文（接続詞・関係代名詞・疑問詞のまとまり）　仮S・真S＝It の文で、本当の主語は to 〜</div>';
 
 // 文中の *語* を強調にする
 function guideMarkup(text) {
@@ -6461,6 +7191,8 @@ function generateGuideWorksheet() {
         seen.add(fullSentence(item));
         seen.add(`${item.type}|${fullSentence(item)}`);
         item.guide = explainItem(stage, item);
+        // 空所・選択の問題も、答えの文の構文図をつける
+        if (!('st' in item.guide) && item.pieces && item.pieces.length > 1) item.guide.st = structureHtml(item.pieces, item.jp);
         item.noHint = true; // 解説つきプリントは語数などのヒントを出さない
         return item;
       };
@@ -7350,7 +8082,7 @@ function guideAnswerItemHtml(item, num) {
         <span class="ws-ans-en">${guideAnswerSentence(item)}</span>
         <span class="ws-ans-check">○×</span></div>
       ${item.type === 'choice' ? `<div class="ws-ans-key">正解：${answerText(item)}</div>` : ''}
-      <div class="ws-ans-why">${item.guide.why}</div>
+      ${item.guide.st || ''}${item.guide.why ? `<div class="ws-ans-why">${item.guide.why}</div>` : ''}
     </div>`;
 }
 // 形式の順(えらぶ → ならべかえ → 書く → 英文)にならべる。同じ形式の中では作った順
@@ -7421,6 +8153,7 @@ function guideIntroAnswerHtml(u, mark, startNum) {
     ${guideRuleHtml(u.stage)}
     ${guideDiagramHtml(u.stage)}
     ${items.map((item, i) => guideAnswerItemHtml(item, startNum + i)).join('')}
+    ${items.some(it => it.guide.st) ? STRUCTURE_LEGEND : ''}
     ${tips ? `<div class="ws-ans-tips"><b>まちがえやすいところ</b><ul>${tips}</ul></div>` : ''}
     <div class="ws-ans-foot">まちがえた問題は、どのルールに合っていなかったかを確かめて直してから、練習問題へ進もう。</div>`;
 }
@@ -7475,7 +8208,8 @@ function guidePracticeAnswerHtml(u, mark, startNum) {
       <div class="ws-ans-top"><span class="ws-num">(${startNum + i})</span>
         <span class="ws-ans-en">${guideAnswerSentence(item)}</span>${item.type === 'choice' ? `<span class="ws-ans-key">${answerText(item).split(' ')[0]}</span>` : ''}
         <span class="ws-ans-check">○×</span></div>
-      <div class="ws-ans-why">${item.guide.why}</div></div>`).join('')}
+      ${item.guide.st || ''}${item.guide.why ? `<div class="ws-ans-why">${item.guide.why}</div>` : ''}</div>`).join('')}
+    ${items.some(it => it.guide.st) ? STRUCTURE_LEGEND : ''}
     <div class="ws-ans-foot">${u.isTest ? 'まちがえた問題は、ポイントと解説をもう一度読んで直そう。' : 'まちがえた問題は、解説を読んで直そう。何回まちがえても、直せば身につきます。'}</div>`;
 }
 
