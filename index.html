@@ -515,6 +515,8 @@
   .ws-st .st-en { font-size: 13px; font-weight: 600; border-bottom: 1px solid currentColor; padding: 0 1px; white-space: nowrap; }
   .ws-st .st-r { font-size: 10.5px; font-weight: 800; color: var(--accent, #c0392b); letter-spacing: .5px; }
   .ws-st-inline { display: inline-flex; margin: 0; vertical-align: top; }
+  .ws-st .st-pat { align-self: center; font-size: 10.5px; font-weight: 800; color: var(--teal, #1f6f6f); border: 1px solid currentColor; border-radius: 3px; padding: 0 4px; margin-right: 2px; }
+  .ws-st .st-post .st-r { color: var(--teal, #1f6f6f); }
   .ws-st .st-slash { align-self: center; font-weight: 800; color: var(--accent, #c0392b); margin: 0 -4px; }
   .ws-slash { font-size: 16px; line-height: 2.2; margin: 6px 0 4px; }
   .ws-slash i { display: inline-block; width: 22px; }
@@ -2210,6 +2212,12 @@ const stages = [
       { jp: "マイクはどこにいますか。", pieces: [{en:"Where", jp:"どこに"}, {en:"is", jp:"いますか"}, {en:"Mike", jp:"マイクは"}] },
       { jp: "あなたのお父さんはどこにいますか。", pieces: [{en:"Where", jp:"どこに"}, {en:"is", jp:"いますか"}, {en:"your father", jp:"あなたのお父さんは"}] },
       { jp: "コンピュータ室はどこですか。", pieces: [{en:"Where", jp:"どこ"}, {en:"is", jp:"ですか"}, {en:"the computer room", jp:"コンピュータ室は"}] },
+      { jp: "体育館は図書館の近くにあります。", pieces: [{en:"The gym", jp:"体育館は"}, {en:"is", jp:"あります"}, {en:"near the library", jp:"図書館の近くに"}] },
+      { jp: "あなたのかばんは机の上にあります。", pieces: [{en:"Your bag", jp:"あなたのかばんは"}, {en:"is", jp:"あります"}, {en:"on the desk", jp:"机の上に"}] },
+      { jp: "マイクは図書館にいます。", pieces: [{en:"Mike", jp:"マイクは"}, {en:"is", jp:"います"}, {en:"in the library", jp:"図書館に"}] },
+      { jp: "トイレはあそこです。", pieces: [{en:"The restroom", jp:"トイレは"}, {en:"is", jp:"です"}, {en:"over there", jp:"あそこ"}] },
+      { jp: "動物園は公園の近くにあります。", pieces: [{en:"The zoo", jp:"動物園は"}, {en:"is", jp:"あります"}, {en:"near the park", jp:"公園の近くに"}] },
+      { jp: "あなたのペンはいすの下にあります。", pieces: [{en:"Your pen", jp:"あなたのペンは"}, {en:"is", jp:"あります"}, {en:"under the chair", jp:"いすの下に"}] },
     ],
   },
   {
@@ -5323,13 +5331,14 @@ function sentenceStructure(pieces, jp, wantTokens) {
     ts.forEach(t => t.role.replace(/^[(\[]/, '').split('+').forEach(base => { if (base && base !== 'm' && !out.includes(base)) out.push(base); }));
     if (!out.length && ts.some(t => t.role === 'm')) out.push('M');
     p.roles = out;
+    p.post = ts.every(t => t.post);
     const first = ts[0], last = ts[ts.length - 1];
     // ( ) [ ] は、まとまりの区切りと一致するときだけ出す(まとまりの途中で始まる・終わるものは出さない)
     const spanOk = sp => { const all = toks.filter(t => t.span === sp); return all[0].k === 0 && stIsPieceLast(toks, all[all.length - 1]); };
     p.open = first.span != null && toks.find(t => t.span === first.span) === first && spanOk(first.span) ? first.br : '';
     p.close = last.span != null && toks.filter(t => t.span === last.span).pop() === last && spanOk(last.span) ? (last.br === '(' ? ')' : ']') : '';
   });
-  return ps.map(({ en, jp, roles, open, close }) => ({ en, jp, roles, open, close }));
+  return ps.map(({ en, jp, roles, open, close, post }) => ({ en, jp, roles, open, close, post }));
 }
 
 // 「文の要素に分けよう」の区切り: 役割が同じ語どうしをまとめる。( ) [ ] のまとまりは1つ。
@@ -5380,6 +5389,20 @@ function stSegmentsAmbiguous(segs, toks, allowPost) {
     if (g.role === 'M' && /ing$/.test(w[0]) && !g.open) return true;           // go shopping
     return false;
   });
+}
+
+// 文型(第1〜第5文型)。主節の S・V・O・C の並びから決める。受け身・tell 人 to 〜 など、教え方で分かれる文は null
+const SENTENCE_PATTERNS = {
+  SV: '第1文型（S＋V）', SVC: '第2文型（S＋V＋C）', SVO: '第3文型（S＋V＋O）', SVOO: '第4文型（S＋V＋O＋O）', SVOC: '第5文型（S＋V＋O＋C）',
+};
+function sentencePattern(pieces, jp) {
+  const segs = sentenceSegments(pieces, jp);
+  if (!segs || segs.ambiguousExceptPost) return null;
+  const main = segs.filter(g => !g.post && ['S', 'V', 'O', 'C'].includes(g.role));
+  if (main.some(g => g.role === 'C' && /^to /i.test(g.en))) return null;                       // tell 人 to 〜
+  if (main.some(g => g.role === 'V' && /\b(am|is|are|was|were|be|been)\b/i.test(g.en) && g.en.split(' ').some(w => stIsPP(w.toLowerCase()) && w.toLowerCase() !== ST_VERB_BASE[w.toLowerCase()]))) return null; // 受け身
+  const code = main.map(g => g.role).filter((r, i, a) => !(r === 'V' && a[i - 1] === 'V')).join('');
+  return SENTENCE_PATTERNS[code] ? code : null;
 }
 
 // 名詞を説明する後置修飾(関係代名詞・分詞・to 不定詞など)。区切りかたが先生によってちがうので印をつける
@@ -6128,6 +6151,7 @@ const QUESTION_TYPES = {
   error:     { label: '誤文訂正', instr: '次の英文には誤りが1か所あります。誤っている語を正しい形に直しなさい。' },
   usage:     { label: '用法の識別', instr: '下線部の用法として最も適切なものを選びなさい。' },
   paraphrase: { label: '同意文書きかえ', instr: '上の文とほぼ同じ意味になるように、下の文の（　）に適する語を1語ずつ書きなさい。' },
+  pattern:   { label: '文型', instr: '次の英文の文型として最も適切なものを選びなさい。' },
   slash:     { label: '区切り', instr: '英文を、主語・動詞・目的語などの意味のまとまりごとに「／」で区切りなさい。' },
   svo:       { label: '文の要素', instr: '英文の区切りごとに、下の□に S（主語）・V（動詞）・O（目的語）・C（補語）・M（修飾語）のどれにあたるかを書きなさい。' },
 };
@@ -6157,6 +6181,17 @@ function buildQuestion(stage, q, type) {
   if (type === 'svo') {
     const segs = sentenceSegments(q.pieces, q.jp);
     if (segs && !segs.ambiguous) { item.type = 'svo'; item.segs = segs; item.answer = segs.filter(g => g.role).map(g => g.role).join(' '); return item; }
+  }
+  // 文型をえらぶ(4択)。文型がはっきり決まる文だけ
+  if (type === 'pattern') {
+    const pat = sentencePattern(q.pieces, q.jp);
+    if (pat) {
+      const others = shuffle(Object.keys(SENTENCE_PATTERNS).filter(k => k !== pat)).slice(0, 3);
+      const keys = Object.keys(SENTENCE_PATTERNS).filter(k => k === pat || others.includes(k));
+      item.type = 'pattern'; item.pattern = pat; item.options = keys.map(k => SENTENCE_PATTERNS[k]); item.answer = SENTENCE_PATTERNS[pat];
+      item.segs = sentenceSegments(q.pieces, q.jp);
+      return item;
+    }
   }
   // 区切り: 名詞のうしろの説明(the boy | who is 〜)は、名詞といっしょ(主語ひとまとまり)でも、分けても正解
   if (type === 'slash') {
@@ -6477,7 +6512,7 @@ function makeUnitQuestion(stage, type, st, maxTier = 3) {
   let item;
   for (let tries = 0; tries < 6; tries++) {
     // 並べ替えは修飾語を足さない(場所と時の語句の順番が2通りになることがあるため)
-    const tier = ['entoja', 'reorder', 'extra', 'trace', 'chunkorder', 'frame', 'svo', 'slash'].includes(type) ? 1 : maxTier;
+    const tier = ['entoja', 'reorder', 'extra', 'trace', 'chunkorder', 'frame', 'svo', 'slash', 'pattern'].includes(type) ? 1 : maxTier;
     const q = getSessionQuestion(stage, st.n++, st.order, tier);
     item = buildQuestion(stage, q, type);
     if (item.type === type && !isExcluded(item)) return item;
@@ -6883,7 +6918,7 @@ const GUIDE_TEST_TYPES = ['choice', 'fillin', 'slash', 'reorder', 'chunkorder', 
 // 2周目・3周目の練習問題: 周が進むほど「書く」問題をふやす(選ぶ → 書く → 英文を書く)
 const GUIDE_PRACTICE_TYPES_BY_ROUND = [
   GUIDE_PRACTICE_TYPES,
-  ['chunkorder', 'slash', 'fillin', 'translate', 'reorder', 'svo', 'frame', 'fillin', 'choice', 'translate', 'reorder', 'fillin', 'translate', 'fillin', 'reorder', 'translate'],
+  ['chunkorder', 'slash', 'fillin', 'translate', 'reorder', 'svo', 'pattern', 'frame', 'fillin', 'choice', 'translate', 'reorder', 'fillin', 'translate', 'fillin', 'reorder', 'translate'],
   ['translate', 'reorder', 'fillin', 'translate', 'translate', 'reorder', 'fillin', 'translate', 'reorder', 'translate', 'fillin', 'translate'],
 ];
 const GUIDE_TYPE_LABELS = {
@@ -6892,6 +6927,7 @@ const GUIDE_TYPE_LABELS = {
   trace: ['なぞって写そう', '上の段の英文をなぞってから、下の段に写す（英語の形と語順を手で覚える）'],
   chunkorder: ['まとまりを作ろう', '日本語に合うように、語をならべかえて「まとまり」を作る（文の最初でも小文字のままでよい）'],
   frame: ['囲もう', '日本語の文と英文で、〈ポイント〉にあたるところを□で囲む'],
+  pattern: ['文型をえらぼう', 'S・V・O・C の並び方から、英文が第1〜第5文型のどれかを選ぶ（M はかぞえない）'],
   slash: ['区切ろう', '英文を「だれが／どうする／何を／いつ・どこで」のまとまりごとに ／ で区切る。まず動詞（V）を見つけて、その前で区切ろう'],
   svo: ['文の要素に分けよう', '区切りの下の□に、S（主語〜は）・V（動詞）・O（目的語〜を）・C（補語）・M（修飾語）を書く。まず V をさがしてから、その前の S を見つけよう'],
   choice: ['えらぼう', '日本語に合うように、（　）に入る語を選ぶ'],
@@ -7141,6 +7177,9 @@ function explainHave(item, a, idx) {
 // 1問ぶんのヒントと解説
 function explainItem(stage, item) {
   const guide = STAGE_GUIDES[stage.key] || {};
+  if (item.type === 'pattern') {
+    return { hint: '', st: structureHtml(item.pieces, item.jp), why: `M（修飾語）をのぞくと ${item.pattern.split('').join('＋')} の並びなので、${SENTENCE_PATTERNS[item.pattern].replace(/（.*/, '')}。` };
+  }
   if (item.type === 'slash') {
     const v = item.segs.find(g => g.role === 'V');
     return { hint: '', st: '', why: `まず動詞（V）の「${v ? v.en : ''}」を見つけて、その前とうしろで区切る。前置詞ではじまるまとまり（in 〜 / to 〜 など）や when・if のまとまりは、ひとかたまりで区切る。` };
@@ -7218,13 +7257,14 @@ function explainItem(stage, item) {
 function structureHtml(pieces, jp) {
   const st = pieces && pieces.length > 1 ? sentenceStructure(pieces, jp) : null;
   if (!st) return '';
-  return `<div class="ws-st">${st.map(p => `<span class="st-c"><i class="st-jp">${(p.jp || '').replace(/[〜~]/g, '')}</i><span class="st-en">${p.open}${p.en.replace(/[.!?]$/, '')}${p.close}</span><b class="st-r">${p.roles.join('・')}</b></span>`).join('')}</div>`;
+  const pat = sentencePattern(pieces, jp);
+  return `<div class="ws-st">${pat ? `<span class="st-pat">${SENTENCE_PATTERNS[pat].replace(/（.*/, '')}</span>` : ''}${st.map(p => `<span class="st-c${p.post ? ' st-post' : ''}"><i class="st-jp">${(p.jp || '').replace(/[〜~]/g, '')}</i><span class="st-en">${p.open}${p.en.replace(/[.!?]$/, '')}${p.close}</span><b class="st-r">${p.post ? '◀' : ''}${p.roles.join('・')}</b></span>`).join('')}</div>`;
 }
 // 「文の要素に分けよう」の答え: 区切りごとに、下に記号
 function segmentsHtml(segs, slashes) {
   return `<span class="ws-st ws-st-inline">${segs.map((g, i) => `${slashes && i ? '<span class="st-slash">／</span>' : ''}<span class="st-c"><span class="st-en">${g.open}${escHtml(g.en)}${g.close}</span><b class="st-r">${g.role || '　'}</b></span>`).join('')}</span>`;
 }
-const STRUCTURE_LEGEND = '<div class="ws-st-legend"><b>記号の見かた</b> S＝主語（〜は・〜が）　V＝動詞　O＝目的語（〜を・〜に）　C＝補語（S＝C／O＝C の関係）　M＝修飾語（いつ・どこで・どのように など）　( )＝前置詞や to 〜 のまとまり　[ ]＝文の中の文（接続詞・関係代名詞・疑問詞のまとまり）　仮S・真S＝It の文で、本当の主語は to 〜</div>';
+const STRUCTURE_LEGEND = '<div class="ws-st-legend"><b>記号の見かた</b> S＝主語（〜は・〜が）　V＝動詞　O＝目的語（〜を・〜に）　C＝補語（S＝C／O＝C の関係）　M＝修飾語（いつ・どこで・どのように など）　( )＝前置詞や to 〜 のまとまり　[ ]＝文の中の文（接続詞・関係代名詞・疑問詞のまとまり）　仮S・真S＝It の文で、本当の主語は to 〜　◀M＝すぐ前の名詞をうしろから説明（英語は「説明はうしろ」：the boy ◀[who is playing tennis]）　第1〜第5文型＝S・V・O・C の並び方（英語は置く場所で意味が決まる）</div>';
 
 // 文中の *語* を強調にする
 function guideMarkup(text) {
@@ -7732,7 +7772,7 @@ function shuffledPieces(item) {
   return item.shuffled[printChunkLevel];
 }
 
-const SELECT_TYPES = new Set(['choice', 'usage', 'vmeaning', 'rchoice', 'rtf', 'cdialog', 'xchoice']);
+const SELECT_TYPES = new Set(['choice', 'usage', 'pattern', 'vmeaning', 'rchoice', 'rtf', 'cdialog', 'xchoice']);
 // 日本語で答える問題は、模範解答を見て自分で採点する
 const SELF_GRADED_TYPES = new Set(['ccheck', 'clist', 'frame', 'rule', 'wtable', 'kscene', 'rja', 'rea', 'entoja', 'vjp', 'cwtrans', 'cwcond', 'cwfree', 'cetoj']);
 
@@ -7915,6 +7955,8 @@ function itemBodyHtml(item) {
       return `<div class="ws-pieces">${item.chunkWords.map(w => `<span class="ws-piece"><span>${escHtml(w)}</span></span>`).join('')}</div>${item.noHint ? '<div class="ws-4l ws-4l-print"></div>' : ''}${answerLineHtml('まとまりを書こう')}`;
     case 'frame':
       return `<div class="ws-sentence ws-frame-en">${fullSentence(item)}</div>`;
+    case 'pattern':
+      return `<div class="ws-sentence ws-frame-en">${fullSentence(item)}</div>${optionsHtml(item)}`;
     case 'slash':
       // 語と語のあいだを広くあけて、／を書きこめるようにする
       return `<div class="ws-slash">${item.tokens.join(' ').replace(/[.!?]$/, '').split(' ').map(w => `<span>${escHtml(w)}</span>`).join('<i></i>')}${item.end || ''}</div>${answerLineHtml('／で区切った英文を書こう')}`;
@@ -8476,7 +8518,7 @@ function renderGuideWorksheet() {
 // 配点: 形式ごとの重み(書く問題・長い問題ほど高く)を、合計がちょうど100点になるように整数にする。同じ形式は同じ点
 const POINT_WEIGHTS = {
   vmeaning: 1, vjp: 2, vword: 2, vblank: 2, vidiom: 2,
-  choice: 2, usage: 2, svo: 3, slash: 3, fillin: 2, form: 2, error: 3, extra: 3, reorder: 3, rewrite: 3, paraphrase: 3, translate: 4, entoja: 4,
+  choice: 2, usage: 2, svo: 3, slash: 3, pattern: 2, fillin: 2, form: 2, error: 3, extra: 3, reorder: 3, rewrite: 3, paraphrase: 3, translate: 4, entoja: 4,
   rchoice: 3, rtf: 2, rfill: 3, rja: 4, rea: 4, cdialog: 3, cphrase: 3, cform: 2, cfree: 3, cwtrans: 4, cwcond: 5, cwfree: 10, cetoj: 4, xchoice: 2, xfill: 3, xorder: 3, xpara: 3, xask: 4, clist: 1, ccheck: 1, kform: 3, korder: 3, kscene: 6,
 };
 function assignPoints(items) {
