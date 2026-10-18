@@ -174,6 +174,15 @@
 
   /* --- print (worksheet) screen --- */
   .print-options { margin-bottom: 16px; padding: 0; overflow: hidden; }
+  /* 広い画面: 左に設定(スクロールしても見える)、右にプリント。プリントの幅は今までと同じ(ページに入る問題数が変わらないように) */
+  @media (min-width: 1180px) {
+    body[data-screen="print"] .app { max-width: 1180px; }
+    .print-layout { display: grid; grid-template-columns: 380px 760px; gap: 20px; align-items: start; justify-content: center; }
+    .print-side { position: sticky; top: 10px; max-height: calc(100vh - 20px); overflow-y: auto; border-radius: 10px; }
+    .print-side .print-options { margin-bottom: 0; overflow: visible; }
+    .print-side .print-actions { position: sticky; bottom: 0; z-index: 2; box-shadow: 0 -6px 12px -8px rgba(0,0,0,.18); }
+    .print-main { min-width: 0; }
+  }
   .opt-sec { padding: 16px 22px; border-bottom: 1px solid var(--line); }
   .opt-sec-head { font-size: 14px; font-weight: 800; color: var(--ink); margin-bottom: 10px; display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
   .opt-sec-head span { font-size: 12px; font-weight: 600; color: var(--ink-soft); }
@@ -724,7 +733,8 @@
   @media print {
     @page { size: A4; margin: 14mm 14mm; }
     body { background: #fff; padding: 0; display: block; }
-    .app { max-width: none; }
+    .app, body[data-screen="print"] .app { max-width: none; }
+    .print-layout { display: block !important; }
     header, .no-print, .back-link { display: none !important; }
     .sheet { border: none; border-radius: 0; padding: 0; }
     .ws-input { border-bottom: 1px solid #000; background: transparent !important; }
@@ -969,6 +979,9 @@
   <div id="screenPrint" style="display:none;">
     <button class="back-link" id="backToProgramFromPrint">&larr; Program選択に戻る</button>
 
+    <!-- 広い画面では、左で問題の構成を選び、右にできたプリントを出して、その場で直す・消す -->
+    <div class="print-layout">
+    <aside class="print-side no-print">
     <div class="card print-options no-print">
       <section class="opt-sec" id="printRoundRow">
         <div class="opt-sec-head">くり返し<span>問題と解答のセットを何周するか</span></div>
@@ -1009,7 +1022,9 @@
         <button class="btn btn-primary" id="printPrintBtn">印刷する</button>
       </div>
     </div>
+    </aside>
 
+    <div class="print-main">
     <div class="edit-hint no-print" id="editHint">✎ できたプリントは、問題ごとの右上のボタンで <b>直す</b>（文や解答を書きかえる）・<b>変える</b>（別の問題にする）・<b>消す</b> ができます。ボタンは印刷されません。</div>
     <div class="round-tabs no-print" id="roundTabs"></div>
     <div class="sheet" id="sheet">
@@ -1037,6 +1052,8 @@
       </div>
     </div>
     <div id="roundsPrint"></div>
+    </div>
+    </div>
   </div>
 
   <!-- Screen 3: practice -->
@@ -6570,6 +6587,7 @@ function renderProgramList() {
 
 // ---------- screen switching ----------
 function showScreen(name) {
+  document.body.dataset.screen = name;
   screenGrade.style.display = name === 'grade' ? 'block' : 'none';
   screenProgram.style.display = name === 'program' ? 'block' : 'none';
   screenPractice.style.display = name === 'practice' ? 'block' : 'none';
