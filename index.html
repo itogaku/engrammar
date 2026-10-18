@@ -506,6 +506,9 @@
   .ws-st .st-en { font-size: 13px; font-weight: 600; border-bottom: 1px solid currentColor; padding: 0 1px; white-space: nowrap; }
   .ws-st .st-r { font-size: 10.5px; font-weight: 800; color: var(--accent, #c0392b); letter-spacing: .5px; }
   .ws-st-inline { display: inline-flex; margin: 0; vertical-align: top; }
+  .ws-st .st-slash { align-self: center; font-weight: 800; color: var(--accent, #c0392b); margin: 0 -4px; }
+  .ws-slash { font-size: 16px; line-height: 2.2; margin: 6px 0 4px; }
+  .ws-slash i { display: inline-block; width: 22px; }
   .ws-svo { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 4px 12px; margin: 6px 0 4px; }
   .ws-svo .svo-c { display: inline-flex; flex-direction: column; align-items: center; gap: 3px; }
   .ws-svo .svo-en { font-size: 15px; border-bottom: 1.5px solid currentColor; padding: 0 2px; white-space: nowrap; }
@@ -5233,6 +5236,7 @@ const ST_ADV = new Set(['yesterday', 'today', 'tomorrow', 'now', 'then', 'here',
   'well', 'everywhere', 'ago', 'high', 'far', 'loud', 'straight', 'more often', 'enough', 'only', 'even', 'please', 'off', 'all', 'more', 'most', 'better', 'best', 'earlier', 'faster', 'harder', 'longer', 'not', 'else']);
 const ST_TIME_NOUN = /^(every|last|next|this|that|each|one|some)\s+(day|days|morning|afternoon|evening|night|week|weekend|month|year|summer|winter|spring|fall|sunday|monday|tuesday|wednesday|thursday|friday|saturday|time|other day)s?\b|\b(ago|o'clock|a\.m\.|p\.m\.)$|^(tomorrow|yesterday) (morning|afternoon|evening|night)$|^(every|last|next|this) (january|february|march|april|may|june|july|august|september|october|november|december)$|^next time$|^(all day|all night|a lot|very much|so much|a little|at home|these days|right now|a week|an hour|two hours|for a long time)$|^(many|a few|three|two|four|five|ten|several) times$|^(once|twice) a (day|week|month|year)$/i;
 const ST_EMO_ADJ = new Set(['interested', 'excited', 'surprised', 'tired', 'married', 'worried', 'pleased', 'satisfied', 'shocked', 'bored', 'scared', 'disappointed']);
+const ST_FEEL_ADJ = new Set(['happy', 'glad', 'sad', 'sorry', 'surprised', 'excited', 'ready', 'afraid', 'proud', 'lucky', 'disappointed', 'shocked', 'pleased']);
 const ST_ADJ_ING = new Set(['exciting', 'interesting', 'boring', 'amazing', 'surprising', 'relaxing', 'tiring', 'shocking', 'moving', 'amusing', 'charming', 'touching', 'missing', 'living', 'outstanding']);
 const ST_LINKING = new Set(['be', 'become', 'look', 'feel', 'sound', 'get', 'seem', 'smell', 'taste', 'turn', 'stay']);
 const ST_DITRANS = new Set(['give', 'show', 'tell', 'teach', 'send', 'buy', 'make', 'bring', 'lend', 'ask', 'cook', 'write', 'pass', 'get', 'find']);
@@ -5332,10 +5336,39 @@ function sentenceSegments(pieces, jp) {
     // 同じ役割でも、V 以外はまとまり(並べかえのピース)が変われば区切る(gave | her | flowers → O と O)
     const samePiece = last && last.pi === t.pi;
     if (sameSpan || (last && t.span == null && last.span == null && last.role === role && role !== '' && !role.includes('・') && (role === 'V' || samePiece) && !/,$/.test(last.words[last.words.length - 1]))) { last.words.push(t.orig); last.pi = t.pi; }
-    else segs.push({ role, span: t.span, br: t.span != null ? t.br : '', words: [t.orig], pi: t.pi });
+    else segs.push({ role, span: t.span, br: t.span != null ? t.br : '', words: [t.orig], pi: t.pi, post: !!t.post });
   });
-  const out = segs.map(g => ({ en: g.words.join(' ').replace(/[.!?]$/, ''), role: g.role, open: g.br, close: g.br === '(' ? ')' : g.br === '[' ? ']' : '' }));
-  return out.filter(g => g.role).length >= 2 ? out : null;
+  const out = segs.map(g => ({ en: g.words.join(' ').replace(/[.!?]$/, ''), role: g.role, open: g.br, close: g.br === '(' ? ')' : g.br === '[' ? ']' : '', post: g.post }));
+  if (out.filter(g => g.role).length < 2) return null;
+  out.ambiguous = stSegmentsAmbiguous(out, toks);
+  out.ambiguousExceptPost = stSegmentsAmbiguous(out, toks, true);
+  return out;
+}
+// 区切りかた・記号のつけかたが、教え方によって変わる文(出題しない)
+function stSegmentsAmbiguous(segs, toks, allowPost) {
+  const roles = segs.map(g => g.role);
+  const vIdx = roles.map((r, i) => (r === 'V' ? i : -1)).filter(i => i >= 0);
+  if (vIdx.some((v, k) => k > 0 && v !== vIdx[k - 1] + 1)) return true;       // Do you play 〜? のように V が分かれる
+  if (roles.some(r => r.includes('・') || /仮S|真S/.test(r))) return true;     // I'm(S・V)・It is 〜 to …
+  if (!allowPost && toks.some(t => t.post)) return true;                                     // 名詞のうしろの説明(the boy running there / the book I bought)
+  if (toks.some(t => t.role === '' && /^(there|yes|no|oh|well|hello|because|and|but|so|or)$/.test(t.w))) return true; // There is 〜 / Yes, 〜 / 2つの文
+  if (/^(what|where|when|who|whose|which|how|why)$/.test(toks[0].w)) return true;   // 疑問詞の疑問文
+  if (toks.some(t => t.w === 'please')) return true;                             // Please を M にするかどうか
+  if (segs.some(g => /,$/.test(g.en) && /^(S|O|C)$/.test(g.role))) return true;   // coffee, tea, and juice のような列挙
+  return segs.some(g => {
+    const w = g.en.toLowerCase().split(' ');
+    if (g.role === 'V' && w.length > 1 && ['at', 'to', 'for', 'about', 'with', 'after', 'of'].includes(w[w.length - 1])) return true; // look at / listen to
+    if (/^(as \w+ as|better|best|the best|more|most|very much)$/.test(g.en.toLowerCase())) return true; // as 〜 as・like 〜 better
+    if (g.role === 'M' && !g.open && ST_PREPS.has(w[0]) && w.length === 1) return true; // 文末の前置詞だけ(from)
+    if (g.role === 'M' && /ing$/.test(w[0]) && !g.open) return true;           // go shopping
+    return false;
+  });
+}
+
+// 名詞を説明する後置修飾(関係代名詞・分詞・to 不定詞など)。区切りかたが先生によってちがうので印をつける
+function stWrapPost(toks, from, to, br, role) {
+  stWrap(toks, from, to, br, role);
+  for (let k = from; k < to; k++) toks[k].post = true;
 }
 
 function stIsPieceLast(toks, t) { const n = toks[toks.indexOf(t) + 1]; return !n || n.pi !== t.pi; }
@@ -5535,6 +5568,11 @@ function stPrepPhrase(toks, i, b) {
   let e = stPieceEnd(toks, i, b);
   // 前置詞だけのまとまり(in / at)のときは次のまとまりまで
   if (e === i + 1 && e < b) e = stPieceEnd(toks, e, b);
+  // まとまりの最後の時・場所の語(with him | every day / to the concert | together)は前置詞のまとまりに入れない
+  for (let j = i + 2; j < e; j++) {
+    const x = toks[j].w;
+    if (['today', 'now', 'yesterday', 'tomorrow', 'here', 'there', 'together', 'too', 'again', 'then', 'someday', 'tonight'].includes(x) || ['every', 'last', 'next'].includes(x) && ST_TIME_NOUN.test(toks.slice(j, e).map(t => t.w).join(' '))) { e = j; break; }
+  }
   // まとまりの中に動詞の形があれば前置詞句ではない
   for (let j = i + 1; j < e; j++) if (!toks[j].cap && stFiniteStart(toks[j].w) && !/ing$/.test(toks[j].w) && !ST_NOUNISH.has(toks[j].w) && !ST_NOUNISH.has(ST_VERB_BASE[toks[j].w]) && !(DETERMINERS.has(toks[j - 1].w))) return i;
   return e;
@@ -5574,7 +5612,7 @@ function stVerbGroup(toks, i, b, impStart, itS) {
     main = ST_BE.has(lastV) || lastV === 'be' || lastV === 'been' ? 'be' : 'aux';
   }
   // 句動詞の副詞(get up / come back / look at)は動詞のまとまりに入れる
-  while (j < b && ['up', 'down', 'back', 'out', 'away', 'off', 'on', 'forward'].includes(W(j)) && toks[j].pi === toks[j - 1].pi) { toks[j].role = 'V'; j++; if (!main.includes('+')) main += '+prt'; }
+  while (j < b && main !== 'be' && main !== 'aux' && ['up', 'down', 'back', 'out', 'away', 'off', 'on', 'forward'].includes(W(j)) && toks[j].pi === toks[j - 1].pi) { toks[j].role = 'V'; j++; if (!main.includes('+')) main += '+prt'; }
   if (j < b && ['at', 'for', 'after', 'to'].includes(W(j)) && toks[j].pi === toks[j - 1].pi && ['look', 'wait', 'listen', 'take', 'look', 'talk', 'go', 'come'].includes(main) && !(W(j) === 'to' && ['go', 'come', 'talk'].includes(main))) {
     if (['look', 'wait', 'listen', 'take'].includes(main)) { toks[j].role = 'V'; j++; main = main + '+prep'; }
   }
@@ -5680,6 +5718,8 @@ function stComplements(toks, j, b, main, itS) {
       else if (baseMain === 'be' && comps === 0 && !itS && W(j - 1) && toks[j - 1].role === 'V') { role = 'C'; comps++; }
       else role = 'M';
       stWrap(toks, j, e, '(', role);
+      // 名詞のすぐあとの to 〜(something to eat)は名詞の説明
+      if (role === 'M' && j > 0 && /^(O|C|S)$/.test(toks[j - 1].role || '') && toks[j - 1].pi === toks[j].pi && !ST_FEEL_ADJ.has(W(j - 1))) for (let k = j; k < e; k++) toks[k].post = true;
       j = e; continue;
     }
     // 前置詞のまとまり
@@ -5689,7 +5729,7 @@ function stComplements(toks, j, b, main, itS) {
       // 前置詞のまとまりの名詞を説明する関係代名詞(to a shop | that sells 〜)
       if (e < b && toks[e].k === 0 && ['who', 'which', 'that'].includes(W(e)) && stFiniteStart(W(e + 1))) {
         const e2 = stPieceEnd(toks, e, b);
-        if (stVerbGroup(toks, e + 1, e2, null)) { stWrap(toks, j, e2, '(', 'M'); j = e2; continue; }
+        if (stVerbGroup(toks, e + 1, e2, null)) { stWrapPost(toks, j, e2, '(', 'M'); j = e2; continue; }
       }
       stWrap(toks, j, e, '(', 'M');
       j = stPostModifier(toks, e, b, 'M');
@@ -5715,7 +5755,7 @@ function stComplements(toks, j, b, main, itS) {
       let e = stPieceEnd(toks, j, b);
       while (e - 1 > j && ['better', 'best', 'well', 'together', 'again', 'too', 'now', 'here', 'there'].includes(W(e - 1))) e--;
       while (e < b && toks[e].k === 0 && toks[e - 1].pi !== toks[e].pi && !ST_PREPS.has(W(e)) && !ST_TIME_NOUN.test(toks.slice(e, stPieceEnd(toks, e, b)).map(t => t.w).join(' ')) && !ST_ADV.has(W(e)) && !ST_SUBCONJ.has(W(e)) && !['and', 'but', 'or'].includes(W(e))) e = stPieceEnd(toks, e, b);
-      set(j, e, 'O'); objs++; j = e; continue;
+      stWrap(toks, j, e, '', 'O'); objs++; j = e; continue; // 動名詞のまとまりは1つの O
     }
     // 動詞の原形(make / let / help ＋ 人 ＋ 原形)
     if (ST_CAUSE.has(baseMain) && objs === 1 && ST_VERB_BASE[w] === w) {
@@ -5769,30 +5809,32 @@ function stPostModifier(toks, j, b, role, itS) {
       // 関係代名詞が主語(who lives 〜)か目的語(that I bought)か
       if (stFiniteStart(W(j + 1)) && !ST_SUBJ_PRON.has(W(j + 1))) { if (!stVerbGroup(toks, j + 1, e, null)) return j; }
       else if (!stParseClause(toks, j + 1, e, false, true)) return j;
-      stWrap(toks, j, e, '[', 'M');
+      stWrapPost(toks, j, e, '[', 'M');
       j = e; continue;
     }
     // 接触節: the book I bought yesterday
     if ((ST_SUBJ_PRON.has(w) && w !== 'it' && w !== 'that' && w !== 'there' || ['my', 'his', 'her', 'your', 'our', 'their'].includes(w) || toks[j].cap) && toks[j].k === 0 && role !== 'V' && stContactClause(toks, j, b)) {
       const e = stPieceEnd(toks, j, b);
       if (!stParseClause(toks, j, e, false, true)) return j;
-      stWrap(toks, j, e, '[', 'M');
+      stWrapPost(toks, j, e, '[', 'M');
       j = e; continue;
     }
     const vb = ST_VERB_BASE[w];
     if (vb && (vb !== w || stIsPP(w) && ST_PREPS.has(W(j + 1))) && (w === verbIng(vb) || stIsPP(w)) && toks[j].k === 0 && !(role === 'O' && ST_SVOC.has(vmain)) && !ST_ADJ_ING.has(w) && !ST_EMO_ADJ.has(w)) {
       const e = stPieceEnd(toks, j, b);
-      stWrap(toks, j, e, '(', 'M');
+      stWrapPost(toks, j, e, '(', 'M');
       j = e; continue;
     }
     // 名詞のうしろの to 不定詞(something to eat)・前置詞のまとまり(the high in Sapporo)
     if (w === 'to' && ST_VERB_BASE[W(j + 1)] === W(j + 1) && role !== 'V' && role !== 'M' && !itS && !(role === 'O' && ST_TOOBJ.has(vmain))) {
       const e = role === 'S' ? stPieceEnd(toks, j, b) : stInfEnd(toks, j, b);
-      stWrap(toks, j, e, '(', 'M'); j = e; continue;
+      // happy to 〜 / glad to 〜(気持ちの原因)は名詞の説明ではないので、ふつうの M
+      if (role === 'C' && ST_FEEL_ADJ.has(W(j - 1))) { stWrap(toks, j, e, '(', 'M'); j = e; continue; }
+      stWrapPost(toks, j, e, '(', 'M'); j = e; continue;
     }
     if (ST_PREPS.has(w) && !['than', 'as', 'like', 'up', 'out', 'off', 'to', 'for', 'since', 'until', 'before', 'after', 'during', 'by', 'with', 'at', 'on', 'from', 'about'].includes(w) && role === 'S') {
       const e = stPrepPhrase(toks, j, b); if (e === j) return j;
-      stWrap(toks, j, e, '(', 'M'); j = e; continue;
+      stWrapPost(toks, j, e, '(', 'M'); j = e; continue;
     }
     return j;
   }
@@ -6069,6 +6111,7 @@ const QUESTION_TYPES = {
   error:     { label: '誤文訂正', instr: '次の英文には誤りが1か所あります。誤っている語を正しい形に直しなさい。' },
   usage:     { label: '用法の識別', instr: '下線部の用法として最も適切なものを選びなさい。' },
   paraphrase: { label: '同意文書きかえ', instr: '上の文とほぼ同じ意味になるように、下の文の（　）に適する語を1語ずつ書きなさい。' },
+  slash:     { label: '区切り', instr: '英文を、主語・動詞・目的語などの意味のまとまりごとに「／」で区切りなさい。' },
   svo:       { label: '文の要素', instr: '英文の区切りごとに、下の□に S（主語）・V（動詞）・O（目的語）・C（補語）・M（修飾語）のどれにあたるかを書きなさい。' },
 };
 
@@ -6096,7 +6139,19 @@ function buildQuestion(stage, q, type) {
   // 文の要素に分ける(S・V・O・C・M)。構造がはっきりわからない文は並べかえにする
   if (type === 'svo') {
     const segs = sentenceSegments(q.pieces, q.jp);
-    if (segs) { item.type = 'svo'; item.segs = segs; item.answer = segs.filter(g => g.role).map(g => g.role).join(' '); return item; }
+    if (segs && !segs.ambiguous) { item.type = 'svo'; item.segs = segs; item.answer = segs.filter(g => g.role).map(g => g.role).join(' '); return item; }
+  }
+  // 区切り: 名詞のうしろの説明(the boy | who is 〜)は、名詞といっしょ(主語ひとまとまり)でも、分けても正解
+  if (type === 'slash') {
+    const segs = sentenceSegments(q.pieces, q.jp);
+    if (segs && !segs.ambiguousExceptPost && segs.length >= 3) {
+      const merged = [];
+      segs.forEach(g => { const last = merged[merged.length - 1]; if (g.post && last && last.role) last.en = `${last.en} ${g.open}${g.en}${g.close}`; else merged.push({ ...g }); });
+      item.type = 'slash'; item.segs = merged;
+      item.answer = merged.map(g => g.en).join(' / ');
+      if (merged.length !== segs.length) item.altAnswer = segs.map(g => g.en).join(' / ');
+      return item;
+    }
   }
   // まとまりづくり・囲む問題(解説つきプリント): 文法のポイントになる「まとまり」を使う。作れない文は並べかえにする
   if (type === 'chunkorder' || type === 'frame') {
@@ -6405,7 +6460,7 @@ function makeUnitQuestion(stage, type, st, maxTier = 3) {
   let item;
   for (let tries = 0; tries < 6; tries++) {
     // 並べ替えは修飾語を足さない(場所と時の語句の順番が2通りになることがあるため)
-    const tier = ['entoja', 'reorder', 'extra', 'trace', 'chunkorder', 'frame', 'svo'].includes(type) ? 1 : maxTier;
+    const tier = ['entoja', 'reorder', 'extra', 'trace', 'chunkorder', 'frame', 'svo', 'slash'].includes(type) ? 1 : maxTier;
     const q = getSessionQuestion(stage, st.n++, st.order, tier);
     item = buildQuestion(stage, q, type);
     if (item.type === type && !isExcluded(item)) return item;
@@ -6803,14 +6858,14 @@ function readingItemOf(p) {
 // 複数の単元(肯定文・否定文・疑問文 など)を選んだときは、単元ごとに4ページずつ続ける。
 // 問題は修飾語なしの基本文を中心に作り、1問ずつ解説を自動でつける(ヒントは出さない)。
 const GUIDE_INTRO_TYPES = ['choice', 'choice', 'fillin', 'reorder', 'fillin', 'translate', 'choice'];
-const GUIDE_PRACTICE_TYPES = ['trace', 'trace', 'chunkorder', 'fillin', 'svo', 'reorder', 'frame', 'translate', 'choice', 'fillin', 'translate', 'reorder', 'fillin',
+const GUIDE_PRACTICE_TYPES = ['trace', 'trace', 'chunkorder', 'slash', 'fillin', 'reorder', 'svo', 'frame', 'translate', 'choice', 'fillin', 'translate', 'reorder', 'fillin',
   'choice', 'translate', 'reorder', 'fillin'];
 // 確認テスト(練習のあと、何も見ないで解いて先生に出す)
-const GUIDE_TEST_TYPES = ['choice', 'fillin', 'reorder', 'chunkorder', 'svo', 'translate', 'reorder', 'fillin', 'translate', 'reorder', 'translate'];
+const GUIDE_TEST_TYPES = ['choice', 'fillin', 'slash', 'reorder', 'chunkorder', 'svo', 'translate', 'reorder', 'fillin', 'translate', 'reorder', 'translate'];
 // 2周目・3周目の練習問題: 周が進むほど「書く」問題をふやす(選ぶ → 書く → 英文を書く)
 const GUIDE_PRACTICE_TYPES_BY_ROUND = [
   GUIDE_PRACTICE_TYPES,
-  ['chunkorder', 'fillin', 'svo', 'translate', 'reorder', 'frame', 'fillin', 'choice', 'translate', 'reorder', 'fillin', 'translate', 'fillin', 'reorder', 'translate'],
+  ['chunkorder', 'slash', 'fillin', 'translate', 'reorder', 'svo', 'frame', 'fillin', 'choice', 'translate', 'reorder', 'fillin', 'translate', 'fillin', 'reorder', 'translate'],
   ['translate', 'reorder', 'fillin', 'translate', 'translate', 'reorder', 'fillin', 'translate', 'reorder', 'translate', 'fillin', 'translate'],
 ];
 const GUIDE_TYPE_LABELS = {
@@ -6819,6 +6874,7 @@ const GUIDE_TYPE_LABELS = {
   trace: ['なぞって写そう', '上の段の英文をなぞってから、下の段に写す（英語の形と語順を手で覚える）'],
   chunkorder: ['まとまりを作ろう', '日本語に合うように、語をならべかえて「まとまり」を作る（文の最初でも小文字のままでよい）'],
   frame: ['囲もう', '日本語の文と英文で、〈ポイント〉にあたるところを□で囲む'],
+  slash: ['区切ろう', '英文を「だれが／どうする／何を／いつ・どこで」のまとまりごとに ／ で区切る。まず動詞（V）を見つけて、その前で区切ろう'],
   svo: ['文の要素に分けよう', '区切りの下の□に、S（主語〜は）・V（動詞）・O（目的語〜を）・C（補語）・M（修飾語）を書く。まず V をさがしてから、その前の S を見つけよう'],
   choice: ['えらぼう', '日本語に合うように、（　）に入る語を選ぶ'],
   reorder: ['ならべかえよう', '日本語に合うように、語句をならべかえて英文を書く（まず「だれが＋どうする」の骨組みを書いてから、残りのまとまりを続ける）'],
@@ -7067,6 +7123,10 @@ function explainHave(item, a, idx) {
 // 1問ぶんのヒントと解説
 function explainItem(stage, item) {
   const guide = STAGE_GUIDES[stage.key] || {};
+  if (item.type === 'slash') {
+    const v = item.segs.find(g => g.role === 'V');
+    return { hint: '', st: '', why: `まず動詞（V）の「${v ? v.en : ''}」を見つけて、その前とうしろで区切る。前置詞ではじまるまとまり（in 〜 / to 〜 など）や when・if のまとまりは、ひとかたまりで区切る。` };
+  }
   if (item.type === 'svo') {
     const v = item.segs.find(g => g.role.includes('V'));
     return { hint: '', st: '', why: `まず動詞（V）の「${v ? v.en : ''}」を見つける。その前が主語（S）、うしろが O・C、いつ・どこで などは M。( ) [ ] のまとまりは1つの要素。` };
@@ -7143,8 +7203,8 @@ function structureHtml(pieces, jp) {
   return `<div class="ws-st">${st.map(p => `<span class="st-c"><i class="st-jp">${(p.jp || '').replace(/[〜~]/g, '')}</i><span class="st-en">${p.open}${p.en.replace(/[.!?]$/, '')}${p.close}</span><b class="st-r">${p.roles.join('・')}</b></span>`).join('')}</div>`;
 }
 // 「文の要素に分けよう」の答え: 区切りごとに、下に記号
-function segmentsHtml(segs) {
-  return `<span class="ws-st ws-st-inline">${segs.map(g => `<span class="st-c"><span class="st-en">${g.open}${escHtml(g.en)}${g.close}</span><b class="st-r">${g.role || '　'}</b></span>`).join('')}</span>`;
+function segmentsHtml(segs, slashes) {
+  return `<span class="ws-st ws-st-inline">${segs.map((g, i) => `${slashes && i ? '<span class="st-slash">／</span>' : ''}<span class="st-c"><span class="st-en">${g.open}${escHtml(g.en)}${g.close}</span><b class="st-r">${g.role || '　'}</b></span>`).join('')}</span>`;
 }
 const STRUCTURE_LEGEND = '<div class="ws-st-legend"><b>記号の見かた</b> S＝主語（〜は・〜が）　V＝動詞　O＝目的語（〜を・〜に）　C＝補語（S＝C／O＝C の関係）　M＝修飾語（いつ・どこで・どのように など）　( )＝前置詞や to 〜 のまとまり　[ ]＝文の中の文（接続詞・関係代名詞・疑問詞のまとまり）　仮S・真S＝It の文で、本当の主語は to 〜</div>';
 
@@ -7679,7 +7739,7 @@ function answerText(item) {
   if (item.type === 'korder') return `${item.order.map(k => CHOICE_LABELS5[k]).join('→')}<span class="ans-why">${item.sentence}</span>`;
   if (item.type === 'kscene') return `${item.answers[0]}${item.answers.slice(1).map(a => `<span class="ans-why">別解：${a}</span>`).join('')}`;
   if (['form', 'fillin', 'vword', 'vblank', 'vidiom', 'vjp', 'entoja', 'rfill', 'rja', 'rea', 'chunkorder', 'frame', 'rule', 'wtable', 'clist', 'ccheck'].includes(item.type)) return item.answer;
-  if (item.type === 'svo') return segmentsHtml(item.segs);
+  if (item.type === 'svo' || item.type === 'slash') return segmentsHtml(item.segs, item.type === 'slash') + (item.altAnswer ? `<span class="ans-why">${item.altAnswer} と分けても正解</span>` : '');
   if (item.type === 'rewrite') return item.answerSentence;
   if (item.type === 'error') return `${item.wrongWord} → ${item.answer}`;
   if (item.type === 'paraphrase') return item.answer;
@@ -7712,6 +7772,10 @@ function isCorrect(item) {
     return words.length > 0 && words[words.length - 1] === want && (words.length === 1 || (words.length === 2 && words[0] === item.wrongWord.toLowerCase()));
   }
   if (item.type === 'xorder') return normalize(answer) !== '' && normalize(answer) === normalize(item.answer);
+  if (item.type === 'slash') {
+    const parts = x => x.split(/[／/]/).map(t => t.toLowerCase().replace(/[^a-z0-9' ]/g, ' ').replace(/\s+/g, ' ').trim()).filter(Boolean).join('|');
+    return parts(answer) !== '' && (parts(answer) === parts(item.answer) || !!item.altAnswer && parts(answer) === parts(item.altAnswer));
+  }
   if (item.type === 'svo') { const sv = x => x.toUpperCase().replace(/[^SVOCM仮真]/g, ''); return sv(answer) !== '' && sv(answer) === sv(item.answer); }
   if (item.type === 'xask') return normalize(answer) !== '' && item.answers.some(a => normalize(a) === normalize(answer));
   if (item.type === 'kform') return normalize(answer) !== '' && normalize(answer) === normalize(item.answer);
@@ -7833,6 +7897,9 @@ function itemBodyHtml(item) {
       return `<div class="ws-pieces">${item.chunkWords.map(w => `<span class="ws-piece"><span>${escHtml(w)}</span></span>`).join('')}</div>${item.noHint ? '<div class="ws-4l ws-4l-print"></div>' : ''}${answerLineHtml('まとまりを書こう')}`;
     case 'frame':
       return `<div class="ws-sentence ws-frame-en">${fullSentence(item)}</div>`;
+    case 'slash':
+      // 語と語のあいだを広くあけて、／を書きこめるようにする
+      return `<div class="ws-slash">${item.tokens.join(' ').replace(/[.!?]$/, '').split(' ').map(w => `<span>${escHtml(w)}</span>`).join('<i></i>')}${item.end || ''}</div>${answerLineHtml('／で区切った英文を書こう')}`;
     case 'svo':
       // 区切りごとに英語と、その下に記号を書く□。There・and などの役割のない語は□なし
       return `<div class="ws-svo">${item.segs.map(g => `<span class="svo-c"><span class="svo-en">${g.open}${escHtml(g.en)}${g.close}</span>${g.role ? '<span class="svo-box"></span>' : '<span class="svo-none"></span>'}</span>`).join('')}<span class="svo-end">${item.end || ''}</span></div>${answerLineHtml('記号を順に（例：S V O M）', 'short')}`;
@@ -8099,7 +8166,7 @@ const SECTION_NUMERALS = ['Ⅰ', 'Ⅱ', 'Ⅲ', 'Ⅳ'];
 function guideAnswerSentence(item) {
   const box = t => `<span class="ws-box">${t}</span>`;
   if (item.type === 'chunkorder') return `${box(item.chunk.en)}<span class="ws-ans-ctx">（${fullSentence(item)}）</span>`;
-  if (item.type === 'svo') return segmentsHtml(item.segs);
+  if (item.type === 'svo' || item.type === 'slash') return segmentsHtml(item.segs, item.type === 'slash') + (item.altAnswer ? `<div class="ws-ans-ctx">（${item.altAnswer} と分けても正解）</div>` : '');
   if (item.type === 'frame') return `<span class="ws-ans-jp">${item.jp.replace(item.chunk.jp, box(item.chunk.jp))}</span><br>${fullSentence(item).replace(item.chunk.en, box(item.chunk.en))}`;
   if (item.type === 'rule') return item.parts.map((p, i) => (item.blanks.includes(i) ? `<b class="ws-hl">${p}</b>` : p)).join(' ＋ ');
   if (item.type === 'wtable') return item.words.map(w => `${w.jp}＝<b class="ws-hl">${w.en}</b>`).join('　');
@@ -8391,7 +8458,7 @@ function renderGuideWorksheet() {
 // 配点: 形式ごとの重み(書く問題・長い問題ほど高く)を、合計がちょうど100点になるように整数にする。同じ形式は同じ点
 const POINT_WEIGHTS = {
   vmeaning: 1, vjp: 2, vword: 2, vblank: 2, vidiom: 2,
-  choice: 2, usage: 2, svo: 3, fillin: 2, form: 2, error: 3, extra: 3, reorder: 3, rewrite: 3, paraphrase: 3, translate: 4, entoja: 4,
+  choice: 2, usage: 2, svo: 3, slash: 3, fillin: 2, form: 2, error: 3, extra: 3, reorder: 3, rewrite: 3, paraphrase: 3, translate: 4, entoja: 4,
   rchoice: 3, rtf: 2, rfill: 3, rja: 4, rea: 4, cdialog: 3, cphrase: 3, cform: 2, cfree: 3, cwtrans: 4, cwcond: 5, cwfree: 10, cetoj: 4, xchoice: 2, xfill: 3, xorder: 3, xpara: 3, xask: 4, clist: 1, ccheck: 1, kform: 3, korder: 3, kscene: 6,
 };
 function assignPoints(items) {
