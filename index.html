@@ -574,6 +574,8 @@
   @media (max-width: 600px) { .ws-top { flex-wrap: wrap; } .ws-edit { flex-shrink: 1; flex-wrap: wrap; justify-content: flex-end; max-width: 100%; } }
   .ws-pts + .ws-edit { margin-left: 8px; }
   .ws-edit button, .ws-add { font-family: inherit; font-size: 11.5px; padding: 1px 8px; border-radius: 4px; border: 1px solid var(--teal); background: var(--teal-tint); color: var(--teal); cursor: pointer; line-height: 1.6; }
+  .ws-add-box { display: flex; gap: 6px; align-items: center; justify-content: flex-end; margin: 2px 0 6px; }
+  .ws-add-box select { font-family: inherit; font-size: 11.5px; padding: 1px 4px; border-radius: 4px; border: 1px solid var(--teal); color: var(--teal); background: var(--panel); }
   .ws-edit button.danger { border-color: var(--amber); background: var(--panel); color: var(--amber); }
   .ws-add { display: inline-block; margin: 4px 0 10px; background: var(--panel); }
   .ws-passage-change { float: right; margin: 0 0 6px 8px; }
@@ -7237,6 +7239,7 @@ function generateGuideWorksheet() {
       test = { stage, practice: items, nPractice: Math.min(8, items.length), isTest: true };
     }
     const unit = { stage, intro, practice, nIntro: Math.min(5, intro.length), nPractice: Math.min(8, practice.length), more, test };
+    unit.make = make; // 画面で問題を「変える」「1問追加」するときに使う
     // 1周目の練習の最初に「使う単語の確認」の表。確認テストには同じ単語の表(英単語は空らん)
     unit.words = /疑問詞|間接疑問/.test(stage.label)
       ? Object.entries(GUIDE_WH_MEANING).map(([en, jp]) => ({ en, jp: jp.split('・')[0] }))
@@ -8222,13 +8225,13 @@ function layoutGuideUnit(u, first) {
   const headH = first ? measureHeight(document.querySelector('.sheet-head').cloneNode(true)) : 0;
   const fit = (pageFn, ansFn) => measureHeight(pageFn()) + 0 <= GUIDE_PAGE_LIMIT && measureHeight(htmlNode(ansFn())) <= GUIDE_PAGE_LIMIT;
   u.nIntro = 1;
-  while (u.nIntro < u.intro.length) {
+  while (u.nIntro < Math.min(u.intro.length, u.capIntro || Infinity)) {
     u.nIntro++;
     if (!(measureHeight(guideIntroPage(u, '①', 10)) + headH <= GUIDE_PAGE_LIMIT && measureHeight(htmlNode(guideIntroAnswerHtml(u, '①', 10))) <= GUIDE_PAGE_LIMIT)) { u.nIntro--; break; }
   }
   const fitPractice = pu => {
     pu.nPractice = 1;
-    while (pu.nPractice < pu.practice.length) {
+    while (pu.nPractice < Math.min(pu.practice.length, pu.cap || Infinity)) {
       pu.nPractice++;
       if (!fit(() => guidePracticePage(pu, '①', 10), () => guidePracticeAnswerHtml(pu, '①', 10))) { pu.nPractice--; break; }
     }
@@ -8256,7 +8259,7 @@ function renderGuideWorksheet() {
 
   const paged = printIncludeAnswers.checked;
   if (paged) units.forEach((u, i) => layoutGuideUnit(u, i === 0));
-  else units.forEach(u => { u.nIntro = Math.min(5, u.intro.length); u.nPractice = Math.min(8, u.practice.length); [...(u.more || []), ...(u.test ? [u.test] : [])].forEach(m => { m.nPractice = Math.min(8, m.practice.length); }); });
+  else units.forEach(u => { u.nIntro = Math.min(u.capIntro || 5, u.intro.length); u.nPractice = Math.min(u.cap || 8, u.practice.length); [...(u.more || []), ...(u.test ? [u.test] : [])].forEach(m => { m.nPractice = Math.min(m.cap || 8, m.practice.length); }); });
   printItems = units.flatMap(u => [...guideIntroItems(u), ...guidePracticeItems(u), ...(u.more || []).flatMap(guidePracticeItems), ...(u.test ? guidePracticeItems(u.test) : [])]);
   sheetTotal.textContent = countQuestions();
   sheetItems.classList.toggle('guide-paged', paged);
@@ -8772,6 +8775,56 @@ function replacePassage(r) {
   readingItems[readingItems.indexOf(r)] = next;
   editedRender();
 }
+// 解説つきプリントの編集: 問題がどの並び(確認の問題・練習問題・○周目・確認テスト)に入っているか
+function guideListOf(item) {
+  for (const u of guideUnits) {
+    if (u.intro.includes(item)) return { unit: u, owner: u, key: 'intro', capKey: 'capIntro', nKey: 'nIntro' };
+    for (const pu of [u, ...(u.more || []), ...(u.test ? [u.test] : [])]) {
+      if (pu.practice.includes(item)) return { unit: u, owner: pu, key: 'practice', capKey: 'cap', nKey: 'nPractice' };
+    }
+  }
+  return null;
+}
+const guideSentenceSet = arr => new Set(arr.filter(it => it.tokens && it.tokens.length).map(fullSentence));
+// 消す: その問題をなくし、ページの問題数を1つ減らす(あとの問題が繰り上がって入らないように)
+function guideRemoveItem(item) {
+  const L = guideListOf(item);
+  if (!L) return;
+  const arr = L.owner[L.key];
+  const shown = Math.min(L.owner[L.nKey] || arr.length, arr.length);
+  if (shown <= 1) { alert('このページの最後の1問は消せません。'); return; }
+  arr.splice(arr.indexOf(item), 1);
+  L.owner[L.capKey] = shown - 1;
+  editedRender();
+}
+// 変える: 同じ形式の別の文の問題にする
+function guideReplaceItem(item) {
+  const L = guideListOf(item);
+  if (!L || !L.unit.make) return;
+  const arr = L.owner[L.key];
+  const next = L.unit.make(item.type, guideSentenceSet(arr));
+  if (!next) { alert('この単元では、ほかに出せる問題がありません。'); return; }
+  arr[arr.indexOf(item)] = next;
+  editedRender();
+}
+// 1問追加: 選んだ形式の問題を、そのページの最後に足す(ページに入りきらなければ足さない)
+function guideAddItem(L, type) {
+  if (!L.unit.make) return;
+  const arr = L.owner[L.key];
+  const shown = Math.min(L.owner[L.nKey] || arr.length, arr.length);
+  const next = L.unit.make(type, guideSentenceSet(arr));
+  if (!next) { alert('この単元では、ほかに出せる問題がありません。'); return; }
+  arr.splice(shown, 0, next);
+  L.owner[L.capKey] = shown + 1;
+  editedRender();
+  if ((L.owner[L.nKey] || 0) < shown + 1) {
+    arr.splice(arr.indexOf(next), 1);
+    L.owner[L.capKey] = shown;
+    editedRender();
+    alert('このページはいっぱいです。先にほかの問題を消してから追加してください。');
+  }
+}
+
 // 画面のプリントに編集ボタンをつける(単元プリント・定期テスト。印刷には出ない)
 function addEditControls() {
   const guide = printSource.kind === 'guide';
@@ -8788,6 +8841,10 @@ function addEditControls() {
       bar.appendChild(b);
     };
     mk('直す', '', () => openItemEditor(row));
+    if (guide) {
+      if (!['rule', 'wtable'].includes(item.type)) mk('変える', '', () => guideReplaceItem(item));
+      mk('消す', '', () => guideRemoveItem(item));
+    }
     if (!guide) {
       if (item.section !== 'reading') mk('変える', '', () => replaceItem(item));
       mk('消す', '', () => removeItem(item));
@@ -8795,7 +8852,25 @@ function addEditControls() {
     }
     row.querySelector('.ws-top').appendChild(bar);
   });
-  if (guide) return;
+  if (guide) {
+    // ページ(確認の問題・練習・周・確認テスト)ごとに「1問追加」。形式を選んで足す
+    const lastOf = new Map();
+    rows.forEach(row => { const L = guideListOf(row._item); if (L) lastOf.set(L.owner[L.key], { row, L }); });
+    lastOf.forEach(({ row, L }) => {
+      const types = [...new Set(L.owner[L.key].map(it => it.type))].filter(t => GUIDE_TYPE_LABELS[t] && !['rule', 'wtable'].includes(t));
+      if (!types.length) return;
+      const box = document.createElement('div');
+      box.className = 'ws-add-box no-print';
+      box.innerHTML = `<select>${types.map(t => `<option value="${t}">${GUIDE_TYPE_LABELS[t][0]}</option>`).join('')}</select>`;
+      const b = document.createElement('button');
+      b.className = 'ws-add';
+      b.textContent = '＋ 1問追加';
+      b.onclick = () => guideAddItem(L, box.querySelector('select').value);
+      box.appendChild(b);
+      row.after(box);
+    });
+    return;
+  }
   // 形式ごとに「1問追加」(長文は長文ごと差しかえ)
   const lastOfType = new Map();
   rows.forEach(row => {
