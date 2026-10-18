@@ -6811,7 +6811,7 @@ const GUIDE_TEST_TYPES = ['choice', 'fillin', 'reorder', 'chunkorder', 'svo', 't
 const GUIDE_PRACTICE_TYPES_BY_ROUND = [
   GUIDE_PRACTICE_TYPES,
   ['chunkorder', 'fillin', 'svo', 'translate', 'reorder', 'frame', 'fillin', 'choice', 'translate', 'reorder', 'fillin', 'translate', 'fillin', 'reorder', 'translate'],
-  ['translate', 'reorder', 'svo', 'fillin', 'translate', 'translate', 'reorder', 'fillin', 'translate', 'reorder', 'translate', 'fillin', 'translate'],
+  ['translate', 'reorder', 'fillin', 'translate', 'translate', 'reorder', 'fillin', 'translate', 'reorder', 'translate', 'fillin', 'translate'],
 ];
 const GUIDE_TYPE_LABELS = {
   rule: ['ルールの確認', 'この単元で学んだ文の形を完成させる'],
@@ -8848,6 +8848,22 @@ function guideListOf(item) {
   return null;
 }
 const guideSentenceSet = arr => new Set(arr.filter(it => it.tokens && it.tokens.length).map(fullSentence));
+// 変える・追加する問題を作る。単元の文を使いきっていたら、ほかのページで使った文でも、このページにない文なら使う
+function guideMakeForEdit(L, type, avoid) {
+  const made = L.unit.make(type, new Set(avoid));
+  if (made) return made;
+  const st = { order: shuffle(L.unit.stage.questions.map((_, i) => i)), n: 0 };
+  for (let k = 0; k < 30; k++) {
+    const it = makeUnitQuestion(L.unit.stage, type, st, 1);
+    if (it.type === type && it.tokens && !avoid.has(fullSentence(it))) {
+      it.guide = explainItem(L.unit.stage, it);
+      if (!('st' in it.guide) && it.pieces && it.pieces.length > 1) it.guide.st = structureHtml(it.pieces, it.jp);
+      it.noHint = true;
+      return it;
+    }
+  }
+  return null;
+}
 // 消す: その問題をなくし、ページの問題数を1つ減らす(あとの問題が繰り上がって入らないように)
 function guideRemoveItem(item) {
   const L = guideListOf(item);
@@ -8864,7 +8880,7 @@ function guideReplaceItem(item) {
   const L = guideListOf(item);
   if (!L || !L.unit.make) return;
   const arr = L.owner[L.key];
-  const next = L.unit.make(item.type, guideSentenceSet(arr));
+  const next = guideMakeForEdit(L, item.type, guideSentenceSet(arr));
   if (!next) { alert('この単元では、ほかに出せる問題がありません。'); return; }
   arr[arr.indexOf(item)] = next;
   editedRender();
@@ -8874,7 +8890,7 @@ function guideAddItem(L, type) {
   if (!L.unit.make) return;
   const arr = L.owner[L.key];
   const shown = Math.min(L.owner[L.nKey] || arr.length, arr.length);
-  const next = L.unit.make(type, guideSentenceSet(arr));
+  const next = guideMakeForEdit(L, type, guideSentenceSet(arr.slice(0, shown)));
   if (!next) { alert('この単元では、ほかに出せる問題がありません。'); return; }
   arr.splice(shown, 0, next);
   L.owner[L.capKey] = shown + 1;
