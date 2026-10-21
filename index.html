@@ -8314,10 +8314,12 @@ function isCorrect(item) {
   if (item.type === 'vidiom' || item.type === 'cphrase' || item.type === 'cfree' || item.type === 'xfill' || item.type === 'xpara') return normalize(answer.replace(/[／/・]/g, ' ')) === normalize(item.answers.join(' '));
   if (item.type === 'cform') {
     // 「was / were」のような答えは、どちらか一方でも両方書いても正解
-    const got = normalize(answer.replace(/[／/・,、]/g, ' '));
+    // 数字の読み方は、ハイフン(twenty-five / twenty five)と and(one hundred and eight)のあるなしを問わない
+    const fix = t => (item.kind === 'number' ? normalize(t.replace(/-/g, ' ').replace(/\band\b/gi, ' ')) : normalize(t));
+    const got = fix(answer.replace(/[／/・,、]/g, ' '));
     const opts = item.answers.map(a => { const alts = a.split(' / '); return alts.length > 1 ? [...alts, alts.join(' ')] : alts; });
     const combos = opts.reduce((acc, o) => acc.flatMap(x => o.map(y => (x ? x + ' ' : '') + y)), ['']);
-    return got !== '' && combos.some(c => normalize(c) === got);
+    return got !== '' && combos.some(c => fix(c) === got);
   }
   if (item.type === 'fillin' && (item.altAnswers || []).some(a => normalize(a) === normalize(answer))) return true;
   if (['reorder', 'translate', 'extra', 'lack', 'trace'].includes(item.type)) {
@@ -8499,7 +8501,7 @@ function itemBodyHtml(item) {
         const m = item.mixed;
         return `<div class="ws-sentence ws-cform">${m.cols.map((c, i) => (i === m.given ? `<span>${c}：<b class="ws-word">${m.values[i]}</b></span>` : `<span>${c}（　　　　　　）</span>`)).join('')}</div>${answerLineHtml(item.cols.join('・') + 'を順に', 'short')}`;
       }
-      return `<div class="ws-sentence ws-cform">${item.cols.map(c => `<span>${c}（　　　　　　）</span>`).join('')}</div>${answerLineHtml(item.cols.join('・') + 'を順に', 'short')}`;
+      return `<div class="ws-sentence ws-cform">${item.cols.map(c => `<span>${c}（　　　　　　）</span>`).join('')}</div>${answerLineHtml(item.cols.length > 1 ? item.cols.join('・') + 'を順に' : `${item.cols[0]}を書こう`, 'short')}`;
     default:
       return '';
   }
@@ -9606,7 +9608,7 @@ function addEditControls() {
 const EXAM_TYPES = {
   cdialog: { label: '会話表現', instr: '対話が成り立つように、（　）に入る最も適切なものをア〜エから選びなさい。' },
   cphrase: { label: '重要表現', instr: '日本語に合うように、（　）に適切な英語を1語ずつ入れなさい。' },
-  cform: { label: '語形変化', instr: '次の語の変化形を書きなさい。' },
+  cform: { label: '語形変化', instr: '次の語の変化形（（　）に示されたもの）を書きなさい。' },
   kform: { label: '対話文完成（語形変化）', instr: '対話文が成り立つように、（　）の中の語を最も適当な形にしなさい。ただし、英単語1語で答えること。' },
   korder: { label: '対話文完成（並べかえ）', instr: '対話文が成り立つように、（　）の中のア〜オを正しい語順に並べかえ、その順序を符号で示しなさい。' },
   kscene: { label: '場面英作文', instr: '場面に合うように、（　）に入る英語を書きなさい。ただし、,.?! などの符号は語数に含めない。' },

@@ -109,4 +109,32 @@ const EXAM_TABLES = {
       ['ask', 'たずねる', 'answer'], ['arrive', '着く', 'leave'], ['before', '〜の前に', 'after'], ['inside', '内側に', 'outside'], ['always', 'いつも', 'never'],
     ],
   },
+  number: {
+    label: '数字の読み方（年号・時刻・日付・金額・分数）', cols: ['英語の読み方'],
+    rows: [
+      ['13', '数', 'thirteen'], ['30', '数', 'thirty'], ['40', '数', 'forty'], ['90', '数', 'ninety'], ['108', '数', 'one hundred eight'],
+      ['350', '数', 'three hundred fifty'], ['1,000', '数', 'one thousand'], ['2,600', '数', 'two thousand six hundred'], ['10,000', '数', 'ten thousand'],
+      ['100,000', '数', 'one hundred thousand'], ['1,000,000', '数', 'one million'],
+      ['1998年', '年号', 'nineteen ninety-eight'], ['1964年', '年号', 'nineteen sixty-four'], ['2010年', '年号', 'two thousand ten / twenty ten'],
+      ['2025年', '年号', 'two thousand twenty-five / twenty twenty-five'],
+      ['7:30', '時刻', 'seven thirty'], ['10:15', '時刻', 'ten fifteen'], ['6:45', '時刻', 'six forty-five'],
+      ['3月3日', '日付', 'March third / March 3rd'], ['7月4日', '日付', 'July fourth / July 4th'], ['12月25日', '日付', 'December twenty-fifth / December 25th'],
+      ['500円', '金額', 'five hundred yen'], ['20ドル', '金額', 'twenty dollars'],
+      ['1/2', '分数', 'a half / one half'], ['1/3', '分数', 'a third / one third'], ['3/4', '分数', 'three quarters / three fourths'],
+      ['2倍', '倍数', 'twice / two times'], ['3倍', '倍数', 'three times'],
+    ],
+  },
+  homophone: {
+    label: '同じ発音の語（同音異義語）', cols: ['同じ発音の語'],
+    rows: [
+      ['meet', '会う → 同じ発音で「肉」', 'meat'], ['see', '見る → 同じ発音で「海」', 'sea'], ['son', '息子 → 同じ発音で「太陽」', 'sun'],
+      ['right', '正しい・右 → 同じ発音で「書く」', 'write'], ['hear', '聞く → 同じ発音で「ここに」', 'here'], ['know', '知っている → 同じ発音で「いいえ」', 'no'],
+      ['buy', '買う → 同じ発音で「〜のそばに」', 'by'], ['two', '2 → 同じ発音で「〜もまた」', 'too'], ['week', '週 → 同じ発音で「弱い」', 'weak'],
+      ['one', '1 → 同じ発音で「勝った」', 'won'], ['eight', '8 → 同じ発音で「食べた」', 'ate'], ['for', '〜のために → 同じ発音で「4」', 'four'],
+      ['hour', '1時間 → 同じ発音で「私たちの」', 'our'], ['new', '新しい → 同じ発音で「知っていた」', 'knew'], ['road', '道 → 同じ発音で「乗った」', 'rode'],
+      ['red', '赤い → 同じ発音で「読んだ」', 'read'], ['blue', '青い → 同じ発音で「吹いた」', 'blew'], ['there', 'そこに → 同じ発音で「彼らの」', 'their'],
+      ['piece', '1つ・1切れ → 同じ発音で「平和」', 'peace'], ['wear', '着ている → 同じ発音で「どこに」', 'where'], ['eye', '目 → 同じ発音で「私は」', 'I'],
+      ['wood', '木材 → 同じ発音で「〜だろう」', 'would'], ['nose', '鼻 → 同じ発音で「知っている（3単現）」', 'knows'], ['dear', '親愛なる → 同じ発音で「シカ」', 'deer'],
+    ],
+  },
 };
