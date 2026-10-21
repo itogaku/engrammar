@@ -6137,6 +6137,9 @@ const REWRITE_KIND_LABELS = { neg: '否定文に', q: '疑問文に', past: '文
 const rewriteKindLabel = item => (item.rewriteKind === 'he' ? `主語を ${item.rewriteSubj} にかえて`
   : item.rewriteKind === 'past' && item.rewriteTime ? `文末に ${item.rewriteTime} を加えて、過去の文に`
   : item.rewriteKind === 'future' ? `文末に ${item.rewriteTime} を加えて、${item.rewriteAux === 'will' ? 'will' : 'be going to'} を使った未来の文に`
+  : item.rewriteKind === 'perfect' ? `文末に ${item.rewriteTime} を加えて、${item.rewriteProg ? '現在完了進行形' : '現在完了'}の文に`
+  : item.rewriteKind === 'indirect' ? `「${item.rewriteFrame}」に続けて、1つの文に`
+  : item.rewriteKind === 'combine' ? `${item.rewriteWord === 'ing' ? '2つ目の文の動詞を 〜ing の形にして' : item.rewriteWord === 'pp' ? '2つ目の文の動詞を過去分詞にして' : `${item.rewriteWord} を使って`}、2つの文を1つの文に`
   : REWRITE_KIND_LABELS[item.rewriteKind]);
 
 // kind: 'neg'(否定文) / 'q'(疑問文)。作れないときは null
@@ -6300,6 +6303,101 @@ function whQuestion(tokens, pieces, jp) {
   return null;
 }
 
+// 中3でよく出る書きかえ(中3ワーク参考)。どれも教科書の文を答えにして、そこから問題の文を作る
+// 「文末に for 〜 / since 〜 を加えて、現在完了(進行形)の文に」: 現在完了の文から現在の文を作る
+function perfectToPresent(tokens, jp) {
+  const lw = tokens.map(t => t.toLowerCase().replace(/[.!?]$/, ''));
+  if (sentenceEnd(jp) !== '.' || lw.some(t => /,$/.test(t) || ['not', 'never', "haven't", "hasn't", 'and'].includes(t))) return null;
+  const h = lw.findIndex(t => t === 'have' || t === 'has');
+  if (h < 1 || h > 3) return null;
+  const f = lw.findIndex((t, k) => k > h + 1 && (t === 'for' || t === 'since') && (lw.length - k <= 6) && !lw.slice(k + 1).some(x => x === 'for' || x === 'since'));
+  if (f < 0) return null;
+  const subj = lw.slice(0, h), third = isThirdSingular(subj);
+  const be = subj.join(' ') === 'i' ? 'am' : third ? 'is' : 'are';
+  let verb, prog = false, rest = tokens.slice(h + 2, f);
+  if (lw[h + 1] === 'been') {
+    if (/ing$/.test(lw[h + 2] || '') && VERB_BASE_OF[lw[h + 2]]) { verb = [be, tokens[h + 2]]; rest = tokens.slice(h + 3, f); prog = true; }
+    else verb = [be];
+  } else {
+    const pp = lw[h + 1], base = pp === 'had' ? 'have' : VERB_BASE_OF[pp];
+    if (!base || !isPerfectParticiple(pp)) return null;
+    verb = [base === 'have' ? (third ? 'has' : 'have') : third ? verbThirdPerson(base) : base];
+  }
+  if (rest.some(t => ['for', 'since', 'just', 'already', 'ever'].includes(t.toLowerCase()))) return null;
+  return { present: [...tokens.slice(0, h), ...verb, ...rest], time: tokens.slice(f).join(' ').replace(/[.!?]$/, ''), prog };
+}
+
+// 「〜に続けて、1つの文に」(間接疑問): I don't know where he lives. ← Where does he live?(I don't know に続けて)
+const INDIRECT_WH = ['what', 'where', 'when', 'who', 'why', 'how', 'which'];
+function indirectToDirect(tokens, jp) {
+  const lw = tokens.map(t => t.toLowerCase().replace(/[.!?,]$/, ''));
+  const k = lw.findIndex((t, i) => i >= 2 && INDIRECT_WH.includes(t));
+  if (k < 0 || lw.slice(k).some(t => ['i', 'my', 'me', 'you', 'your', 'and', 'or'].includes(t))) return null;
+  let w = 1;
+  if (lw[k] === 'how' && /^(old|much|many|long|far|tall|big|often)$/.test(lw[k + 1])) w = ['many', 'much'].includes(lw[k + 1]) && NOUN_BASE_OF[lw[k + 2]] ? 3 : 2;
+  else if (['what', 'which'].includes(lw[k]) && (NOUN_BASE_OF[lw[k + 1]] || ['time', 'sport', 'food', 'color', 'subject', 'kind'].includes(lw[k + 1])) && (DETERMINERS.has(lw[k + 2]) || SUBJECT_PRONOUNS.has(lw[k + 2]))) w = 2;
+  const wh = tokens.slice(k, k + w).map(t => t.replace(/[.!?]$/, '')), clause = tokens.slice(k + w);
+  if (!clause.length) return null;
+  const c0 = clause[0].toLowerCase();
+  let direct;
+  if (w === 1 && ['who', 'what'].includes(lw[k]) && VERB_BASE_OF[c0] && !SUBJECT_PRONOUNS.has(c0) && !DETERMINERS.has(c0)) direct = [...wh, ...clause]; // who made this → Who made this?
+  else {
+    const q = rewriteSentence(clause, jp.replace(/(か。?|[?？])$/, '。'), 'q');
+    if (!q || q.variants.length > 2) return null;
+    direct = [...wh, ...q.text.replace(/\?$/, '').split(' ').map((t, i) => (i === 0 ? lowerSubjectHead(t) : t))];
+  }
+  direct[0] = capitalize(direct[0]);
+  return { direct, frame: tokens.slice(0, k).join(' ') };
+}
+
+// 「2つの文を1つの文に」(関係代名詞・分詞): This is a car. It was made in Japan. → This is a car made in Japan.
+const COMBINE_HE = new Set(['boy', 'man', 'father', 'brother', 'uncle', 'grandfather', 'son']);
+const COMBINE_SHE = new Set(['girl', 'woman', 'mother', 'sister', 'aunt', 'grandmother', 'daughter']);
+const COMBINE_PERSON = new Set(['friend', 'teacher', 'student', 'person', 'doctor', 'player', 'classmate', 'scientist', 'singer', 'artist', 'writer', 'child', 'baby', 'cousin']);
+function combineSplit(tokens, pieces, jp) {
+  const toks = sentenceStructure(pieces, jp, true);
+  if (!toks || toks.length !== tokens.length) return null;
+  const a = toks.findIndex(t => t.post);
+  if (a < 2) return null;
+  let b = a;
+  while (b < toks.length && toks[b].post) b++;
+  if (toks.slice(b).some(t => t.post)) return null;
+  const lw = tokens.map(t => t.toLowerCase().replace(/[.!?,]$/, ''));
+  if (lw.some(t => /,$/.test(t) || t === 'and') || lw[0] === 'there') return null;
+  const head = lw[a - 1];
+  const plural = ['people', 'children'].includes(head) || NOUN_BASE_OF[head] && NOUN_BASE_OF[head] !== head;
+  if (!plural && COMBINE_PERSON.has(head)) return null; // he か she か決まらない
+  if (!NOUN_BASE_OF[head] && !COMBINE_HE.has(head) && !COMBINE_SHE.has(head) && !['people', 'children'].includes(head)) return null;
+  const [subj, obj] = plural ? ['They', 'them'] : COMBINE_HE.has(head) ? ['He', 'him'] : COMBINE_SHE.has(head) ? ['She', 'her'] : ['It', 'it'];
+  const range = tokens.slice(a, b), r0 = lw[a];
+  const mainPast = lw.slice(0, a).concat(lw.slice(b)).some(t => ['was', 'were'].includes(t));
+  const be = past => (plural ? (past ? 'were' : 'are') : past ? 'was' : 'is');
+  let second, word;
+  if (['who', 'which', 'that'].includes(r0)) {
+    word = r0;
+    const r1 = lw[a + 1];
+    if (SUBJECT_PRONOUNS.has(r1) || ['my', 'his', 'her', 'our', 'their', 'your'].includes(r1)) {
+      // 目的格: which I bought yesterday → I bought it yesterday
+      const sEnd = SUBJECT_PRONOUNS.has(r1) ? a + 2 : a + 3;
+      const v = lw[sEnd];
+      if (!VERB_BASE_OF[v] || sEnd >= b || ['have', 'has', 'can', 'will', 'was', 'is', 'are', 'were'].includes(v)) return null;
+      if (lw[sEnd + 1] && (SUBJECT_PRONOUNS.has(lw[sEnd + 1]) || OBJ_TO_SUBJ[lw[sEnd + 1]] || lw[sEnd + 1] === 'to')) return null;
+      second = [capitalize(tokens[a + 1]), ...tokens.slice(a + 2, sEnd + 1), obj, ...tokens.slice(sEnd + 1, b)];
+      if (second[0] !== 'I' && !SUBJECT_PRONOUNS.has(r1)) second[0] = capitalize(r1);
+    } else if (VERB_BASE_OF[r1] || ['can', 'will', 'is', 'are', 'was', 'were', 'has', 'have'].includes(r1)) {
+      second = [subj, ...tokens.slice(a + 1, b)];
+    } else return null;
+  } else if (/ing$/.test(r0) && VERB_BASE_OF[r0]) {
+    word = 'ing'; second = [subj, be(mainPast), ...range];
+  } else if (VERB_BASE_OF[r0] && isPerfectParticiple(r0)) {
+    const byOne = lw[a + 1] === 'by' && !/^(many|a lot|people|everyone|young)/.test(lw.slice(a + 2, b).join(' '));
+    word = 'pp'; second = [subj, be(mainPast || byOne || lw.slice(a, b).some(t => /^(1\d|20)\d\d$/.test(t))), ...range];
+  } else return null;
+  const first = [...tokens.slice(0, a), ...tokens.slice(b)];
+  first[first.length - 1] = endWith(first[first.length - 1].replace(/[.!?]$/, ''), sentenceEnd(jp));
+  return { tokens: [...first, ...second], word };
+}
+
 const CHOICE_LABELS = ['ア', 'イ', 'ウ', 'エ'];
 const CHOICE_LABELS5 = ['ア', 'イ', 'ウ', 'エ', 'オ'];
 const QUESTION_TYPES = {
@@ -6430,6 +6528,21 @@ function buildQuestion(stage, q, type) {
       if (pp) {
         const original = fullSentence({ ...item, tokens });
         return { ...item, type: 'rewrite', rewriteKind: 'past', rewriteTime: pp.time, tokens: pp.present, answerSentence: original, answers: rewriteVariants(original) };
+      }
+    }
+    // 中3: 現在完了・間接疑問・関係代名詞と分詞の単元は、その単元の書きかえを先にためす(答えは教科書の文)
+    if (/^g3program(2-(continuation|progressive)|4-indirect|4-(presentp|pastp)|5-|6-withpronoun)/.test(stage.key) && rand() < 0.7) {
+      const original = fullSentence({ ...item, tokens });
+      const ans = { type: 'rewrite', answerSentence: original, answers: rewriteVariants(original) };
+      if (/^g3program2-/.test(stage.key)) {
+        const pf = perfectToPresent(tokens, q.jp);
+        if (pf) return { ...item, ...ans, rewriteKind: 'perfect', rewriteTime: pf.time, rewriteProg: pf.prog, tokens: pf.present };
+      } else if (/^g3program4-indirect/.test(stage.key)) {
+        const ind = indirectToDirect(tokens, q.jp);
+        if (ind) return { ...item, ...ans, rewriteKind: 'indirect', rewriteFrame: ind.frame, tokens: ind.direct, end: '?' };
+      } else {
+        const cb = combineSplit(tokens, q.pieces, q.jp);
+        if (cb) return { ...item, ...ans, rewriteKind: 'combine', rewriteWord: cb.word, tokens: cb.tokens, end: '.' };
       }
     }
     // 3人称単数・過去形の単元では、その書きかえを先にためす
