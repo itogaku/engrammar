@@ -781,6 +781,31 @@
     .round-tabs { display: none !important; }
   }
   #roundsPrint { display: none; }
+  .ws-review-box { border: 1.5px solid var(--ink); border-radius: 6px; padding: 8px 12px; margin-bottom: 14px; break-inside: avoid; }
+  .ws-review-title { font-weight: 700; font-size: 13.5px; margin-bottom: 4px; }
+  .ws-review-box table { border-collapse: collapse; width: 100%; font-size: 13px; }
+  .ws-review-box th { text-align: left; font-weight: 700; white-space: nowrap; padding: 3px 12px 3px 0; vertical-align: top; width: 1%; }
+  .ws-review-box td { padding: 3px 0; border-bottom: 1px dotted #bbb; }
+  .ws-review-box .rv-en { margin-right: 12px; } .ws-review-box .rv-en b { text-decoration: underline; }
+  .ws-review-box .rv-jp { color: var(--ink-soft); font-size: 12px; }
+  /* 解答欄を最後にまとめる(確認テストの形) */
+  .ans-grid-box { margin-top: 18px; border-top: 2px solid var(--ink); padding-top: 8px; break-inside: avoid; }
+  .ans-grid-title { font-weight: 700; font-size: 14px; margin-bottom: 6px; }
+  .ans-grid-head { font-weight: 700; font-size: 13px; margin: 8px 0 3px; }
+  .ans-grid { display: grid; grid-template-columns: repeat(12, 1fr); border-top: 1px solid var(--ink); border-left: 1px solid var(--ink); }
+  .ag-cell { display: flex; align-items: flex-start; gap: 6px; min-height: 34px; border-right: 1px solid var(--ink); border-bottom: 1px solid var(--ink); padding: 3px 6px; box-sizing: border-box; }
+  .ag-3 { grid-column: span 3; } .ag-6 { grid-column: span 6; } .ag-12 { grid-column: span 12; }
+  .ag-tall { min-height: 56px; }
+  .ag-no { font-size: 11.5px; color: var(--ink-soft); white-space: nowrap; }
+  .ag-ans { display: none; color: #c0392b; font-size: 13px; }
+  .sheet.teacher .ag-ans { display: inline; }
+  .sheet.ansgrid .ws-teacher { display: none !important; }
+  .sheet.redsheet .ans-grid-box { display: none; }
+  .print-like.ansgrid .ws-answer:not(.ws-options), .print-like.ansgrid .print-box, .print-like.ansgrid .ws-4l-print { display: none !important; }
+  @media print {
+    .ansgrid .ws-answer:not(.ws-options), .ansgrid .print-box, .ansgrid .ws-4l-print { display: none !important; }
+    .ag-no { color: #000; }
+  }
   .round-tabs { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 0 0 10px; }
   .round-tabs .rt-label { font-size: 12px; font-weight: 700; color: var(--ink-soft); }
   .round-tabs .mode-switch { margin-bottom: 0; flex: 1; max-width: 520px; }
@@ -1015,6 +1040,7 @@
           <label class="opt-check" id="printPointsLabel"><input type="checkbox" id="printPointsCheck" checked> 配点（100点満点）</label>
           <label class="opt-check"><input type="checkbox" id="printTeacherCheck"> 先生用（答えを赤字で記入）</label>
           <label class="opt-check" id="printExampleLabel"><input type="checkbox" id="printExampleCheck"> 各形式の最初の1問を例題にする（答えと着眼点つき）</label>
+          <label class="opt-check" id="printGridLabel"><input type="checkbox" id="printGridCheck"> 解答欄を最後にまとめる（確認テストの形。問題の中には書かず、下の表に答えを書く）</label>
           <label class="opt-check" id="printRedLabel"><input type="checkbox" id="printRedCheck"> 赤シート用（□チェック欄つき・答えを赤字で空らんに入れる。解答ページなし）</label>
         </div>
       </section>
@@ -4298,7 +4324,7 @@ function roundStyle(i) {
 }
 // 定期テスト(テスト範囲のプリント)はくり返さない。入試対策のプリントはくり返せる
 function isTestRangePrint() {
-  return printSource.kind === 'test' && !/^(入試|千葉)/.test((printSource.config && printSource.config.name) || '');
+  return printSource.kind === 'test' && !(printSource.config && printSource.config.review) && !/^(入試|千葉)/.test((printSource.config && printSource.config.name) || '');
 }
 let roundSets = [];           // [{ vocab, grammar, reading }] 回ごとの問題
 let activeRound = 0;          // 画面に出している回
@@ -6927,6 +6953,46 @@ function instructionForMode() {
 
 // ---------- Screen 1: grade select ----------
 // ---------- Screen 2: program select ----------
+// 重要文法の整理(ワークのように、まぎらわしい文法を学年ごとにまとめて見分ける練習をする)。単元をまたいで出題する
+const GRAMMAR_REVIEWS = [
+  { grade: 1, title: 'be動詞と一般動詞', match: /^program[12]-(aff|neg|q)$/ },
+  { grade: 1, title: '3人称単数（3単現）', match: /^(program2-aff|g1program5-(aff|neg|q))$/ },
+  { grade: 1, title: '疑問詞', match: /^(program1-where|program2-when|g1program3-whatcan|g1program4-who|g1program6-why|g1program7-(how|howmeans)|g1program8-wh)$/ },
+  { grade: 1, title: 'can・命令文・There is', match: /^(program2-(imperative|lets)|g1program3-(aff|neg|q)|g1program7-(aff|neg|q))$/ },
+  { grade: 1, title: '現在形・現在進行形・過去形', match: /^(g1program5-aff|g1program8-(aff|neg|q)|g1program9-(general|be|prog))$/ },
+  { grade: 2, title: '未来・助動詞', match: /^g2program(1-(will|begoingto)|4-(must|haveto))$/ },
+  { grade: 2, title: '接続詞 when / if / that', match: /^g2program2-/ },
+  { grade: 2, title: '不定詞・動名詞', match: /^g2program(1-(enjoystop|likegerund|subjgerund)|3-|4-emotion|5-whto|7-howto)/ },
+  { grade: 2, title: '文型・受け身', match: /^g2program(5-(svc|svoo)|8-)/ },
+  { grade: 2, title: '比較', match: /^g2program(6-|7-(better|best))/ },
+  { grade: 3, title: '現在完了・現在完了進行形', match: /^g3program(1-experience|2-)/ },
+  { grade: 3, title: '不定詞の発展・SVOC', match: /^g3program(1-(asktell|itisfor)|3-)/ },
+  { grade: 3, title: '分詞・関係代名詞', match: /^g3program(4-(presentp|pastp)|5-|6-)/ },
+  { grade: 3, title: '間接疑問・仮定法', match: /^g3program(4-indirect|7-)/ },
+];
+const REVIEW_GRAMMAR_FORMAT = { choice: 4, fillin: 2, rewrite: 2, reorder: 2 };
+function startReviewPrint(r, no) {
+  const keys = stages.filter(st => r.match.test(st.key)).map(st => st.key);
+  const name = `重要文法の整理${CIRCLED[no - 1]} ${r.title}`;
+  startExamPrint(`${keys.length}単元をまぜて出題`, examConfig(name, {
+    keys, review: true, shuffle: true, grammarCounts: { ...emptyCounts(QUESTION_TYPES), ...REVIEW_GRAMMAR_FORMAT },
+  }));
+}
+// プリントの先頭に、まとめた単元の例文を並べた「ポイントの整理」の表(否定文・疑問文の単元は肯定文と同じなので省く)
+function reviewSummaryEl() {
+  const list = sourceStages().filter(s => !/-(neg|q)$/.test(s.key) || !sourceStages().some(o => o.key === s.key.replace(/-(neg|q)$/, '-aff')));
+  const rows = list.map(s => {
+    const ex = ((STAGE_GUIDES[s.key] || {}).examples || [])[0];
+    if (!ex) return '';
+    const en = escHtml(ex[0]).replace(/\*([^*]+)\*/g, '<b>$1</b>');
+    return `<tr><th>${escHtml(s.label.replace(/^[1-3]年 /, ''))}</th><td><span class="rv-en">${en}</span><span class="rv-jp">${escHtml(ex[1])}</span></td></tr>`;
+  }).join('');
+  const el = document.createElement('div');
+  el.className = 'ws-review-box';
+  el.innerHTML = `<div class="ws-review-title">ポイントの整理（形のちがいに注目して読もう）</div><table>${rows}</table>`;
+  return el;
+}
+
 function renderProgramList() {
   programList.innerHTML = '';
   const list = stages.filter(s => s.grade === currentGrade);
@@ -6980,6 +7046,22 @@ function renderProgramList() {
     };
     programList.appendChild(card);
   });
+  // プリントのときは、学年の最後に「重要文法の整理」
+  const reviews = GRAMMAR_REVIEWS.filter(r => r.grade === currentGrade);
+  if (programMode === 'print' && reviews.length) {
+    const header = document.createElement('div');
+    header.className = 'program-group-header';
+    header.textContent = '重要文法の整理（単元をまぜて、まぎらわしい文法を見分ける）';
+    programList.appendChild(header);
+    reviews.forEach((r, i) => {
+      const n = stages.filter(st => r.match.test(st.key)).length;
+      const card = document.createElement('button');
+      card.className = 'program-card review-card';
+      card.innerHTML = `<div><div class="p-label">${CIRCLED[i]} ${r.title}</div><div class="p-desc">${n}単元をまぜて出題（適語選択・適語補充・書きかえ・並べ替え）</div></div><div class="p-check"></div>`;
+      card.onclick = () => startReviewPrint(r, i + 1);
+      programList.appendChild(card);
+    });
+  }
 }
 
 // ---------- screen switching ----------
@@ -7851,6 +7933,7 @@ function renderPrintOptions() {
   printGuideTestLabel.style.display = printSource.kind === 'guide' ? '' : 'none';
   printRedLabel.style.display = isGuide ? 'none' : '';
   printExampleLabel.style.display = isGuide ? 'none' : '';
+  printGridLabel.style.display = isGuide ? 'none' : '';
   printRoundRow.style.display = isHowto || isTestRangePrint() ? 'none' : '';
   editHint.innerHTML = isGuide
     ? '✎ 問題ごとの右上の <b>直す</b> で、問題文や解答を書きかえられます。ボタンは印刷されません。'
@@ -7984,6 +8067,16 @@ function generateWorksheet(seed) {
         if (alt.type === type) { item = alt; break; }
       }
     }
+    return item;
+  });
+  // 同じ文が2回出ないように(ほかの形式で作れなかった単元は、文を多く使って一周することがある)
+  const seenSentences = new Set();
+  const sentenceKey = it => (it.answerSentence || (it.tokens ? fullSentence(it) : '')).toLowerCase();
+  printItems = printItems.map(item => {
+    const st = stages.find(x => x.key === item.stageKey);
+    // 修飾語を付けられる文が少ない単元では同じ文ばかりになるので、2回目からは修飾語なしで作る
+    for (let k = 0; k < 6 && st && sentenceKey(item) && seenSentences.has(sentenceKey(item)); k++) item = makeUnitQuestion(st, item.type, stateOf(st), k ? 1 : 3);
+    seenSentences.add(sentenceKey(item));
     return item;
   });
   vocabItems = [];
@@ -8953,6 +9046,7 @@ function renderWorksheet() {
   const numbered = sections.length > 1;
   const examTitle = examSectionTitle();
   renderExamSummary();
+  if (printSource.kind === 'test' && printSource.config.review) sheetItems.appendChild(reviewSummaryEl());
   let instr = '';
   sections.forEach((sec, si) => {
     const numeral = numbered ? SECTION_NUMERALS[si] : '';
@@ -8977,6 +9071,9 @@ function renderWorksheet() {
       });
     }
   });
+  const grid = printGridCheck.checked && !redSheetOn();
+  document.getElementById('sheet').classList.toggle('ansgrid', grid);
+  if (grid) sheetItems.appendChild(answerGridEl());
   // 大問が1つだけなら、指示はタイトルの下にまとめる
   sheetInstr.textContent = numbered ? '' : (instr || (sections[0] === 'reading' ? '' : '各問題の指示にしたがって答えなさい。'));
   sheetInstr.style.display = sheetInstr.textContent ? 'block' : 'none';
@@ -8998,6 +9095,34 @@ function renderWorksheet() {
   answerSheet.classList.toggle('include', printIncludeAnswers.checked && !redSheetOn());
   if (printExampleCheck.checked) applyExamples();
   addEditControls();
+}
+
+// 解答欄をまとめた表(確認テストの形): 問題の中の答えの線・□は印刷せず、最後の表に番号つきの欄を並べる。
+// 欄の幅は答えの長さで決める(記号・1語は小さく、文は1行まるごと)。先生用では答えを赤字で入れる
+function answerGridEl() {
+  const box = document.createElement('div');
+  box.className = 'ans-grid-box';
+  box.innerHTML = '<div class="ans-grid-title">解答欄</div>';
+  let grid = null, label = '', passage = 0;
+  const newGrid = head => {
+    if (head) box.insertAdjacentHTML('beforeend', `<div class="ans-grid-head">${head}</div>`);
+    grid = document.createElement('div');
+    grid.className = 'ans-grid';
+    box.appendChild(grid);
+  };
+  [...sheetItems.children].forEach(el => {
+    if (el.classList.contains('ws-section')) { label = el.querySelector('.ws-section-title').textContent.trim(); passage = 0; newGrid(label); return; }
+    if (el.classList.contains('ws-passage')) { passage++; return; }
+    if (!el.classList.contains('ws-item') || !el._item) return;
+    if (!grid) newGrid('');
+    const item = el._item;
+    const plain = answerText(item).replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
+    const sentence = SELF_GRADED_TYPES.has(item.type) || /^(translate|entoja|cw|cetoj|cwtrans)/.test(item.type);
+    const span = sentence ? 12 : SELECT_TYPES.has(item.type) || plain.length <= 10 ? 3 : plain.length <= 26 ? 6 : 12;
+    const no = (el.querySelector('.ws-num') || {}).textContent || '';
+    grid.insertAdjacentHTML('beforeend', `<div class="ag-cell ag-${span}${sentence ? ' ag-tall' : ''}"><span class="ag-no">${passage > 1 ? `[${passage}]` : ''}${no}</span><span class="ag-ans">${answerText(item)}</span></div>`);
+  });
+  return box;
 }
 
 // 例題: 形式ごとの最初の1問に、答えと着眼点(どこを見て解くか)をつける。生徒は例題を見てから次の問題を解く
@@ -9091,7 +9216,7 @@ function resetWorksheetAnswers() {
 programModePractice.addEventListener('click', () => setProgramMode('practice'));
 programModePrint.addEventListener('click', () => setProgramMode('print'));
 programModeGuide.addEventListener('click', () => setProgramMode('guide'));
-backToProgramFromPrint.addEventListener('click', () => showScreen(navTab === 'exam' ? 'exam' : printSource.kind === 'test' ? 'test' : 'program'));
+backToProgramFromPrint.addEventListener('click', () => showScreen(navTab === 'exam' ? 'exam' : printSource.kind === 'test' && !printSource.config.review ? 'test' : 'program'));
 printRegenBtn.addEventListener('click', generateWorksheet);
 printPrintBtn.addEventListener('click', () => {
   savePrintHistory();
@@ -9107,6 +9232,7 @@ printGuideTestCheck.addEventListener('change', () => generateWorksheet(printSeed
 printTeacherCheck.addEventListener('change', () => document.getElementById('sheet').classList.toggle('teacher', printTeacherCheck.checked));
 printRedCheck.addEventListener('change', renderWorksheet);
 printExampleCheck.addEventListener('change', renderWorksheet);
+printGridCheck.addEventListener('change', renderWorksheet);
 
 // ---------- 印刷したプリントの履歴 ----------
 // 印刷したときの出題元・設定・プリント番号を保存しておき、同じプリントをもう一度作ったり、類題を作ったりできる
