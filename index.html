@@ -6029,11 +6029,14 @@ const CONTRACTIONS = [
   ['have not', "haven't"], ['has not', "hasn't"], ['must not', "mustn't"], ['should not', "shouldn't"],
 ];
 
+// 人名・地名(文頭でなくなっても大文字のまま)
+const PROPER_NAMES = new Set(['Mike', 'Kate', 'Tom', 'Lucy', 'Ken', 'Miki', 'Ben', 'Meg', 'Lisa', 'Bob', 'Emi', 'Hana', 'Miho', 'Peter', 'Takuya', 'Yuki', 'Kuko',
+  'Canada', 'China', 'France', 'Italy', 'Sydney', 'Fukuoka', 'Sapporo', 'Hakata', 'Naha', 'Otaru', 'Shibuya']);
 function lowerSubjectHead(t) {
   const l = t.toLowerCase();
   if (l === 'i') return 'I';
-  // 地名・言語など(Japan / English)は大文字のまま。それ以外は文頭でなくなるので小文字にする
-  return ['Japan', 'Tokyo', 'Kyoto', 'Osaka', 'Hokkaido', 'Okinawa', 'English', 'Japanese', 'TV', 'Mr.', 'Ms.'].includes(t) ? t : l;
+  // 地名・言語・人名など(Japan / English / Mike)は大文字のまま。それ以外は文頭でなくなるので小文字にする
+  return ['Japan', 'Tokyo', 'Kyoto', 'Osaka', 'Hokkaido', 'Okinawa', 'English', 'Japanese', 'TV', 'Mr.', 'Ms.'].includes(t) || PROPER_NAMES.has(t) ? t : l;
 }
 function isPerfectParticiple(w) {
   const base = VERB_BASE_OF[w];
@@ -6130,8 +6133,11 @@ function pastToPresent(tokens, jp) {
   if ((w === 'was' || w === 'were') && /ing$/.test(lower[2])) return null;
   return { present: [tokens[0], ...verb, ...body], time: tokens.slice(n - tail).join(' ').replace(/[.!?]$/, '') };
 }
-const REWRITE_KIND_LABELS = { neg: '否定文に', q: '疑問文に', past: '文末に yesterday を加えて、過去の文に' };
-const rewriteKindLabel = item => (item.rewriteKind === 'he' ? `主語を ${item.rewriteSubj} にかえて` : item.rewriteKind === 'past' && item.rewriteTime ? `文末に ${item.rewriteTime} を加えて、過去の文に` : REWRITE_KIND_LABELS[item.rewriteKind]);
+const REWRITE_KIND_LABELS = { neg: '否定文に', q: '疑問文に', past: '文末に yesterday を加えて、過去の文に', wh: '下線部をたずねる疑問文に' };
+const rewriteKindLabel = item => (item.rewriteKind === 'he' ? `主語を ${item.rewriteSubj} にかえて`
+  : item.rewriteKind === 'past' && item.rewriteTime ? `文末に ${item.rewriteTime} を加えて、過去の文に`
+  : item.rewriteKind === 'future' ? `文末に ${item.rewriteTime} を加えて、${item.rewriteAux === 'will' ? 'will' : 'be going to'} を使った未来の文に`
+  : REWRITE_KIND_LABELS[item.rewriteKind]);
 
 // kind: 'neg'(否定文) / 'q'(疑問文)。作れないときは null
 function rewriteSentence(tokens, jp, kind) {
@@ -6182,6 +6188,8 @@ function rewriteSentence(tokens, jp, kind) {
   if (!subj.length) return null;
   // 「The teacher I respect」のような関係代名詞の省略は主語が分からないので対象外
   if (subj.slice(1).some(t => SUBJECT_PRONOUNS.has(t.toLowerCase()))) return null;
+  // 「I tried to call ~」のように動詞が見つからず to までが主語になった文は対象外
+  if (subj.some(t => t.toLowerCase() === 'to')) return null;
   const rest = tokens.slice(k + 1).map(t => (t === 'some' ? 'any' : t === 'something' ? 'anything' : t));
   const subjQ = [lowerSubjectHead(subj[0]), ...subj.slice(1)];
 
@@ -6220,6 +6228,76 @@ function rewriteSentence(tokens, jp, kind) {
     return { text: you, variants: [...rewriteVariants(you), ...rewriteVariants(text)] };
   }
   return { text, variants: rewriteVariants(text) };
+}
+
+// 文末の時の語句の長さ(yesterday / tomorrow morning / next Sunday / two years ago など)。なければ 0
+const WH_TIME_NOUNS = /^(sunday|monday|tuesday|wednesday|thursday|friday|saturday|night|week|weekend|month|year|summer|winter|spring|fall|morning|afternoon|evening)$/;
+function timeTailLength(lw) {
+  const n = lw.length, a = lw[n - 3], b = lw[n - 2], c = lw[n - 1];
+  if (b === 'tomorrow' && /^(morning|afternoon|evening)$/.test(c)) return 2;
+  if (c === 'yesterday' || c === 'tomorrow') return 1;
+  if (['last', 'next', 'this'].includes(b) && WH_TIME_NOUNS.test(c)) return 2;
+  if (b === 'on' && /^(sunday|monday|tuesday|wednesday|thursday|friday|saturday)s?$/.test(c)) return 2;
+  if (c === 'ago' && /^(year|month|week|day)s?$/.test(b) && /^(a|one|two|three|four|five|ten)$/.test(a)) return 3;
+  return 0;
+}
+// 中2でよく出る書きかえ「未来の文に」: will / be going to の文から現在の文を作る(答えは教科書の文)。
+// 主語のあとがすぐ will / am・is・are going to で、文末に tomorrow などがある肯定文だけ
+function futureToPresent(tokens, jp) {
+  const lw = tokens.map(t => t.toLowerCase().replace(/[.!?]$/, ''));
+  if (sentenceEnd(jp) !== '.' || lw.some(t => /,$/.test(t) || ['and', 'not', 'when', 'if', 'because'].includes(t))) return null;
+  const n = lw.length, tail = timeTailLength(lw);
+  if (!tail || lw[n - tail] === 'on' || lw[n - tail] === 'last' || lw.slice(n - tail).includes('yesterday') || lw[n - 1] === 'ago') return null;
+  let i = lw.indexOf('will'), aux = 'will', vi = i + 1;
+  if (i < 0) { i = lw.findIndex((t, k) => ['am', 'is', 'are'].includes(t) && lw[k + 1] === 'going' && lw[k + 2] === 'to'); aux = 'begoingto'; vi = i + 3; }
+  if (i < 1 || i > 3) return null;
+  const subj = lw.slice(0, i);
+  if (subj.some(t => VERB_BASE_OF[t] && !DETERMINERS.has(t) && !NOUN_BASE_OF[t])) return null;
+  const base = lw[vi];
+  if (!base || VERB_BASE_OF[base] !== base && base !== 'be') return null;
+  if (lw.slice(vi + 1, n - tail).some(t => REWRITE_SHIFT_TIME.has(t))) return null;
+  const third = isThirdSingular(subj);
+  const verb = base === 'be' ? (subj.join(' ') === 'i' ? 'am' : third ? 'is' : 'are') : third ? verbThirdPerson(base) : base;
+  return { present: [...tokens.slice(0, i), verb, ...tokens.slice(vi + 1, n - tail)], time: tokens.slice(n - tail).join(' '), aux };
+}
+
+// 下線部をたずねる疑問文(中2ワークの「下線部をたずねる文に」)。時(When)・場所(Where)・物の目的語(What)のまとまりに下線をひく
+const WH_PLACE_NOUNS = new Set(['park', 'library', 'station', 'museum', 'zoo', 'room', 'kitchen', 'garden', 'city', 'hospital', 'shop', 'store',
+  'restaurant', 'school', 'gym', 'house', 'beach', 'river', 'sea', 'lake', 'mountains', 'town', 'village', 'stadium', 'airport', 'classroom', 'home', 'country']);
+const WH_NOT_PLACE = /^(English|Japanese|Chinese|French|Spanish|Korean|Sunday|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|January|February|March|April|May|June|July|August|September|October|November|December|Mr|Ms)$/;
+const WH_WHAT_VERBS = new Set(['play', 'eat', 'buy', 'study', 'make', 'cook', 'want', 'like', 'have', 'read', 'write', 'drink', 'need', 'watch', 'bring', 'use', 'sing', 'draw', 'practice', 'wear', 'get']);
+function whQuestion(tokens, pieces, jp) {
+  if (sentenceEnd(jp) !== '.') return null;
+  const lw = tokens.map(t => t.toLowerCase().replace(/[.!?]$/, ''));
+  if (lw.some(t => ['and', 'or', 'than', 'as', 'too', 'very', 'please', "let's", 'there', 'think', 'hope', 'know', 'believe', 'say', 'says', 'said', 'best', 'most'].includes(t) || /,$/.test(t))) return null;
+  if (lw.some((t, k) => t === 'the' && /est$/.test(lw[k + 1] || ''))) return null; // 最上級の in 〜 は場所をたずねる語句ではない
+  const segs = sentenceSegments(pieces, jp);
+  if (!segs || segs.ambiguous) return null;
+  let pos = 0;
+  const ranges = segs.map(g => { const k = g.en.split(' ').length; pos += k; return [pos - k, pos]; });
+  if (pos !== tokens.length) return null;
+  const n = lw.length, tail = timeTailLength(lw), end = n - tail;
+  const cands = [];
+  if (tail && end >= 3) cands.push({ wh: 'When', from: end, to: n });
+  const oCount = segs.filter(g => g.role === 'O').length;
+  segs.forEach((g, i) => {
+    const [a, b] = ranges[i], w = lw.slice(a, b);
+    if (g.role === 'M' && ['to', 'in', 'at'].includes(w[0]) && w.length <= 3 && (b === n || b === end)) {
+      const head = tokens[b - 1].replace(/[.!?]$/, '');
+      if (WH_PLACE_NOUNS.has(w[w.length - 1]) || w.length === 2 && /^[A-Z][a-z]+$/.test(head) && !WH_NOT_PLACE.test(head)) cands.push({ wh: 'Where', from: a, to: b });
+    }
+    if (g.role === 'O' && !g.open && oCount === 1 && !segs.some(s => s.role === 'C') && i > 0 && segs[i - 1].role === 'V' && (b === n || b === end) && w.length <= 3) {
+      const verb = VERB_BASE_OF[lw[ranges[i - 1][1] - 1]];
+      if (WH_WHAT_VERBS.has(verb) && !w.some(x => ['to', 'it', 'one', 'her', 'him', 'them', 'me', 'us', 'you'].includes(x) || /ing$/.test(x)) && !(w.length === 1 && ['this', 'that'].includes(w[0]))) cands.push({ wh: 'What', from: a, to: b });
+    }
+  });
+  for (const c of shuffle(cands)) {
+    const q = rewriteSentence([...tokens.slice(0, c.from), ...tokens.slice(c.to)], jp, 'q');
+    if (!q) continue;
+    const wh = v => `${c.wh} ${v.charAt(0).toLowerCase()}${v.slice(1)}`;
+    return { wh: c.wh, ul: [c.from, c.to], text: wh(q.text), variants: q.variants.map(wh) };
+  }
+  return null;
 }
 
 const CHOICE_LABELS = ['ア', 'イ', 'ウ', 'エ'];
@@ -6337,6 +6415,15 @@ function buildQuestion(stage, q, type) {
     const kinds = ['neg', 'q'];
     if (prog.grade > 1 || prog.program >= 5) kinds.push('he');
     if (prog.grade > 1 || prog.program >= 9) kinds.push('past');
+    if (prog.grade > 1 || prog.program >= 8) kinds.push('wh'); // 下線部をたずねる文(疑問詞の疑問文を習ってから)
+    // 未来の単元: 教科書の will / be going to の文から現在の文を作り、「文末に tomorrow を加えて、未来の文に」(答えは教科書の文)
+    if (/^g2program1-(will|begoingto)/.test(stage.key) && rand() < 0.6) {
+      const fp = futureToPresent(tokens, q.jp);
+      if (fp) {
+        const original = fullSentence({ ...item, tokens });
+        return { ...item, type: 'rewrite', rewriteKind: 'future', rewriteTime: fp.time, rewriteAux: fp.aux, tokens: fp.present, answerSentence: original, answers: rewriteVariants(original) };
+      }
+    }
     // 過去形の単元: 教科書の過去の文から現在の文を作り、「文末に yesterday を加えて過去の文に」(答えは教科書の文)
     if (/^g1program(9|10)-/.test(stage.key) && rand() < 0.6) {
       const pp = pastToPresent(tokens, q.jp);
@@ -6350,6 +6437,11 @@ function buildQuestion(stage, q, type) {
     const first = /^g1program5-/.test(stage.key) ? 'he' : /^g1program(9|10)-/.test(stage.key) ? 'past' : null;
     if (first && order.includes(first)) { order.splice(order.indexOf(first), 1); order.unshift(first); }
     for (const kind of order) {
+      if (kind === 'wh') {
+        const r = whQuestion(tokens, q.pieces, q.jp);
+        if (r) return { ...item, type: 'rewrite', rewriteKind: 'wh', ul: r.ul, answerSentence: r.text, answers: r.variants };
+        continue;
+      }
       const subj = kind === 'he' ? (/彼女|母|姉|妹|祖母|おば/.test(q.jp) ? 'She' : 'He') : null;
       const r = kind === 'he' || kind === 'past' ? rewriteShift(tokens, q.jp, kind, subj) : rewriteSentence(tokens, q.jp, kind);
       if (r) return { ...item, type: 'rewrite', rewriteKind: kind, rewriteSubj: subj, answerSentence: r.text, answers: r.variants };
@@ -6463,17 +6555,51 @@ const SUBJ_TO_OBJ = { i: 'me', he: 'him', she: 'her', we: 'us', they: 'them', yo
 function isThirdSingular(words) {
   const head = words[words.length - 1];
   if (['i', 'you', 'we', 'they'].includes(words[0]) || ['we', 'they', 'people', 'children'].includes(head)) return false;
-  if (['he', 'she', 'it', 'this', 'that'].includes(head) || words[0] === 'a' || words[0] === 'an') return true;
+  if (['he', 'she', 'it', 'this', 'that'].includes(head) || ['a', 'an', 'mr.', 'ms.', 'mr', 'ms'].includes(words[0])) return true;
   return !/s$/.test(head) || ['this', 'his', 'bus'].includes(head);
 }
 // 同意文書きかえは、その書きかえを学ぶ単元だけで出す(SVOC の単元で must ⇔ have to を出さないように)
 const PARAPHRASE_UNITS = {
   must: /^g2program4-(must|haveto)/, will: /^g2program1-(will|begoingto)/, passive: /^g2program8-/,
   svoo: /^g2program5-svoo/, liketo: /^g2program(1-likegerund|3-noun)/, itis: /^g2program(1-subjgerund|3-itisto)/,
+  compare: /^g2program6-(comp|asas)/,
 };
+// 比較の同意文: A is taller than B ⇔ B is shorter than A ⇔ B is not as tall as A
+const COMPARE_OPPOSITE = { taller: 'shorter', longer: 'shorter', older: 'younger', younger: 'older', bigger: 'smaller', larger: 'smaller',
+  smaller: 'bigger', higher: 'lower', heavier: 'lighter', hotter: 'colder', warmer: 'colder', colder: 'warmer' };
+const COMPARE_LONG_ADJ = new Set(['interesting', 'difficult', 'popular', 'useful', 'exciting', 'famous', 'beautiful', 'important', 'expensive', 'delicious']);
+function compareParaphrase(tokens, lw, end) {
+  if (end === '?' || tokens.some(t => /,$/.test(t))) return null;
+  const b = lw.findIndex(t => ['am', 'is', 'are', 'was', 'were'].includes(t));
+  if (b < 1 || b > 3) return null;
+  let base, k;
+  if (lw[b + 1] === 'not' && lw[b + 2] === 'as' && lw[b + 4] === 'as') { base = lw[b + 3]; k = b + 5; }
+  else if (lw[b + 1] === 'more' && COMPARE_LONG_ADJ.has(lw[b + 2]) && lw[b + 3] === 'than') { base = lw[b + 2]; k = b + 4; }
+  else if (COMPARE_BASE_OF[lw[b + 1]] && (COMPARE_ADJ[COMPARE_BASE_OF[lw[b + 1]]] || [])[0] === lw[b + 1] && lw[b + 2] === 'than') { base = COMPARE_BASE_OF[lw[b + 1]]; k = b + 3; }
+  else return null;
+  const notAs = lw[b + 1] === 'not';
+  const A = tokens.slice(0, b), B = tokens.slice(k), la = lw.slice(0, b), lb = lw.slice(k);
+  const simple = w => w.length >= 1 && w.length <= 3 && !w.some(t => ['one', 'mine', 'yours', 'hers', 'ours', 'theirs', 'it', 'yesterday', 'i', 'do', 'does', 'did', 'can'].includes(t) || /'s$/.test(t) || VERB_BASE_OF[t] && !NOUN_BASE_OF[t]);
+  if (!simple(la) || !simple(lb) || la.length === 1 && la[0] === 'his' || lb.length === 1 && lb[0] === 'his') return null;
+  // B が新しい主語、A が than / as のあとに来る
+  const subj = lb.length === 1 && OBJ_TO_SUBJ[lb[0]] ? [capitalize(OBJ_TO_SUBJ[lb[0]])] : DETERMINERS.has(lb[0]) ? [capitalize(lb[0]), ...B.slice(1)] : [capitalize(B[0]), ...B.slice(1)];
+  if (lb.length === 1 && OBJ_TO_SUBJ[lb[0]] === 'it') return null;
+  const obj = la.length === 1 && SUBJ_TO_OBJ[la[0]] ? [SUBJ_TO_OBJ[la[0]]] : DETERMINERS.has(la[0]) ? [la[0], ...A.slice(1)] : A;
+  const ls = subj.map(t => t.toLowerCase());
+  const past = ['was', 'were'].includes(lw[b]);
+  const be = ls.join(' ') === 'i' ? (past ? 'was' : 'am') : isThirdSingular(ls) ? (past ? 'was' : 'is') : past ? 'were' : 'are';
+  if (notAs) {
+    const er = COMPARE_ADJ[base] ? [COMPARE_ADJ[base][0]] : COMPARE_LONG_ADJ.has(base) ? ['more', base] : null;
+    return er && [...subj, be, ...er, 'than', ...obj];
+  }
+  const opp = COMPARE_OPPOSITE[lw[b + 1]];
+  if (opp && rand() < 0.5) return [...subj, be, opp, 'than', ...obj];
+  return [...subj, be, 'not', 'as', base, 'as', ...obj];
+}
 function paraphraseOf(tokens, end, stageKey = '') {
   const allow = kind => !stageKey || PARAPHRASE_UNITS[kind].test(stageKey);
   const lw = tokens.map(t => t.toLowerCase().replace(/[,.?!]/g, ''));
+  if (allow('compare') && lw.some(t => t === 'than' || t === 'as')) return compareParaphrase(tokens, lw, end);
   if (end === '?' || lw.some(t => ['not', 'never', "don't", "doesn't", "didn't", 'cannot'].includes(t) || /n't$/.test(t))) return null;
   if (tokens.some(t => /,$/.test(t))) return null;
   // 節をふくむ文(I think ~ / which ~ / when ~)や命令文は、主語と動詞の関係がずれるので作らない
@@ -7851,7 +7977,7 @@ function allWorksheetItems() {
 const KEEP_CAPITAL = new Set(['I', "I'm", 'Japan', 'Tokyo', 'Kyoto', 'Osaka', 'Hokkaido', 'Okinawa', 'English', 'Japanese', 'TV', 'Mr.', 'Ms.']);
 function lowerFirst(en) {
   const [first, ...rest] = en.split(' ');
-  return KEEP_CAPITAL.has(first) ? en : [first.charAt(0).toLowerCase() + first.slice(1), ...rest].join(' ');
+  return KEEP_CAPITAL.has(first) || PROPER_NAMES.has(first) ? en : [first.charAt(0).toLowerCase() + first.slice(1), ...rest].join(' ');
 }
 // 文末の時の語句(every Sunday / yesterday / at night など)。並べ替えでは前の語句とくっつけて、文頭にも置けてしまうのを防ぐ
 const isTimePhrase = en => isTrailingTime(en) || /^(every|last|next|this|on|at night|in the (morning|evening|afternoon)|yesterday|today|tomorrow|now|then|someday|after school|after dinner)\b/.test(en);
@@ -8079,7 +8205,7 @@ function itemBodyHtml(item) {
     case 'entoja':
       return answerLineHtml('日本語で書こう');
     case 'rewrite':
-      return `<div class="ws-sentence">${fullSentence(item)}<span class="ws-hint">（${rewriteKindLabel(item)}）</span></div>
+      return `<div class="ws-sentence">${item.ul ? endWith(item.tokens.map((t, i) => (i === item.ul[0] ? '<u>' : '') + escHtml(t) + (i === item.ul[1] - 1 ? '</u>' : '')).join(' '), item.end) : fullSentence(item)}<span class="ws-hint">（${rewriteKindLabel(item)}）</span></div>
         ${answerLineHtml('書きかえた英文を書こう')}`;
     case 'ccheck':
       return `<div class="ws-clist"><div class="ws-red ws-ex-en">${escHtml(item.en).replace(/\*([^*]+)\*/g, '<u>$1</u>')}</div></div>`;
