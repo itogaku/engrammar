@@ -6185,7 +6185,9 @@ function rewriteSentence(tokens, jp, kind) {
   const lower = tokens.map(t => t.toLowerCase());
   if (sentenceEnd(jp) !== '.' || rewriteUnsafe(tokens)) return null;
   // all / both / really の否定は「全部が〜というわけではない」になるので作らない。should keep 〜 clean の否定も不自然
-  if (kind === 'neg' && lower.some(t => ['all', 'both', 'really', 'every', 'each'].includes(t))) return null;
+  if (kind === 'neg' && lower.some(t => ['all', 'both', 'really', 'every', 'each', 'two', 'three', 'four', 'five', 'many'].includes(t))) return null;
+  if (kind === 'neg' && lower.some((t, i) => t === 'would' && lower[i + 1] === 'like')) return null;
+  if (lower.some((t, i) => t === 'that' && i > 0 && ['is', 'are', 'was', 'were', 'has', 'have', 'can', 'will'].includes(lower[i + 1]))) return null;
   // 現在完了(継続)の否定は「〜年間住んでいない」と意味が変わるので作らない
   if (kind === 'neg' && lower.some(t => t === 'for' || t === 'since') && lower.some(t => t === 'have' || t === 'has')) return null;
   if (lower.some(t => REWRITE_SKIP_WORDS.has(t) || /n't$/.test(t))) return null;
@@ -6500,7 +6502,10 @@ function buildQuestion(stage, q, type) {
     const cands = ['do', 'does', 'did', 'is', 'am', 'are', 'was', 'were', 'to', 'from', 'of', 'by', 'than', 'not']
       .filter(w => lw.filter(x => x === w).length === 1 && !(w === 'not' && lw.includes('do') === false && lw.includes('does') === false && lw.includes('did') === false && lw.some(x => ['am', 'is', 'are', 'was', 'were', 'can', 'will'].includes(x)) === false));
     if (tokens.length >= 4 && cands.length) {
-      const w = shuffle(cands)[0];
+      const okLack = w => !(w === 'to' && /^(speak|speaks|spoke|talk|talks|talked|write|writes|wrote|written)$/.test(lw[lw.indexOf(w) - 1] || ''))
+        && !(w === 'by' && !isPerfectParticiple(lw[lw.indexOf(w) - 1] || ''));
+      const w = shuffle(cands.filter(okLack))[0];
+      if (!w) return buildQuestion(stage, q, 'choice');
       return { ...item, type: 'lack', lackWord: w, lackIndex: lw.indexOf(w) };
     }
   }
@@ -6641,7 +6646,9 @@ function buildQuestion(stage, q, type) {
     const fmt = w => (capital || w.toLowerCase() === 'i' ? capitalize(w.toLowerCase()) : w.toLowerCase());
     // 1語不要の語は、ならべかえの語と同じく小文字で示す
     // 関係代名詞の誤り(which → who)は、that に直しても正解(人なら whom も)
-    const relAlts = ['relative', 'relThat'].includes(blank.family) ? (answer.toLowerCase() === 'that' ? ['who', 'whom', 'which'] : ['that']) : [];
+    const ante = (tokens[blank.index - 1] || '').toLowerCase();
+    const personAnte = COMBINE_HE.has(ante) || COMBINE_SHE.has(ante) || COMBINE_PERSON.has(ante) || ['people', 'children', 'students', 'friends'].includes(ante);
+    const relAlts = ['relative', 'relThat'].includes(blank.family) ? (answer.toLowerCase() === 'that' ? (personAnte ? ['who', 'whom'] : ['which']) : ['that']) : [];
     return { ...item, type, blankIndex: blank.index, blankFamily: blank.family, answer, altAnswers: relAlts, wrongWord: type === 'extra' ? lowerFirst(wrong) : fmt(wrong) };
   }
   if (type === 'choice' || type === 'form' || type === 'fillin') {
@@ -6659,7 +6666,8 @@ function buildQuestion(stage, q, type) {
     if (MEAL_ALT[ansLower] && ['breakfast', 'lunch', 'dinner'].includes((tokens[blank.index + 1] || '').toLowerCase())) {
       item.altAnswers = [blank.index === 0 ? capitalize(MEAL_ALT[ansLower]) : MEAL_ALT[ansLower]];
     }
-    const reqAlt = REQUEST_MODAL_ALTS[`${ansLower} ${(tokens[blank.index + 1] || '').toLowerCase()}`];
+    const isRequest = /(くれ|もらえ|いただけ|ませんか|てもいい|ましょうか|ください)/.test(q.jp);
+    const reqAlt = isRequest && REQUEST_MODAL_ALTS[`${ansLower} ${(tokens[blank.index + 1] || '').toLowerCase()}`];
     if (reqAlt) item.altAnswers = reqAlt.map(w => (blank.index === 0 ? capitalize(w) : w));
     const syn = synonymAlt(ansLower, tokens.slice(blank.index + 1).map(t => t.toLowerCase().replace(/[.,!?]$/, '')));
     if (syn) item.altAnswers = [...(item.altAnswers || []), syn];
@@ -6668,7 +6676,8 @@ function buildQuestion(stage, q, type) {
       const ante = (tokens[blank.index - 1] || '').toLowerCase();
       const person = ['boy', 'girl', 'man', 'woman', 'friend', 'teacher', 'player', 'person', 'people', 'uncle', 'aunt', 'student', 'students', 'doctor', 'singer', 'brother', 'sister', 'children'].includes(ante);
       const a = answer.toLowerCase();
-      item.altAnswers = a === 'that' ? (person ? ['who', 'whom'] : ['which']) : ['who', 'which'].includes(a) ? ['that'] : [];
+      const objCase = SUBJECT_PRONOUNS.has((tokens[blank.index + 1] || '').toLowerCase()) || DETERMINERS.has((tokens[blank.index + 1] || '').toLowerCase());
+      item.altAnswers = a === 'that' ? (person ? (objCase ? ['who', 'whom'] : ['who']) : ['which']) : ['who', 'which'].includes(a) ? ['that'] : [];
     }
     item.answer = answer;
     if (type === 'choice') {
@@ -6680,7 +6689,7 @@ function buildQuestion(stage, q, type) {
       // must not(〜してはいけない)は may not / can not でも意味が通るので、選択肢に入れない
       if (blank.family === 'modal' && (tokens[blank.index + 1] || '').toLowerCase() === 'not') avoid.push('may', 'can', 'should');
       // Could / Would you 〜?(依頼)・Can / May I 〜?(許可)は、どちらも正しいので片方を選択肢に入れない
-      const modalAlt = REQUEST_MODAL_ALTS[`${answer.toLowerCase()} ${nextTok}`];
+      const modalAlt = /(くれ|もらえ|いただけ|ませんか|てもいい|ましょうか|ください)/.test(q.jp) && REQUEST_MODAL_ALTS[`${answer.toLowerCase()} ${nextTok}`];
       if (modalAlt) avoid.push(...modalAlt);
       // 未来(でしょう)の will に、may を入れない
       if (answer.toLowerCase() === 'will') avoid.push('may');
@@ -6941,7 +6950,7 @@ const REQUEST_MODAL_ALTS = { 'could you': ['would', 'can', 'will'], 'would you':
   'can i': ['may', 'could'], 'may i': ['can', 'could'], 'could i': ['can', 'may'] };
 // 同じ日本語に合う、ほかの正しい語(会う: see / meet、作る: make / cook)
 // 会う(人に)・作る(料理を)のときだけ
-const SYNONYM_ALTS = { see: 'meet', meet: 'see', sees: 'meets', meets: 'sees', saw: 'met', met: 'saw', seen: 'met',
+const SYNONYM_ALTS = { painted: 'drawn', paint: 'draw', paints: 'draws', see: 'meet', meet: 'see', sees: 'meets', meets: 'sees', saw: 'met', met: 'saw', seen: 'met',
   cooked: 'made', made: 'cooked', cook: 'make', make: 'cook', cooks: 'makes', makes: 'cooks' };
 const SYN_PERSON = /^(him|her|them|me|us|you|mr\.|ms\.|mike|kate|tom|lucy|ken|meg|my|your|his|our|their|the)$/;
 const SYN_FOOD = /^(dinner|lunch|breakfast|curry|food|soup|rice|pizza|tempura|sushi|spaghetti)$/;
@@ -6954,6 +6963,7 @@ function synonymAlt(w, after) {
     if (/^(my|your|his|our|their|the)$/.test(after[0]) && !/^(friend|friends|teacher|grandmother|grandfather|aunt|uncle|cousin|singer|player|family|parents|brother|sister|mother|father)$/.test(after[1] || '')) return null;
     return alt;
   }
+  if (/^paint/.test(w) || w === 'cooked') return alt; // 絵をかく(paint / draw)、料理を作った(cooked / made)
   return after.slice(0, 3).some(t => SYN_FOOD.test(t)) ? alt : null;
 }
 function makeUnitQuestion(stage, type, st, maxTier = 1) {
@@ -8258,8 +8268,7 @@ function worksheetPieces(item) {
     // 1語ずつにして、足りない語をぬく
     const words = expandPieces(item.pieces, 3).flatMap(p => p.en.split(' ').map(en => ({ en, jp: '' })));
     const idx = words.findIndex(p => p.en.toLowerCase().replace(/[,.!?]$/, '') === item.lackWord);
-    pieces = words.filter((_, i) => i !== idx);
-    return pieces.map(p => ({ ...p, en: p.en === 'I' ? p.en : lowerFirst(p.en) }));
+    return words.map((p, i) => (i === 0 && p.en !== 'I' ? { ...p, en: lowerFirst(p.en) } : p)).filter((_, i) => i !== idx);
   }
   if (item.type === 'extra') {
     const last = item.pieces[item.pieces.length - 1];
