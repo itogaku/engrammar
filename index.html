@@ -6048,6 +6048,91 @@ function rewriteVariants(text) {
   return [...new Set(variants)];
 }
 
+// 中1でよく出る書きかえ: 'he'(主語を He / She にかえる＝3人称単数) / 'past'(文末に yesterday を加えて過去の文に)。
+// 主語が代名詞1語のかんたんな文だけ。作れないときは null
+// yesterday をつけて自然になる動作の動詞と、一時的な様子の形容詞(I have two brothers yesterday. のような文を作らない)
+const REWRITE_PAST_VERBS = new Set(['play', 'study', 'watch', 'eat', 'cook', 'clean', 'go', 'visit', 'help', 'walk', 'run', 'swim', 'use', 'practice', 'wash', 'make',
+  'listen', 'talk', 'get', 'buy', 'take', 'write', 'draw', 'sing', 'dance', 'come', 'read', 'teach', 'call', 'meet', 'see', 'carry', 'open', 'close', 'drink', 'ride', 'climb', 'travel', 'work']);
+const REWRITE_PAST_ADJ = new Set(['busy', 'tired', 'hungry', 'sick', 'happy', 'sad', 'sleepy', 'cold', 'hot', 'free', 'late', 'absent', 'warm', 'cool', 'rainy', 'sunny', 'cloudy', 'snowy']);
+const REWRITE_SHIFT_TIME = new Set(['someday', 'summer', 'winter', 'spring', 'fall', 'best', 'fastest', 'hardest', 'now', 'today', 'yesterday', 'tomorrow', 'every', 'always', 'usually', 'often', 'sometimes', 'never', 'next', 'last', 'this', 'then',
+  'ago', 'tonight', 'soon', 'already', 'yet', 'just', 'ever', 'once', 'twice', 'morning', 'evening', 'afternoon', 'night', 'week', 'year', 'sunday', 'sundays', 'saturdays', 'weekends']);
+function rewriteShift(tokens, jp, kind, newSubj) {
+  const lower = tokens.map(t => t.toLowerCase());
+  if (sentenceEnd(jp) !== '.' || tokens.length < 3) return null;
+  if (lower.some(t => REWRITE_SKIP_WORDS.has(t) && t !== 'not' || /,$/.test(t)) || lower.includes('and') || lower.includes('or') || lower.includes('that')) return null;
+  const s = lower[0], w = lower[1], w2 = lower[2] || '';
+  const rest = tokens.slice(2);
+  if (kind === 'he') {
+    if (!['i', 'you', 'we', 'they'].includes(s)) return null;
+    // my / our / your など主語に合わせて変わる語がある文はさける(I like my dog → He likes his dog)
+    if (lower.slice(1).some(t => ['i', 'my', 'me', 'mine', 'myself', 'we', 'our', 'us', 'ours', 'you', 'your', 'yours', 'they', 'their', 'them', 'theirs', 'he', 'him', 'his', 'she', 'her', 'hers'].includes(t))) return null;
+    if (lower.some(t => ['what', 'where', 'who', 'why', 'how', 'than', 'wish'].includes(t))) return null;
+  } else {
+    if (lower.some(t => ['to', 'than', 'as', 'wish', 'what', 'where', 'who', 'why', 'how', 'because'].includes(t) && !(t === 'to' && lower.indexOf(t) > 1 && !VERB_BASE_OF[lower[lower.indexOf(t) + 1]]))) return null;
+    if (!['i', 'you', 'we', 'they', 'he', 'she', 'it'].includes(s)) return null;
+    if (lower.slice(1).some(t => REWRITE_SHIFT_TIME.has(t))) return null;
+  }
+  let verb;
+  if (['am', 'are', 'is'].includes(w)) {
+    if (kind === 'past' && /ing$/.test(w2)) return null; // 進行形 + yesterday は不自然
+    // He is a student. はよいが、We are students. → He is students. にならないように、名詞の複数がつづく文はさける
+    const one = x => x && !/s$/.test(x);
+    if (kind === 'he' && !(/^(a|an)$/.test(w2) || rest.length === 1 && one(w2) || ST_PREPS.has(w2) || /ing$/.test(w2) && VERB_BASE_OF[w2] || w2 === 'not' && (rest.length === 2 && one(lower[3]) || /^(a|an)$/.test(lower[3] || '') || ST_PREPS.has(lower[3] || '')))) return null;
+    // 過去の文: 一時的な様子(busy / tired …)か、場所(at home / in the gym)だけ
+    if (kind === 'past') {
+      const r = lower.slice(w2 === 'not' ? 3 : 2);
+      if (!(r.length === 1 && REWRITE_PAST_ADJ.has(r[0]) || r.length === 2 && r[0] === 'very' && REWRITE_PAST_ADJ.has(r[1]) || ['at', 'in'].includes(r[0]) && r.length <= 3)) return null;
+    }
+    verb = kind === 'he' ? ['is'] : [w === 'are' ? 'were' : 'was'];
+  } else if ((w === 'do' || w === 'does') && w2 === 'not' && VERB_BASE_OF[lower[3]] === lower[3] && (kind === 'he' || REWRITE_PAST_VERBS.has(lower[3]))) {
+    verb = kind === 'he' ? ['does', 'not'] : ['did', 'not'];
+    rest.shift();
+  } else if ((w === "don't" || w === "doesn't") && VERB_BASE_OF[w2] === w2 && (kind === 'he' || REWRITE_PAST_VERBS.has(w2))) {
+    verb = [kind === 'he' ? "doesn't" : "didn't"];
+  } else {
+    const base = w === 'have' || w === 'has' ? 'have' : VERB_BASE_OF[w];
+    if (!base) return null;
+    const third = base === 'have' ? 'has' : verbThirdPerson(base);
+    const present = ['he', 'she', 'it'].includes(s) ? third : base;
+    if (w !== present) return null; // 過去形・ing形などは対象外
+    if (base === verbPast(base)) return null; // read / put など、形が変わらない動詞はさける
+    if (kind === 'past' && !REWRITE_PAST_VERBS.has(base)) return null;
+    if (base === 'have' && (isPerfectParticiple(w2) || ['been', 'never', 'just', 'already', 'ever'].includes(w2))) return null; // 現在完了はかえない
+    verb = [kind === 'he' ? third : base === 'have' ? 'had' : verbPast(base)];
+  }
+  const subj = kind === 'he' ? [newSubj] : [tokens[0]];
+  const words = [...subj, ...verb, ...rest, ...(kind === 'past' ? ['yesterday'] : [])];
+  const text = endWith(words.join(' '), '.');
+  return { text, variants: rewriteVariants(text) };
+}
+// 過去の文(I played tennis yesterday.)から、もとの現在の文(I play tennis.)を作る。
+// 「文末に yesterday を加えて過去の文に」の問題で、教科書の過去の文をそのまま答えにするため
+function pastToPresent(tokens, jp) {
+  const lower = tokens.map(t => t.toLowerCase().replace(/[.!?]$/, ''));
+  if (sentenceEnd(jp) !== '.' || lower.some(t => /,$/.test(t)) || lower.includes('and') || lower.includes('when')) return null;
+  const n = lower.length;
+  const tail = lower[n - 1] === 'yesterday' ? 1 : (['last'].includes(lower[n - 2]) && /^(sunday|monday|tuesday|wednesday|thursday|friday|saturday|night|week|weekend|month|year|summer|winter)$/.test(lower[n - 1])) ? 2 : 0;
+  if (!tail) return null;
+  const s = lower[0], w = lower[1];
+  if (!['i', 'you', 'we', 'they', 'he', 'she', 'it'].includes(s)) return null;
+  const third = ['he', 'she', 'it'].includes(s);
+  const body = tokens.slice(2, n - tail);
+  if (lower.slice(2, n - tail).some(t => REWRITE_SHIFT_TIME.has(t))) return null;
+  let verb;
+  if (w === 'was' || w === 'were') verb = [s === 'i' ? 'am' : third ? 'is' : 'are'];
+  else if (w === 'did' && lower[2] === 'not') { verb = [third ? 'does' : 'do', 'not']; body.shift(); }
+  else if (w === "didn't") verb = [third ? "doesn't" : "don't"];
+  else {
+    const base = VERB_BASE_OF[w];
+    if (!base || verbPast(base) !== w || base === w) return null;
+    verb = [third ? verbThirdPerson(base) : base];
+  }
+  if ((w === 'was' || w === 'were') && /ing$/.test(lower[2])) return null;
+  return { present: [tokens[0], ...verb, ...body], time: tokens.slice(n - tail).join(' ').replace(/[.!?]$/, '') };
+}
+const REWRITE_KIND_LABELS = { neg: '否定文に', q: '疑問文に', past: '文末に yesterday を加えて、過去の文に' };
+const rewriteKindLabel = item => (item.rewriteKind === 'he' ? `主語を ${item.rewriteSubj} にかえて` : item.rewriteKind === 'past' && item.rewriteTime ? `文末に ${item.rewriteTime} を加えて、過去の文に` : REWRITE_KIND_LABELS[item.rewriteKind]);
+
 // kind: 'neg'(否定文) / 'q'(疑問文)。作れないときは null
 function rewriteSentence(tokens, jp, kind) {
   const lower = tokens.map(t => t.toLowerCase());
@@ -6149,6 +6234,8 @@ const QUESTION_TYPES = {
   entoja:    { label: '英文和訳', instr: '次の英文を日本語にしなさい。' },
   extra:     { label: '並べ替え(1語不要)', instr: '日本語に合うように、下の語を並べ替えて英文を書きなさい。ただし、不要な語が1つあります。文頭に来る語も小文字で示してあります。' },
   error:     { label: '誤文訂正', instr: '次の英文には誤りが1か所あります。誤っている語を正しい形に直しなさい。' },
+  lack:      { label: '並べ替え(1語不足)', instr: '日本語に合うように、下の語を並べ替えて英文を書きなさい。ただし、1語が足りないので、その語を補って書くこと。文頭に来る語も小文字で示してあります。' },
+  myself:    { label: '自分のことを書く', instr: '下線部を自分のことにかえて、英文を書きなさい。（答えは一例です）' },
   usage:     { label: '用法の識別', instr: '下線部の用法として最も適切なものを選びなさい。' },
   paraphrase: { label: '同意文書きかえ', instr: '上の文とほぼ同じ意味になるように、下の文の（　）に適する語を1語ずつ書きなさい。' },
   pattern:   { label: '文型', instr: '次の英文の文型として最も適切なものを選びなさい。' },
@@ -6181,6 +6268,24 @@ function buildQuestion(stage, q, type) {
   if (type === 'svo') {
     const segs = sentenceSegments(q.pieces, q.jp);
     if (segs && !segs.ambiguous) { item.type = 'svo'; item.segs = segs; item.answer = segs.filter(g => g.role).map(g => g.role).join(' '); return item; }
+  }
+  // 並べ替え(1語不足): 助動詞・be動詞・前置詞・to などを1語ぬく(文の中に1回だけ出てくる語)
+  if (type === 'lack') {
+    const lw = tokens.map(t => t.toLowerCase().replace(/[,.!?]$/, ''));
+    const cands = ['do', 'does', 'did', 'is', 'am', 'are', 'was', 'were', 'can', 'will', 'to', 'at', 'in', 'on', 'for', 'with', 'from', 'of', 'by', 'than', 'not', 'the']
+      .filter(w => lw.filter(x => x === w).length === 1 && !(w === 'not' && lw.includes('do') === false && lw.includes('does') === false && lw.includes('did') === false && lw.some(x => ['am', 'is', 'are', 'was', 'were', 'can', 'will'].includes(x)) === false));
+    if (tokens.length >= 4 && cands.length) {
+      const w = shuffle(cands)[0];
+      return { ...item, type: 'lack', lackWord: w, lackIndex: lw.indexOf(w) };
+    }
+  }
+  // 自分のことを書く: 主語が I の文で、目的語・補語・場所のまとまりに下線をひき、自分のことにかえて書く(自己採点)
+  if (type === 'myself') {
+    const segs = sentenceSegments(q.pieces, q.jp);
+    if (segs && !segs.ambiguous && segs[0].en === 'I' && q.jp.startsWith('私は')) {
+      const k = q.pieces.some(pc => /\bnot\b|n't/.test(pc.en)) ? -1 : segs.findIndex((g, i) => i > 1 && g.open !== '[' && !/^(him|her|them|it|me|us|you|this|that)$/i.test(g.en) && (['O', 'C'].includes(g.role) || g.role === 'M' && g.open === '(' && /^\((in|at|to) /.test(`(${g.en}`)));
+      if (k > 1) return { ...item, type: 'myself', segs, underline: k, answer: fullSentence(item) };
+    }
   }
   // 文型をえらぶ(4択)。文型がはっきり決まる文だけ
   if (type === 'pattern') {
@@ -6227,9 +6332,27 @@ function buildQuestion(stage, q, type) {
   if (type === 'entoja') return { ...item, type: 'entoja', answer: q.jp };
   if (type === 'rewrite') {
     // 否定文・疑問文のどちらかをランダムに。どちらも作れない文(疑問文・否定文・命令文など)は適語選択にする
-    for (const kind of shuffle(['neg', 'q'])) {
-      const r = rewriteSentence(tokens, q.jp, kind);
-      if (r) return { ...item, type: 'rewrite', rewriteKind: kind, answerSentence: r.text, answers: r.variants };
+    // 中1 Program 5(3人称単数)からは「主語を He に」、Program 9(過去形)からは「過去の文に」も出す
+    const prog = stageProgram(stage);
+    const kinds = ['neg', 'q'];
+    if (prog.grade > 1 || prog.program >= 5) kinds.push('he');
+    if (prog.grade > 1 || prog.program >= 9) kinds.push('past');
+    // 過去形の単元: 教科書の過去の文から現在の文を作り、「文末に yesterday を加えて過去の文に」(答えは教科書の文)
+    if (/^g1program(9|10)-/.test(stage.key) && rand() < 0.6) {
+      const pp = pastToPresent(tokens, q.jp);
+      if (pp) {
+        const original = fullSentence({ ...item, tokens });
+        return { ...item, type: 'rewrite', rewriteKind: 'past', rewriteTime: pp.time, tokens: pp.present, answerSentence: original, answers: rewriteVariants(original) };
+      }
+    }
+    // 3人称単数・過去形の単元では、その書きかえを先にためす
+    const order = shuffle(kinds);
+    const first = /^g1program5-/.test(stage.key) ? 'he' : /^g1program(9|10)-/.test(stage.key) ? 'past' : null;
+    if (first && order.includes(first)) { order.splice(order.indexOf(first), 1); order.unshift(first); }
+    for (const kind of order) {
+      const subj = kind === 'he' ? (/彼女|母|姉|妹|祖母|おば/.test(q.jp) ? 'She' : 'He') : null;
+      const r = kind === 'he' || kind === 'past' ? rewriteShift(tokens, q.jp, kind, subj) : rewriteSentence(tokens, q.jp, kind);
+      if (r) return { ...item, type: 'rewrite', rewriteKind: kind, rewriteSubj: subj, answerSentence: r.text, answers: r.variants };
     }
     return buildQuestion(stage, q, 'choice');
   }
@@ -6512,7 +6635,7 @@ function makeUnitQuestion(stage, type, st, maxTier = 3) {
   let item;
   for (let tries = 0; tries < 6; tries++) {
     // 並べ替えは修飾語を足さない(場所と時の語句の順番が2通りになることがあるため)
-    const tier = ['entoja', 'reorder', 'extra', 'trace', 'chunkorder', 'frame', 'svo', 'slash', 'pattern'].includes(type) ? 1 : maxTier;
+    const tier = ['entoja', 'reorder', 'extra', 'lack', 'myself', 'trace', 'chunkorder', 'frame', 'svo', 'slash', 'pattern'].includes(type) ? 1 : maxTier;
     const q = getSessionQuestion(stage, st.n++, st.order, tier);
     item = buildQuestion(stage, q, type);
     if (item.type === type && !isExcluded(item)) return item;
@@ -7740,6 +7863,13 @@ function joinTrailingTime(pieces) {
 function worksheetPieces(item) {
   // 並べ替え(1語不要)は1語ずつにして、まちがった形の語を1つまぜる
   let pieces;
+  if (item.type === 'lack') {
+    // 1語ずつにして、足りない語をぬく
+    const words = expandPieces(item.pieces, 3).flatMap(p => p.en.split(' ').map(en => ({ en, jp: '' })));
+    const idx = words.findIndex(p => p.en.toLowerCase().replace(/[,.!?]$/, '') === item.lackWord);
+    pieces = words.filter((_, i) => i !== idx);
+    return pieces.map(p => ({ ...p, en: p.en === 'I' ? p.en : lowerFirst(p.en) }));
+  }
   if (item.type === 'extra') {
     const last = item.pieces[item.pieces.length - 1];
     const words = expandPieces(item.pieces, 3);
@@ -7774,7 +7904,7 @@ function shuffledPieces(item) {
 
 const SELECT_TYPES = new Set(['choice', 'usage', 'pattern', 'vmeaning', 'rchoice', 'rtf', 'cdialog', 'xchoice']);
 // 日本語で答える問題は、模範解答を見て自分で採点する
-const SELF_GRADED_TYPES = new Set(['ccheck', 'clist', 'frame', 'rule', 'wtable', 'kscene', 'rja', 'rea', 'entoja', 'vjp', 'cwtrans', 'cwcond', 'cwfree', 'cetoj']);
+const SELF_GRADED_TYPES = new Set(['myself', 'ccheck', 'clist', 'frame', 'rule', 'wtable', 'kscene', 'rja', 'rea', 'entoja', 'vjp', 'cwtrans', 'cwcond', 'cwfree', 'cetoj']);
 
 function answerText(item) {
   if (item.custom && item.custom.answer != null && !SELECT_TYPES.has(item.type)) return escHtml(item.custom.answer);
@@ -7802,6 +7932,8 @@ function answerText(item) {
   if (item.type === 'error') return `${item.wrongWord} → ${item.answer}`;
   if (item.type === 'paraphrase') return item.answer;
   if (item.type === 'extra') return `${fullSentence(item)}（不要：${item.wrongWord}）`;
+  if (item.type === 'lack') return `${fullSentence(item)}（不足：${item.lackWord}）`;
+  if (item.type === 'myself') return `（例）${fullSentence(item)}`;
   const alt = ['reorder', 'translate', 'trace'].includes(item.type) && clauseAltSentence(item.tokens, item.end);
   return alt ? `${fullSentence(item)}（${alt} も可）` : fullSentence(item);
 }
@@ -7856,7 +7988,7 @@ function isCorrect(item) {
     return got !== '' && combos.some(c => normalize(c) === got);
   }
   if (item.type === 'fillin' && (item.altAnswers || []).some(a => normalize(a) === normalize(answer))) return true;
-  if (['reorder', 'translate', 'extra', 'trace'].includes(item.type)) {
+  if (['reorder', 'translate', 'extra', 'lack', 'trace'].includes(item.type)) {
     const alt = clauseAltSentence(item.tokens, item.end);
     if (alt && normalize(answer) === normalize(alt)) return true;
   }
@@ -7919,10 +8051,12 @@ function itemPromptHtml(item) {
 
 function itemBodyHtml(item) {
   switch (item.type) {
-    case 'reorder': case 'extra': {
+    case 'myself':
+      return `<div class="ws-sentence">${item.segs.map((g, i) => (i === item.underline ? `<u>${escHtml(g.en)}</u>` : escHtml(g.en))).join(' ')}${item.end || '.'}</div>${answerLineHtml('自分のことを英語で書こう')}`;
+    case 'reorder': case 'extra': case 'lack': {
       const pieces = shuffledPieces(item).map(p => {
         // 解説つきプリント(noHint)・1語不要では、語句の下の日本語(ヒント)は出さない
-        const jp = printGlossMode === 'glossed' && !item.noHint && item.type !== 'extra' && p.jp ? `<span class="wp-jp">${p.jp}</span>` : '';
+        const jp = printGlossMode === 'glossed' && !item.noHint && item.type !== 'extra' && item.type !== 'lack' && p.jp ? `<span class="wp-jp">${p.jp}</span>` : '';
         return `<span class="ws-piece"><span>${p.en}</span>${jp}</span>`;
       }).join('');
       return `<div class="ws-pieces">${pieces}</div>${item.noHint ? '<div class="ws-4l ws-4l-print"></div>' : ''}${answerLineHtml('ここに英文を書こう')}`;
@@ -7945,7 +8079,7 @@ function itemBodyHtml(item) {
     case 'entoja':
       return answerLineHtml('日本語で書こう');
     case 'rewrite':
-      return `<div class="ws-sentence">${fullSentence(item)}<span class="ws-hint">（${item.rewriteKind === 'neg' ? '否定文に' : '疑問文に'}）</span></div>
+      return `<div class="ws-sentence">${fullSentence(item)}<span class="ws-hint">（${rewriteKindLabel(item)}）</span></div>
         ${answerLineHtml('書きかえた英文を書こう')}`;
     case 'ccheck':
       return `<div class="ws-clist"><div class="ws-red ws-ex-en">${escHtml(item.en).replace(/\*([^*]+)\*/g, '<u>$1</u>')}</div></div>`;
@@ -8518,7 +8652,7 @@ function renderGuideWorksheet() {
 // 配点: 形式ごとの重み(書く問題・長い問題ほど高く)を、合計がちょうど100点になるように整数にする。同じ形式は同じ点
 const POINT_WEIGHTS = {
   vmeaning: 1, vjp: 2, vword: 2, vblank: 2, vidiom: 2,
-  choice: 2, usage: 2, svo: 3, slash: 3, pattern: 2, fillin: 2, form: 2, error: 3, extra: 3, reorder: 3, rewrite: 3, paraphrase: 3, translate: 4, entoja: 4,
+  choice: 2, usage: 2, lack: 3, myself: 3, svo: 3, slash: 3, pattern: 2, fillin: 2, form: 2, error: 3, extra: 3, reorder: 3, rewrite: 3, paraphrase: 3, translate: 4, entoja: 4,
   rchoice: 3, rtf: 2, rfill: 3, rja: 4, rea: 4, cdialog: 3, cphrase: 3, cform: 2, cfree: 3, cwtrans: 4, cwcond: 5, cwfree: 10, cetoj: 4, xchoice: 2, xfill: 3, xorder: 3, xpara: 3, xask: 4, clist: 1, ccheck: 1, kform: 3, korder: 3, kscene: 6,
 };
 function assignPoints(items) {
