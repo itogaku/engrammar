@@ -789,6 +789,7 @@
   .ws-review-box .rv-en { margin-right: 12px; } .ws-review-box .rv-en b { text-decoration: underline; }
   .ws-review-box .rv-jp { color: var(--ink-soft); font-size: 12px; }
   /* 解答欄を最後にまとめる(確認テストの形) */
+  .ws-gap { display: inline-block; font-size: 11px; font-weight: 700; line-height: 1; padding: 1px 3px; border: 1px solid var(--ink); border-radius: 3px; vertical-align: 2px; margin-right: 2px; }
   .ans-grid-box { margin-top: 18px; border-top: 2px solid var(--ink); padding-top: 8px; break-inside: avoid; }
   .ans-grid-title { font-weight: 700; font-size: 14px; margin-bottom: 6px; }
   .ans-grid-head { font-weight: 700; font-size: 13px; margin: 8px 0 3px; }
@@ -6178,6 +6179,7 @@ const rewriteKindLabel = item => (item.rewriteKind === 'he' ? `主語を ${item.
   : item.rewriteKind === 'perfect' ? `文末に ${item.rewriteTime} を加えて、${item.rewriteProg ? '現在完了進行形' : '現在完了'}の文に`
   : item.rewriteKind === 'indirect' ? `「${item.rewriteFrame}」に続けて、1つの文に`
   : item.rewriteKind === 'combine' ? `${item.rewriteWord === 'ing' ? '2つ目の文の動詞を 〜ing の形にして' : item.rewriteWord === 'pp' ? '2つ目の文の動詞を過去分詞にして' : `${item.rewriteWord} を使って`}、2つの文を1つの文に`
+  : item.rewriteKind === 'join' ? `${item.rewriteWord} を使って、2つの文を1つの文に`
   : item.rewriteKind === 'qa' ? `疑問文にして、${item.rewriteYes ? 'Yes' : 'No'} で答える`
   : item.rewriteKind === 'plural' ? `主語を ${item.rewriteSubj} にかえて、複数の文に`
   : REWRITE_KIND_LABELS[item.rewriteKind]);
@@ -6522,6 +6524,57 @@ function toneOf(tokens, end) {
   return null;
 }
 
+// 「（ ）内の語を入れるのに適切な位置」: 接続詞の that(I think ア Ken イ is …)と、always / usually などの副詞(一般動詞の前)
+const INSERT_ADVERBS = ['always', 'usually', 'often', 'sometimes', 'never'];
+function insertQuestion(tokens, end, grade = 1) {
+  const lw = tokens.map(t => t.toLowerCase().replace(/[,.!?]$/, ''));
+  if (tokens.length < 4 || tokens.some((t, i) => i < tokens.length - 1 && /[,.!?]$/.test(t))) return null;
+  let k = lw.findIndex((t, i) => t === 'that' && i > 0 && /^(think|thinks|thought|know|knows|knew|hope|hopes|hoped|say|says|said|believe|believes)$/.test(lw[i - 1]) && SUBJECT_PRONOUNS.has(lw[i + 1] || '') || t === 'that' && i > 0 && /^(think|thinks|thought|know|knows|knew|hope|hopes|say|says|said)$/.test(lw[i - 1]) && /^(my|the|this|ken|mike|tom|kate|it)$/.test(lw[i + 1] || ''));
+  let word = 'that';
+  if (k < 0) {
+    // 副詞は「主語 + 副詞 + 一般動詞」の文だけ(be動詞・助動詞の文は位置がまぎらわしいので出さない)
+    k = lw.findIndex((t, i) => INSERT_ADVERBS.includes(t) && i > 0 && VERB_BASE_OF[lw[i + 1]] && !['am', 'is', 'are', 'was', 'were', 'can', 'will', 'do', 'does', 'did', 'have', 'has'].includes(lw[i - 1]) && !['am', 'is', 'are', 'was', 'were'].includes(lw[i + 1]));
+    if (k >= 0) word = lw[k];
+  }
+  let rest = tokens.filter((_, i) => i !== k);
+  if (k < 0) {
+    // 頻度の副詞がない文: 「主語(代名詞) + 動作の動詞(現在形) + …」に usually などを入れる問題にする(日本語は出さない)
+    const s0 = lw[0], v = lw[1], base = VERB_BASE_OF[v];
+    const present = base && (v === base && ['i', 'you', 'we', 'they'].includes(s0) || v === verbThirdPerson(base) && v !== base && ['he', 'she'].includes(s0));
+    if (grade > 1 || end !== '.' || !present || !REWRITE_PAST_VERBS.has(base) || verbPast(base) === base || lw.some(t => ['as', 'than', 'with'].includes(t) || isPerfectParticiple(t)) || lw.length < 4 || lw.some(t => REWRITE_SHIFT_TIME.has(t) || ['not', 'and', 'when', 'if', 'because', 'that', 'want', 'to'].includes(t))) return null;
+    word = pickRandom(['always', 'usually', 'often', 'sometimes']);
+    k = 1; rest = tokens.slice();
+  }
+  // すきま g は rest[g-1] と rest[g] のあいだ。正解は k。文頭・文末と、正解のとなりのすきまは選択肢にしない
+  const gaps = [];
+  for (let g = 1; g < rest.length; g++) if (g !== k && Math.abs(g - k) > (word === 'that' ? 0 : 1)) gaps.push(g);
+  if (gaps.length < 3) return null;
+  const chosen = [k, ...shuffle(gaps).slice(0, 3)].sort((a, b) => a - b);
+  return { insertWord: word, insertGaps: chosen, rest, options: chosen.map((_, i) => CHOICE_LABELS[i]), answer: CHOICE_LABELS[chosen.indexOf(k)], why: word === 'that' ? 'that は think / know / hope などのすぐあとに置いて、「〜ということ」のまとまりを作る。' : `${word} などの頻度を表す語は、一般動詞の前に置く（be動詞・助動詞のときはそのあと）。` };
+}
+
+// 「2つの文を接続詞で1つの文に」(中2 when / if / because): I was sleeping. My mother came home. (when)
+function joinSplit(tokens, jp) {
+  const lw = tokens.map(t => t.toLowerCase().replace(/[.!?]$/, ''));
+  if (sentenceEnd(jp) !== '.') return null;
+  let conj, a, b;
+  const c = tokens.findIndex(t => /,$/.test(t));
+  if (['when', 'if', 'because'].includes(lw[0]) && c > 1 && tokens.filter(t => /,$/.test(t)).length === 1) {
+    conj = lw[0]; b = tokens.slice(1, c + 1); a = tokens.slice(c + 1);
+    b[b.length - 1] = b[b.length - 1].replace(/,$/, '');
+  } else {
+    const k = lw.findIndex((t, i) => i > 1 && ['when', 'if', 'because'].includes(t));
+    if (k < 0 || c >= 0) return null;
+    conj = lw[k]; a = tokens.slice(0, k); b = tokens.slice(k + 1);
+  }
+  if (a.length < 2 || b.length < 2 || !SUBJECT_PRONOUNS.has(b[0].toLowerCase()) && !/^(my|the|it|this|mr\.|ms\.)$/i.test(b[0])) return null;
+  if (a.some(t => /^(that|and|or|but)$/i.test(t)) || b.some(t => /^(that|and|or|but)$/i.test(t))) return null;
+  // if の文は、先に書く文が命令文・will の文になるので、2文に分けても意味が通るように「もし」の文を後ろにする
+  const s1 = endWith([capitalize(a[0] === 'I' ? 'I' : lowerSubjectHead(a[0])), ...a.slice(1)].join(' ').replace(/^./, m => m.toUpperCase()), '.');
+  const s2 = endWith([b[0] === 'I' ? 'I' : capitalize(lowerSubjectHead(b[0])), ...b.slice(1)].join(' '), '.');
+  return { tokens: `${s1} ${s2}`.replace(/\.$/, '').split(' '), conj };
+}
+
 const CHOICE_LABELS = ['ア', 'イ', 'ウ', 'エ'];
 const CHOICE_LABELS5 = ['ア', 'イ', 'ウ', 'エ', 'オ'];
 const QUESTION_TYPES = {
@@ -6539,6 +6592,7 @@ const QUESTION_TYPES = {
   usage:     { label: '用法の識別', instr: '下線部の用法として最も適切なものを選びなさい。' },
   paraphrase: { label: '同意文書きかえ', instr: '上の文とほぼ同じ意味になるように、下の文の（　）に適する語を1語ずつ書きなさい。' },
   pattern:   { label: '文型', instr: '次の英文の文型として最も適切なものを選びなさい。' },
+  insert:    { label: '語を入れる位置', instr: '（　）内の語を入れるのに最も適切な位置を、ア〜エから選びなさい。' },
   tone:      { label: '文の読み方(↗↘)', instr: '次の英文を声に出して読むとき、文の終わりを上げ調子（↗）と下げ調子（↘）のどちらで読むか選びなさい。' },
   slash:     { label: '区切り', instr: '英文を、主語・動詞・目的語などの意味のまとまりごとに「／」で区切りなさい。' },
   svo:       { label: '文の要素', instr: '英文の区切りごとに、下の□に S（主語）・V（動詞）・O（目的語）・C（補語）・M（修飾語）のどれにあたるかを書きなさい。' },
@@ -6594,6 +6648,10 @@ function buildQuestion(stage, q, type) {
       const k = q.pieces.some(pc => /\bnot\b|n't/.test(pc.en)) ? -1 : segs.findIndex((g, i) => i > 1 && g.open !== '[' && !/^(him|her|them|it|me|us|you|this|that)$/i.test(g.en) && (['O', 'C'].includes(g.role) || g.role === 'M' && g.open === '(' && /^\((in|at|to) /.test(`(${g.en}`)));
       if (k > 1) return { ...item, type: 'myself', segs, underline: k, answer: fullSentence(item) };
     }
+  }
+  if (type === 'insert') {
+    const r = insertQuestion(tokens, item.end, stage.grade);
+    if (r) return { ...item, type: 'insert', ...r };
   }
   // 文の読み方(↗↘)。ふつうの文ばかりにならないように、疑問文を多めにする
   if (type === 'tone') {
@@ -6692,6 +6750,15 @@ function buildQuestion(stage, q, type) {
       } else {
         const cb = combineSplit(tokens, q.pieces, q.jp);
         if (cb) return { ...item, ...ans, rewriteKind: 'combine', rewriteWord: cb.word, tokens: cb.tokens, end: '.' };
+      }
+    }
+    // 接続詞の単元: 2つの文を when / if / because で1つの文に(答えは教科書の文。節の順番を入れかえた文も正解)
+    if (/^g2program2-(when|if)/.test(stage.key) && rand() < 0.7) {
+      const j = joinSplit(tokens, q.jp);
+      if (j) {
+        const original = fullSentence({ ...item, tokens });
+        const alt = clauseAltSentence(tokens, item.end);
+        return { ...item, type: 'rewrite', rewriteKind: 'join', rewriteWord: j.conj, tokens: j.tokens, end: '.', answerSentence: original, answers: [...rewriteVariants(original), ...(alt ? rewriteVariants(alt) : [])] };
       }
     }
     // 3人称単数・過去形の単元では、その書きかえを先にためす
@@ -8247,7 +8314,8 @@ function generateWorksheet(seed) {
   });
   // 同じ文が2回出ないように(ほかの形式で作れなかった単元は、文を多く使って一周することがある)
   const seenSentences = new Set();
-  const sentenceKey = it => (it.answerSentence || (it.tokens ? fullSentence(it) : '')).toLowerCase();
+  // 書きかえは、もとの文(日本語)が同じなら同じ文とみなす(同じ文の否定文と疑問文が並ばないように)
+  const sentenceKey = it => (it.type === 'rewrite' ? `rw|${it.jp}` : (it.answerSentence || (it.tokens ? fullSentence(it) : '')).toLowerCase());
   printItems = printItems.map(item => {
     const st = stages.find(x => x.key === item.stageKey);
     for (let k = 0; k < 6 && st && sentenceKey(item) && seenSentences.has(sentenceKey(item)); k++) item = makeUnitQuestion(st, item.type, stateOf(st));
@@ -8408,7 +8476,7 @@ function shuffledPieces(item) {
   return item.shuffled[printChunkLevel];
 }
 
-const SELECT_TYPES = new Set(['choice', 'usage', 'pattern', 'tone', 'vmeaning', 'rchoice', 'rtf', 'cdialog', 'xchoice']);
+const SELECT_TYPES = new Set(['choice', 'usage', 'pattern', 'tone', 'insert', 'vmeaning', 'rchoice', 'rtf', 'cdialog', 'xchoice']);
 // 日本語で答える問題は、模範解答を見て自分で採点する
 const SELF_GRADED_TYPES = new Set(['myself', 'ccheck', 'clist', 'frame', 'rule', 'wtable', 'kscene', 'rja', 'rea', 'entoja', 'vjp', 'cwtrans', 'cwcond', 'cwfree', 'cetoj']);
 
@@ -8416,7 +8484,7 @@ function answerText(item) {
   if (item.custom && item.custom.answer != null && !SELECT_TYPES.has(item.type)) return escHtml(item.custom.answer);
   if (SELECT_TYPES.has(item.type)) {
     if (item.combo) return `${item.answer}（${item.combo.rows[item.options.indexOf(item.answer)].join('／')}）`;
-    return item.type === 'rtf' || item.graphs ? item.answer : `${CHOICE_LABELS[item.options.indexOf(item.answer)]} ${item.answer}`;
+    return item.type === 'rtf' || item.type === 'insert' || item.graphs ? item.answer : `${CHOICE_LABELS[item.options.indexOf(item.answer)]} ${item.answer}`;
   }
   if (item.type === 'fillin' && (item.altAnswers || []).length) return `${item.answer}（${item.altAnswers.join(' / ')} も可）`;
   if (item.type === 'cphrase' || item.type === 'cfree') return `${item.answers.join(' / ')}<span class="ans-why">${item.phrase}：${item.meaning}</span>`;
@@ -8516,7 +8584,7 @@ function answerLineHtml(placeholder, size) {
 
 function optionsHtml(item) {
   const opts = item.options.map((o, k) => {
-    const label = item.type === 'rtf' || item.graphs || item.combo ? '' : `<span class="ws-opt-label">${CHOICE_LABELS[k]}</span>`;
+    const label = item.type === 'rtf' || item.type === 'insert' || item.graphs || item.combo ? '' : `<span class="ws-opt-label">${CHOICE_LABELS[k]}</span>`;
     return `<button class="ws-opt" data-opt="${k}">${label}${o}</button>`;
   }).join('');
   return `<div class="ws-answer ws-options">${opts}<span class="ws-mark"></span></div>`;
@@ -8557,6 +8625,7 @@ function itemPromptHtml(item) {
   if (item.type === 'rule') return `この単元の文の形を完成させよう（例文：${item.example}）`;
   if (item.type === 'wtable') return '次の日本語に合う英単語を書こう';
   // 否定文・疑問文・下線部・主語の書きかえは、答えの文と日本語が合わないので、もとの文の意味として小さく出す(主語をかえる問題は出さない)
+  if (item.type === 'insert') return '';
   if (item.type === 'rewrite' && ['neg', 'q', 'wh', 'he', 'qa', 'plural'].includes(item.rewriteKind)) return ['he', 'plural'].includes(item.rewriteKind) ? '' : `<span class="ws-cmean">もとの文の意味：${item.jp}</span>`;
   const tags = item.jpTags.map(t => `<span class="ws-tag">＋${t}</span>`).join('');
   return `${item.jp}${tags}`;
@@ -8602,6 +8671,8 @@ function itemBodyHtml(item) {
       return `<div class="ws-pieces">${item.chunkWords.map(w => `<span class="ws-piece"><span>${escHtml(w)}</span></span>`).join('')}</div>${item.noHint ? '<div class="ws-4l ws-4l-print"></div>' : ''}${answerLineHtml('まとまりを書こう')}`;
     case 'frame':
       return `<div class="ws-sentence ws-frame-en">${fullSentence(item)}</div>`;
+    case 'insert':
+      return `<div class="ws-sentence ws-frame-en">${endWith(item.rest.map((t, i) => (item.insertGaps.includes(i) ? `<sub class="ws-gap">${CHOICE_LABELS[item.insertGaps.indexOf(i)]}</sub> ` : '') + escHtml(t)).join(' '), item.end)}<span class="ws-hint">（${item.insertWord}）</span></div>${optionsHtml(item)}`;
     case 'tone':
     case 'pattern':
       return `<div class="ws-sentence ws-frame-en">${fullSentence(item)}</div>${optionsHtml(item)}`;
@@ -9166,7 +9237,7 @@ function renderGuideWorksheet() {
 // 配点: 形式ごとの重み(書く問題・長い問題ほど高く)を、合計がちょうど100点になるように整数にする。同じ形式は同じ点
 const POINT_WEIGHTS = {
   vmeaning: 1, vjp: 2, vword: 2, vblank: 2, vidiom: 2,
-  choice: 2, usage: 2, lack: 3, myself: 3, svo: 3, slash: 3, pattern: 2, tone: 2, fillin: 2, form: 2, error: 3, extra: 3, reorder: 3, rewrite: 3, paraphrase: 3, translate: 4, entoja: 4,
+  choice: 2, usage: 2, lack: 3, myself: 3, svo: 3, slash: 3, pattern: 2, tone: 2, insert: 2, fillin: 2, form: 2, error: 3, extra: 3, reorder: 3, rewrite: 3, paraphrase: 3, translate: 4, entoja: 4,
   rchoice: 3, rtf: 2, rfill: 3, rja: 4, rea: 4, cdialog: 3, cphrase: 3, cform: 2, cfree: 3, cwtrans: 4, cwcond: 5, cwfree: 10, cetoj: 4, xchoice: 2, xfill: 3, xorder: 3, xpara: 3, xask: 4, clist: 1, ccheck: 1, kform: 3, korder: 3, kscene: 6,
 };
 function assignPoints(items) {
