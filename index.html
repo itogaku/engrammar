@@ -6178,6 +6178,8 @@ const rewriteKindLabel = item => (item.rewriteKind === 'he' ? `主語を ${item.
   : item.rewriteKind === 'perfect' ? `文末に ${item.rewriteTime} を加えて、${item.rewriteProg ? '現在完了進行形' : '現在完了'}の文に`
   : item.rewriteKind === 'indirect' ? `「${item.rewriteFrame}」に続けて、1つの文に`
   : item.rewriteKind === 'combine' ? `${item.rewriteWord === 'ing' ? '2つ目の文の動詞を 〜ing の形にして' : item.rewriteWord === 'pp' ? '2つ目の文の動詞を過去分詞にして' : `${item.rewriteWord} を使って`}、2つの文を1つの文に`
+  : item.rewriteKind === 'qa' ? `疑問文にして、${item.rewriteYes ? 'Yes' : 'No'} で答える`
+  : item.rewriteKind === 'plural' ? `主語を ${item.rewriteSubj} にかえて、複数の文に`
   : REWRITE_KIND_LABELS[item.rewriteKind]);
 
 // kind: 'neg'(否定文) / 'q'(疑問文)。作れないときは null
@@ -6445,6 +6447,81 @@ function combineSplit(tokens, pieces, jp) {
   return { tokens: [...first, ...second], word };
 }
 
+// 中1の書きかえ「主語を複数にかえて」: This is a pen. → These are pens. / I am a student. → We are students.
+// be動詞 + (a / an / 所有格) + (形容詞1語) + 名詞 で終わる文だけ
+const PLURAL_SUBJ = { this: 'These', that: 'Those', it: 'They', i: 'We', he: 'They', she: 'They' };
+function pluralShift(tokens, jp, prog) {
+  const lw = tokens.map(t => t.toLowerCase().replace(/[.!?]$/, ''));
+  if (sentenceEnd(jp) !== '.' || rewriteUnsafe(tokens)) return null;
+  const s = lw[0], newSubj = PLURAL_SUBJ[s];
+  if (!newSubj) return null;
+  if (['this', 'that'].includes(s) && prog.grade === 1 && prog.program < 6) return null; // these / those を習ってから
+  let k = 1;
+  if (!['am', 'is'].includes(lw[k])) return null;
+  const neg = lw[k + 1] === 'not';
+  k += neg ? 2 : 1;
+  const det = lw[k];
+  if (!['a', 'an', 'my', 'your', 'his', 'her', 'our', 'their'].includes(det)) return null;
+  const rest = lw.slice(k + 1);
+  if (rest.length < 1 || rest.length > 2) return null;
+  const noun = rest[rest.length - 1];
+  if (NOUN_BASE_OF[noun] !== noun || pluralOf(noun) === noun) return null;
+  if (rest.length === 2 && (NOUN_BASE_OF[rest[0]] || VERB_BASE_OF[rest[0]])) return null; // tennis player / soccer fan など
+  const possMap = { i: { my: 'our' }, he: { his: 'their' }, she: { her: 'their' } }[s] || {};
+  const newDet = det === 'a' || det === 'an' ? [] : [possMap[det] || det];
+  const words = [newSubj, 'are', ...(neg ? ['not'] : []), ...newDet, ...(rest.length === 2 ? [tokens[k + 1]] : []), pluralOf(noun)];
+  const text = endWith(words.join(' '), '.');
+  return { text, variants: rewriteVariants(text), subj: newSubj };
+}
+
+// 「疑問文にして、Yes(No) で答える」: Are you a student? — Yes, I am.
+const QA_SUBJ = { you: ['I'], we: ['we'], i: ['you'], he: ['he'], she: ['she'], it: ['it'], they: ['they'], this: ['it'], that: ['it'], these: ['they'], those: ['they'] };
+function questionWithAnswer(tokens, jp, yes) {
+  const lw = tokens.map(t => t.toLowerCase());
+  const q = rewriteSentence(tokens, jp, 'q');
+  if (!q) return null;
+  const qw = q.text.replace(/\?$/, '').split(' ');
+  const aux = qw[0].toLowerCase(), qs = qw[1].toLowerCase();
+  if (!['am', 'are', 'is', 'was', 'were', 'do', 'does', 'did', 'can', 'will'].includes(aux)) return null;
+  // 答えの主語: 問いの you は I(we のときは we)、this / that は it
+  let subj = QA_SUBJ[qs];
+  if (!subj) return null;
+  if (qs === 'you') subj = lw[0] === 'we' ? ['we'] : lw[0] === 'you' ? ['I', 'we'] : ['I'];
+  const beFor = (sbj) => {
+    if (!['am', 'are', 'is', 'was', 'were'].includes(aux)) return aux;
+    const past = ['was', 'were'].includes(aux);
+    if (sbj === 'I') return past ? 'was' : 'am';
+    if (['we', 'you', 'they'].includes(sbj)) return past ? 'were' : 'are';
+    return past ? 'was' : 'is';
+  };
+  const answers = subj.map(sb => {
+    const v = beFor(sb);
+    const full = yes ? `Yes, ${sb} ${v}.` : `No, ${sb} ${v === 'can' ? 'cannot' : v + ' not'}.`;
+    const vs = rewriteVariants(full);
+    if (!yes && sb === 'I' && v === 'am') vs.push("No, I'm not.");
+    if (!yes && v === 'is') vs.push(`No, ${sb}'s not.`);
+    if (!yes && v === 'are') vs.push(`No, ${sb}'re not.`);
+    return vs;
+  });
+  const shown = `${q.text} — ${answers[0][0]}`;
+  const variants = q.variants.flatMap(qv => answers.flat().map(a => `${qv} ${a}`));
+  return { text: shown, variants };
+}
+
+// 文の読み方(文の終わりを上げ調子 ↗ / 下げ調子 ↘ で読むか)
+const TONE_UP = '↗（上げ調子）', TONE_DOWN = '↘（下げ調子）';
+const TONE_WH = ['what', 'where', 'when', 'who', 'whose', 'which', 'how', 'why'];
+function toneOf(tokens, end) {
+  const lw = tokens.map(t => t.toLowerCase().replace(/[,.!?]$/, ''));
+  if (rewriteUnsafe(tokens) && tokens.some((t, i) => i < tokens.length - 1 && /[.!?]$/.test(t))) return null; // 2つの文
+  if (end !== '?') return { up: false, why: 'ふつうの文・命令文は、文の終わりを下げ調子（↘）で読む。' };
+  if (TONE_WH.includes(lw[0])) return { up: false, why: '疑問詞（What / Where など）で始まる疑問文は、Yes / No で答えないので下げ調子（↘）。' };
+  if (lw.includes('or')) return { up: false, why: 'A or B? の疑問文は、A を上げ調子（↗）、B（文の終わり）を下げ調子（↘）で読む。' };
+  if (['am', 'are', 'is', 'was', 'were', 'do', 'does', 'did', 'can', 'will', "don't", "doesn't", "isn't", "aren't", 'could', 'would', 'may', 'shall'].includes(lw[0]))
+    return { up: true, why: 'Yes / No で答える疑問文は、文の終わりを上げ調子（↗）で読む。' };
+  return null;
+}
+
 const CHOICE_LABELS = ['ア', 'イ', 'ウ', 'エ'];
 const CHOICE_LABELS5 = ['ア', 'イ', 'ウ', 'エ', 'オ'];
 const QUESTION_TYPES = {
@@ -6462,6 +6539,7 @@ const QUESTION_TYPES = {
   usage:     { label: '用法の識別', instr: '下線部の用法として最も適切なものを選びなさい。' },
   paraphrase: { label: '同意文書きかえ', instr: '上の文とほぼ同じ意味になるように、下の文の（　）に適する語を1語ずつ書きなさい。' },
   pattern:   { label: '文型', instr: '次の英文の文型として最も適切なものを選びなさい。' },
+  tone:      { label: '文の読み方(↗↘)', instr: '次の英文を声に出して読むとき、文の終わりを上げ調子（↗）と下げ調子（↘）のどちらで読むか選びなさい。' },
   slash:     { label: '区切り', instr: '英文を、主語・動詞・目的語などの意味のまとまりごとに「／」で区切りなさい。' },
   svo:       { label: '文の要素', instr: '英文の区切りごとに、下の□に S（主語）・V（動詞）・O（目的語）・C（補語）・M（修飾語）のどれにあたるかを書きなさい。' },
 };
@@ -6517,6 +6595,22 @@ function buildQuestion(stage, q, type) {
       if (k > 1) return { ...item, type: 'myself', segs, underline: k, answer: fullSentence(item) };
     }
   }
+  // 文の読み方(↗↘)。ふつうの文ばかりにならないように、疑問文を多めにする
+  if (type === 'tone') {
+    // 1つの単元だけだと答えがすべて同じ(疑問文の単元は ↗ ばかり)になるので、習った単元の文もまぜて、
+    // ↗・↘(Yes / No の疑問文・疑問詞の疑問文・ふつうの文)が半々くらいになるようにする
+    const want = rand() < 0.5 ? 'up' : rand() < 0.6 ? 'wh' : 'plain';
+    const cur = stageProgram(stage);
+    const learned = stages.filter(st => { const pr = stageProgram(st); return pr.grade < cur.grade || pr.grade === cur.grade && pr.program <= cur.program; });
+    const fits = (tk, end) => { const t = toneOf(tk, end); return t && (want === 'up' ? t.up : want === 'wh' ? !t.up && end === '?' : end !== '?') ? t : null; };
+    let t = fits(tokens, item.end), src = item;
+    for (const st of t ? [] : shuffle(learned)) {
+      const cand = shuffle(st.questions).find(x => fits(sentenceTokens(x.pieces), sentenceEnd(x.jp)));
+      if (cand) { src = { ...item, ...cand, stageKey: stage.key, end: sentenceEnd(cand.jp), tokens: sentenceTokens(cand.pieces) }; t = fits(src.tokens, src.end); break; }
+    }
+    if (!t) t = toneOf(tokens, item.end);
+    if (t) return { ...src, type: 'tone', options: [TONE_UP, TONE_DOWN], answer: t.up ? TONE_UP : TONE_DOWN, why: t.why };
+  }
   // 文型をえらぶ(4択)。文型がはっきり決まる文だけ
   if (type === 'pattern') {
     const pat = sentencePattern(q.pieces, q.jp);
@@ -6568,6 +6662,7 @@ function buildQuestion(stage, q, type) {
     if (prog.grade > 1 || prog.program >= 5) kinds.push('he');
     if (prog.grade > 1 || prog.program >= 9) kinds.push('past');
     if (prog.grade > 1 || prog.program >= 8) kinds.push('wh'); // 下線部をたずねる文(疑問詞の疑問文を習ってから)
+    if (prog.grade === 1) kinds.push('qa', 'plural'); // 中1: 疑問文にして Yes / No で答える・主語を複数に
     // 未来の単元: 教科書の will / be going to の文から現在の文を作り、「文末に tomorrow を加えて、未来の文に」(答えは教科書の文)
     if (/^g2program1-(will|begoingto)/.test(stage.key) && rand() < 0.6) {
       const fp = futureToPresent(tokens, q.jp);
@@ -6607,6 +6702,17 @@ function buildQuestion(stage, q, type) {
       if (kind === 'wh') {
         const r = whQuestion(tokens, q.pieces, q.jp);
         if (r) return { ...item, type: 'rewrite', rewriteKind: 'wh', ul: r.ul, answerSentence: r.text, answers: r.variants };
+        continue;
+      }
+      if (kind === 'qa') {
+        const yes = rand() < 0.5;
+        const r = questionWithAnswer(tokens, q.jp, yes);
+        if (r) return { ...item, type: 'rewrite', rewriteKind: 'qa', rewriteYes: yes, answerSentence: r.text, answers: r.variants };
+        continue;
+      }
+      if (kind === 'plural') {
+        const r = pluralShift(tokens, q.jp, prog);
+        if (r) return { ...item, type: 'rewrite', rewriteKind: 'plural', rewriteSubj: r.subj, answerSentence: r.text, answers: r.variants };
         continue;
       }
       const subj = kind === 'he' ? (/彼女|母|姉|妹|祖母|おば/.test(q.jp) ? 'She' : 'He') : null;
@@ -8302,7 +8408,7 @@ function shuffledPieces(item) {
   return item.shuffled[printChunkLevel];
 }
 
-const SELECT_TYPES = new Set(['choice', 'usage', 'pattern', 'vmeaning', 'rchoice', 'rtf', 'cdialog', 'xchoice']);
+const SELECT_TYPES = new Set(['choice', 'usage', 'pattern', 'tone', 'vmeaning', 'rchoice', 'rtf', 'cdialog', 'xchoice']);
 // 日本語で答える問題は、模範解答を見て自分で採点する
 const SELF_GRADED_TYPES = new Set(['myself', 'ccheck', 'clist', 'frame', 'rule', 'wtable', 'kscene', 'rja', 'rea', 'entoja', 'vjp', 'cwtrans', 'cwcond', 'cwfree', 'cetoj']);
 
@@ -8353,7 +8459,10 @@ function isCorrect(item) {
     const a = normalize(answer.replace(/\s*→\s*/g, ' → '));
     return a !== '' && item.custom.answer.split(/\s+\/\s+|／/).some(x => normalize(x.replace(/\s*→\s*/g, ' → ')) === a);
   }
-  if (item.type === 'rewrite') return normalize(answer) !== '' && item.answers.some(a => normalize(a) === normalize(answer));
+  if (item.type === 'rewrite') {
+    const n = t => normalize(t.replace(/[—–-]/g, ' '));
+    return n(answer) !== '' && item.answers.some(a => n(a) === n(answer));
+  }
   if (item.type === 'paraphrase') return normalize(answer.replace(/[／/・]/g, ' ')) !== '' && [item.answer, ...(item.altAnswers || [])].some(a => normalize(answer.replace(/[／/・]/g, ' ')) === normalize(a.replace(/ \/ /g, ' ')));
   // 誤文訂正: 「正しい語」だけ、または「誤っている語 → 正しい語」を正解にする
   if (item.type === 'error') {
@@ -8448,7 +8557,7 @@ function itemPromptHtml(item) {
   if (item.type === 'rule') return `この単元の文の形を完成させよう（例文：${item.example}）`;
   if (item.type === 'wtable') return '次の日本語に合う英単語を書こう';
   // 否定文・疑問文・下線部・主語の書きかえは、答えの文と日本語が合わないので、もとの文の意味として小さく出す(主語をかえる問題は出さない)
-  if (item.type === 'rewrite' && ['neg', 'q', 'wh', 'he'].includes(item.rewriteKind)) return item.rewriteKind === 'he' ? '' : `<span class="ws-cmean">もとの文の意味：${item.jp}</span>`;
+  if (item.type === 'rewrite' && ['neg', 'q', 'wh', 'he', 'qa', 'plural'].includes(item.rewriteKind)) return ['he', 'plural'].includes(item.rewriteKind) ? '' : `<span class="ws-cmean">もとの文の意味：${item.jp}</span>`;
   const tags = item.jpTags.map(t => `<span class="ws-tag">＋${t}</span>`).join('');
   return `${item.jp}${tags}`;
 }
@@ -8493,6 +8602,7 @@ function itemBodyHtml(item) {
       return `<div class="ws-pieces">${item.chunkWords.map(w => `<span class="ws-piece"><span>${escHtml(w)}</span></span>`).join('')}</div>${item.noHint ? '<div class="ws-4l ws-4l-print"></div>' : ''}${answerLineHtml('まとまりを書こう')}`;
     case 'frame':
       return `<div class="ws-sentence ws-frame-en">${fullSentence(item)}</div>`;
+    case 'tone':
     case 'pattern':
       return `<div class="ws-sentence ws-frame-en">${fullSentence(item)}</div>${optionsHtml(item)}`;
     case 'slash':
@@ -9056,7 +9166,7 @@ function renderGuideWorksheet() {
 // 配点: 形式ごとの重み(書く問題・長い問題ほど高く)を、合計がちょうど100点になるように整数にする。同じ形式は同じ点
 const POINT_WEIGHTS = {
   vmeaning: 1, vjp: 2, vword: 2, vblank: 2, vidiom: 2,
-  choice: 2, usage: 2, lack: 3, myself: 3, svo: 3, slash: 3, pattern: 2, fillin: 2, form: 2, error: 3, extra: 3, reorder: 3, rewrite: 3, paraphrase: 3, translate: 4, entoja: 4,
+  choice: 2, usage: 2, lack: 3, myself: 3, svo: 3, slash: 3, pattern: 2, tone: 2, fillin: 2, form: 2, error: 3, extra: 3, reorder: 3, rewrite: 3, paraphrase: 3, translate: 4, entoja: 4,
   rchoice: 3, rtf: 2, rfill: 3, rja: 4, rea: 4, cdialog: 3, cphrase: 3, cform: 2, cfree: 3, cwtrans: 4, cwcond: 5, cwfree: 10, cetoj: 4, xchoice: 2, xfill: 3, xorder: 3, xpara: 3, xask: 4, clist: 1, ccheck: 1, kform: 3, korder: 3, kscene: 6,
 };
 function assignPoints(items) {
