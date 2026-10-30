@@ -6179,6 +6179,7 @@ const rewriteKindLabel = item => (item.rewriteKind === 'he' ? `主語を ${item.
   : item.rewriteKind === 'perfect' ? `文末に ${item.rewriteTime} を加えて、${item.rewriteProg ? '現在完了進行形' : '現在完了'}の文に`
   : item.rewriteKind === 'indirect' ? `「${item.rewriteFrame}」に続けて、1つの文に`
   : item.rewriteKind === 'combine' ? `${item.rewriteWord === 'ing' ? '2つ目の文の動詞を 〜ing の形にして' : item.rewriteWord === 'pp' ? '2つ目の文の動詞を過去分詞にして' : `${item.rewriteWord} を使って`}、2つの文を1つの文に`
+  : item.rewriteKind === 'subj' ? (item.rewriteWord === 'wish' ? 'I wish を使って、ほぼ同じ意味の文に' : 'if を使って、ほぼ同じ意味の文に（仮定法）')
   : item.rewriteKind === 'join' ? `${item.rewriteWord} を使って、2つの文を1つの文に`
   : item.rewriteKind === 'qa' ? `疑問文にして、${item.rewriteYes ? 'Yes' : 'No'} で答える`
   : item.rewriteKind === 'plural' ? `主語を ${item.rewriteSubj} にかえて、複数の文に`
@@ -6526,8 +6527,18 @@ function toneOf(tokens, end) {
 
 // 「（ ）内の語を入れるのに適切な位置」: 接続詞の that(I think ア Ken イ is …)と、always / usually などの副詞(一般動詞の前)
 const INSERT_ADVERBS = ['always', 'usually', 'often', 'sometimes', 'never'];
-function insertQuestion(tokens, end, grade = 1) {
+function insertQuestion(tokens, end, grade = 1, stageKey = '') {
   const lw = tokens.map(t => t.toLowerCase().replace(/[,.!?]$/, ''));
+  if (/^g3program6-omitted/.test(stageKey)) {
+    // 名詞 + (that) + 主語 + 動詞: This is the book ア I bought yesterday.
+    const k = lw.findIndex((t, i) => i >= 2 && (SUBJECT_PRONOUNS.has(t) || ['my', 'his', 'her', 'our', 'their', 'your', 'everyone'].includes(t)) && NOUN_BASE_OF[lw[i - 1]] && !SUBJECT_PRONOUNS.has(lw[i - 1]));
+    if (k < 0 || tokens.some((t, i) => i < tokens.length - 1 && /[,.!?]$/.test(t))) return null;
+    const gaps = [];
+    for (let g = 1; g < tokens.length; g++) if (Math.abs(g - k) > 1) gaps.push(g);
+    if (gaps.length < 3) return null;
+    const chosen = [k, ...shuffle(gaps).slice(0, 3)].sort((a, b) => a - b);
+    return { insertWord: 'that', insertGaps: chosen, rest: tokens.slice(), options: chosen.map((_, i) => CHOICE_LABELS[i]), answer: CHOICE_LABELS[chosen.indexOf(k)], why: '関係代名詞（目的格）の that は、説明される名詞のすぐあと、「主語＋動詞」の前に置く。' };
+  }
   if (tokens.length < 4 || tokens.some((t, i) => i < tokens.length - 1 && /[,.!?]$/.test(t))) return null;
   let k = lw.findIndex((t, i) => t === 'that' && i > 0 && /^(think|thinks|thought|know|knows|knew|hope|hopes|hoped|say|says|said|believe|believes)$/.test(lw[i - 1]) && SUBJECT_PRONOUNS.has(lw[i + 1] || '') || t === 'that' && i > 0 && /^(think|thinks|thought|know|knows|knew|hope|hopes|say|says|said)$/.test(lw[i - 1]) && /^(my|the|this|ken|mike|tom|kate|it)$/.test(lw[i + 1] || ''));
   let word = 'that';
@@ -6573,6 +6584,47 @@ function joinSplit(tokens, jp) {
   const s1 = endWith([capitalize(a[0] === 'I' ? 'I' : lowerSubjectHead(a[0])), ...a.slice(1)].join(' ').replace(/^./, m => m.toUpperCase()), '.');
   const s2 = endWith([b[0] === 'I' ? 'I' : capitalize(lowerSubjectHead(b[0])), ...b.slice(1)].join(' '), '.');
   return { tokens: `${s1} ${s2}`.replace(/\.$/, '').split(' '), conj };
+}
+
+// 仮定法の書きかえ(中3ワーク参考)。教科書の仮定法の文を答えにして、事実を表す文を作る
+//  I wish I could fly. ← I'm sorry I can't fly.   /   If I were a bird, I could fly. ← I am not a bird, so I can't fly.
+const SUBJ_PAST_VERBS = { knew: 'know', lived: 'live', spoke: 'speak', practiced: 'practice', played: 'play', got: 'get', had: 'have' };
+function factClause(words) {
+  // words: [主語..., 動詞, ...]。仮定法の節を、事実(現在)の節にして返す。作れないときは null
+  const lw = words.map(w => w.toLowerCase().replace(/[,.!?]$/, ''));
+  const v = lw.findIndex(t => ['were', "weren't", 'could', 'had', ...Object.keys(SUBJ_PAST_VERBS)].includes(t));
+  if (v < 1 || v > 2) return null;
+  const subj = words.slice(0, v), ls = lw.slice(0, v), rest = words.slice(v + 1);
+  if (!rest.length) return null;
+  const third = ls.join(' ') !== 'i' && isThirdSingular(ls);
+  const be = ls.join(' ') === 'i' ? 'am' : third ? 'is' : 'are';
+  let verb;
+  if (lw[v] === 'were') verb = [be, 'not'];
+  else if (lw[v] === "weren't") verb = [be];
+  else if (lw[v] === 'could') { if (VERB_BASE_OF[lw[v + 1]] !== lw[v + 1]) return null; verb = ["can't"]; }
+  else verb = [third ? "doesn't" : "don't", SUBJ_PAST_VERBS[lw[v]]];
+  return [...subj, ...verb, ...rest];
+}
+function subjunctiveToFact(tokens, stageKey) {
+  const lw = tokens.map(t => t.toLowerCase().replace(/[,.!?]$/, ''));
+  if (/iwish/.test(stageKey) && lw[0] === 'i' && lw[1] === 'wish') {
+    const f = factClause(tokens.slice(2));
+    if (!f) return null;
+    return { fact: ["I'm", 'sorry', ...f], kind: 'wish' };
+  }
+  if (lw[0] !== 'if') return null;
+  const c = tokens.findIndex(t => /,$/.test(t));
+  if (c < 2) return null;
+  const main = tokens.slice(c + 1), lm = lw.slice(c + 1);
+  const m = lm.findIndex(t => t === 'could');
+  if (m < 1 || m > 2 || VERB_BASE_OF[lm[m + 1]] !== lm[m + 1]) return null; // 主節が could の文だけ(would は事実の文が一つに決まらない)
+  const cond = tokens.slice(1, c + 1); cond[cond.length - 1] = cond[cond.length - 1].replace(/,$/, '');
+  const f1 = factClause(cond);
+  if (!f1) return null;
+  const f2 = [...main.slice(0, m), "can't", ...main.slice(m + 1)];
+  f1[0] = f1[0] === 'I' ? 'I' : capitalize(f1[0]);
+  f1[f1.length - 1] += ',';
+  return { fact: [...f1, 'so', ...f2], kind: 'if' };
 }
 
 const CHOICE_LABELS = ['ア', 'イ', 'ウ', 'エ'];
@@ -6650,7 +6702,7 @@ function buildQuestion(stage, q, type) {
     }
   }
   if (type === 'insert') {
-    const r = insertQuestion(tokens, item.end, stage.grade);
+    const r = insertQuestion(tokens, item.end, stage.grade, stage.key);
     if (r) return { ...item, type: 'insert', ...r };
   }
   // 文の読み方(↗↘)。ふつうの文ばかりにならないように、疑問文を多めにする
@@ -6750,6 +6802,14 @@ function buildQuestion(stage, q, type) {
       } else {
         const cb = combineSplit(tokens, q.pieces, q.jp);
         if (cb) return { ...item, ...ans, rewriteKind: 'combine', rewriteWord: cb.word, tokens: cb.tokens, end: '.' };
+      }
+    }
+    // 仮定法の単元: 事実の文を I wish / If 〜 could の文に(答えは教科書の文)
+    if (/^g3program7-/.test(stage.key) && rand() < 0.8) {
+      const sf = subjunctiveToFact(tokens, stage.key);
+      if (sf) {
+        const original = fullSentence({ ...item, tokens });
+        return { ...item, type: 'rewrite', rewriteKind: 'subj', rewriteWord: sf.kind, tokens: sf.fact, end: '.', answerSentence: original, answers: rewriteVariants(original) };
       }
     }
     // 接続詞の単元: 2つの文を when / if / because で1つの文に(答えは教科書の文。節の順番を入れかえた文も正解)
