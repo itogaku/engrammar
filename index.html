@@ -92,6 +92,15 @@
     background: var(--teal-tint); color: var(--teal-dark); font-size: 14px; font-weight: 800;
   }
   .program-card:not(.cleared) .p-check { background: var(--line); color: transparent; }
+  /* 複数の単元を選んで1つのプリントにする */
+  .program-card .p-pick { flex-shrink: 0; font-size: 12px; font-weight: 700; color: var(--teal-dark); border: 1.5px solid var(--teal); border-radius: 999px; padding: 4px 10px; background: var(--panel); white-space: nowrap; }
+  .program-card .p-pick:hover { background: var(--teal-tint); }
+  .program-card.picked { border-color: var(--teal); box-shadow: 0 0 0 2px var(--teal-tint); }
+  .program-card.picked .p-pick { background: var(--teal); color: #fff; }
+  .multi-bar { position: sticky; bottom: 12px; z-index: 5; display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 14px; padding: 10px 14px; background: var(--panel); border: 1.5px solid var(--teal); border-radius: 12px; box-shadow: 0 4px 16px rgba(0,0,0,.08); }
+  .multi-bar .mb-count { font-weight: 700; font-size: 14px; }
+  .multi-bar .mb-list { flex-basis: 100%; font-size: 12px; color: var(--ink-soft); line-height: 1.5; }
+  .multi-bar .btn { padding: 8px 14px; }
 
   /* --- practice screen --- */
   .eyebrow { font-size: 13px; color: var(--teal-dark); font-weight: 700; letter-spacing: 0.02em; }
@@ -1001,6 +1010,7 @@
       <button id="programModePractice">画面で練習<small>並べ替え</small></button>
     </div>
     <div class="program-list" id="programList"></div>
+    <div class="multi-bar" id="multiBar" style="display:none;"></div>
   </div>
 
   <!-- Screen 4: print (worksheet) -->
@@ -7328,14 +7338,23 @@ function renderProgramList() {
     const card = document.createElement('button');
     card.className = 'program-card' + (isCleared ? ' cleared' : '');
     const cardLabel = s.label.includes(': ') ? s.label.split(': ')[1] : s.label;
+    const canPick = programMode === 'print' || programMode === 'guide';
+    if (canPick && pickedUnits.has(s.key)) card.classList.add('picked');
     card.innerHTML = `
       <div>
         <div class="p-label">${cardLabel}</div>
         <div class="p-desc">${s.desc}</div>
       </div>
+      ${canPick ? `<span class="p-pick">${pickedUnits.has(s.key) ? '✓ 選択中' : '＋ 選ぶ'}</span>` : ''}
       <div class="p-check">${isCleared ? '&#10003;' : ''}</div>
     `;
-    card.onclick = () => {
+    card.onclick = (e) => {
+      // 「選ぶ」を押したときは、複数の単元をまとめるために選ぶだけ(プリントは作らない)
+      if (e.target.closest('.p-pick')) {
+        if (pickedUnits.has(s.key)) pickedUnits.delete(s.key); else pickedUnits.add(s.key);
+        renderProgramList();
+        return;
+      }
       stageIndex = globalIdx;
       if (programMode === 'print' || programMode === 'guide') {
         printSource = programMode === 'guide' ? { kind: 'guide', keys: [s.key] } : { kind: 'stage' };
@@ -7365,6 +7384,30 @@ function renderProgramList() {
       programList.appendChild(card);
     });
   }
+  renderMultiBar();
+}
+
+// 選んだ単元(学年をまたいでもよい)をまとめて1つのプリントにする。単元の並びは教科書の順
+const pickedUnits = new Set();
+function pickedStages() { return stages.filter(st => pickedUnits.has(st.key)); }
+function renderMultiBar() {
+  const bar = document.getElementById('multiBar');
+  const list = pickedStages();
+  const show = (programMode === 'print' || programMode === 'guide') && list.length > 0;
+  bar.style.display = show ? '' : 'none';
+  if (!show) return;
+  const kind = programMode === 'guide' ? '解説つきプリント' : 'プリント';
+  bar.innerHTML = `<span class="mb-count">${list.length}単元を選択中</span>
+    <button class="btn btn-primary" id="mbMake"${list.length < 2 ? ' disabled' : ''}>まとめて${kind}を作る</button>
+    <button class="btn btn-ghost" id="mbClear">選択を解除</button>
+    <div class="mb-list">${list.map(st => escHtml(`${st.grade}年 ${st.label.replace(/^[1-3]年 /, '')}`)).join('　/　')}${list.length < 2 ? '（もう1つ以上選ぶと、まとめて作れます）' : ''}</div>`;
+  document.getElementById('mbClear').onclick = () => { pickedUnits.clear(); renderProgramList(); };
+  document.getElementById('mbMake').onclick = () => {
+    stageIndex = stages.indexOf(list[0]);
+    printSource = programMode === 'guide' ? { kind: 'guide', keys: list.map(st => st.key) } : { kind: 'stage', keys: list.map(st => st.key) };
+    showScreen('print');
+    generateWorksheet();
+  };
 }
 
 // ---------- screen switching ----------
@@ -8190,6 +8233,7 @@ function setProgramMode(mode) {
   programModePrint.classList.toggle('active', mode === 'print');
   programModeGuide.classList.toggle('active', mode === 'guide');
   if (screenProgram.style.display !== 'none') renderProgramList();
+  else renderMultiBar();
 }
 
 function renderOptionSwitch(container, options, current, onPick) {
@@ -8292,6 +8336,7 @@ function allocateTypes(weights, total) {
 
 function sourceStages() {
   if (printSource.kind === 'guide') return guideStages();
+  if (printSource.kind === 'stage' && (printSource.keys || []).length > 1) return printSource.keys.map(k => stages.find(st => st.key === k)).filter(Boolean);
   if (printSource.kind !== 'test') return [currentStage()];
   return stages.filter(s => printSource.config.keys.includes(s.key));
 }
@@ -8304,7 +8349,14 @@ function sourceStages() {
 function grammarSlots() {
   if (printSource.kind === 'stage') {
     const weights = Object.fromEntries([...printTypes].map(t => [t, 1]));
-    return allocateTypes(weights, printCount).map(type => ({ stage: currentStage(), type, fixed: true }));
+    const list = sourceStages();
+    if (list.length === 1) return allocateTypes(weights, printCount).map(type => ({ stage: currentStage(), type, fixed: true }));
+    // 複数の単元: 単元を順にまわして、どの単元からも同じくらい出す(その形式にできない単元はほかの単元で作る)
+    let pool = [];
+    return allocateTypes(weights, printCount).map(type => {
+      if (!pool.length) pool = shuffle(list.slice());
+      return { stage: pool.pop(), type, fixed: false };
+    });
   }
   const cfg = printSource.config;
   const stageList = sourceStages();
@@ -9335,8 +9387,14 @@ function renderWorksheet() {
   if (printSource.kind === 'stage') {
     const s = currentStage();
     const gradeName = (grades.find(g => g.id === s.grade) || {}).name || '';
-    sheetTitle.textContent = `英語プリント ${s.label}${roundLabel}`;
-    sheetSub.innerHTML = `${gradeName} &middot; ${s.eyebrow}`;
+    const multi = sourceStages();
+    if (multi.length > 1) {
+      sheetTitle.textContent = `英語プリント ${multi.length}単元のまとめ${roundLabel}`;
+      sheetSub.textContent = multi.map(st => `${st.grade}年 ${st.label.replace(/^[1-3]年 /, '')}`).join('・');
+    } else {
+      sheetTitle.textContent = `英語プリント ${s.label}${roundLabel}`;
+      sheetSub.innerHTML = `${gradeName} &middot; ${s.eyebrow}`;
+    }
   } else {
     sheetTitle.textContent = `英語テスト ${printSource.config.name || ''}`.trim() + roundLabel;
     sheetSub.textContent = printSource.summary;
