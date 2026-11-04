@@ -799,6 +799,9 @@
   .ws-review-box .rv-en { margin-right: 12px; } .ws-review-box .rv-en b { text-decoration: underline; }
   .ws-review-box .rv-jp { color: var(--ink-soft); font-size: 12px; }
   /* 解答欄を最後にまとめる(確認テストの形) */
+  .ws-listen { margin: 4px 0 6px 36px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .ws-listen-note { font-size: 11.5px; color: var(--ink-soft); }
+  .ws-listen-blank { margin-left: 36px; font-size: 13px; font-weight: 700; }
   .ws-gap { display: inline-block; font-size: 11px; font-weight: 700; line-height: 1; padding: 1px 3px; border: 1px solid var(--ink); border-radius: 3px; vertical-align: 2px; margin-right: 2px; }
   .ans-grid-box { margin-top: 18px; border-top: 2px solid var(--ink); padding-top: 8px; break-inside: avoid; }
   .ans-grid-title { font-weight: 700; font-size: 14px; margin-bottom: 6px; }
@@ -912,7 +915,7 @@
       <button class="btn btn-primary exam-make" id="examCheckBtn">最終チェックシートを作る</button>
     </div>
     <div class="card test-card exam-card chiba-card">
-      <div class="exam-head">千葉県公立入試形式<span>本番と同じ大問の順番・形式（リスニングの大問1〜4はのぞく）</span></div>
+      <div class="exam-head">千葉県公立入試形式<span>本番と同じ大問の順番・形式（リスニングは画面で読み上げ）</span></div>
       <div class="exam-rounds" id="chibaParts"></div>
       <div class="opt-note">場面英作文（大問6）は、本番のイラストのかわりに場面を日本語で示しています。</div>
     </div>
@@ -1174,6 +1177,7 @@
 <script src="exam_reading_2.js"></script>
 <script src="exam_chiba.js"></script>
 <script src="exam_chiba_reading.js"></script>
+<script src="exam_chiba_listening.js"></script>
 <script src="howto_1.js"></script>
 <script src="howto_2.js"></script>
 <script src="howto_3.js"></script>
@@ -8589,7 +8593,7 @@ function shuffledPieces(item) {
   return item.shuffled[printChunkLevel];
 }
 
-const SELECT_TYPES = new Set(['choice', 'usage', 'pattern', 'tone', 'insert', 'vmeaning', 'rchoice', 'rtf', 'cdialog', 'xchoice']);
+const SELECT_TYPES = new Set(['kl1', 'kl2', 'kl3', 'kl4', 'choice', 'usage', 'pattern', 'tone', 'insert', 'vmeaning', 'rchoice', 'rtf', 'cdialog', 'xchoice']);
 // 日本語で答える問題は、模範解答を見て自分で採点する
 const SELF_GRADED_TYPES = new Set(['myself', 'ccheck', 'clist', 'frame', 'rule', 'wtable', 'kscene', 'rja', 'rea', 'entoja', 'vjp', 'cwtrans', 'cwcond', 'cwfree', 'cetoj']);
 
@@ -8597,6 +8601,7 @@ function answerText(item) {
   if (item.custom && item.custom.answer != null && !SELECT_TYPES.has(item.type)) return escHtml(item.custom.answer);
   if (SELECT_TYPES.has(item.type)) {
     if (item.combo) return `${item.answer}（${item.combo.rows[item.options.indexOf(item.answer)].join('／')}）`;
+    if (/^kl\d$/.test(item.type)) return `${LISTEN_LABELS[item.options.indexOf(item.answer)]}. ${item.answer}`;
     return item.type === 'rtf' || item.type === 'insert' || item.graphs ? item.answer : `${CHOICE_LABELS[item.options.indexOf(item.answer)]} ${item.answer}`;
   }
   if (item.type === 'fillin' && (item.altAnswers || []).length) return `${item.answer}（${item.altAnswers.join(' / ')} も可）`;
@@ -8697,6 +8702,7 @@ function answerLineHtml(placeholder, size) {
 
 function optionsHtml(item) {
   const opts = item.options.map((o, k) => {
+    if (/^kl\d$/.test(item.type)) return `<button class="ws-opt" data-opt="${k}"><span class="ws-opt-label">${LISTEN_LABELS[k]}</span>${o}</button>`;
     const label = item.type === 'rtf' || item.type === 'insert' || item.graphs || item.combo ? '' : `<span class="ws-opt-label">${CHOICE_LABELS[k]}</span>`;
     return `<button class="ws-opt" data-opt="${k}">${label}${o}</button>`;
   }).join('');
@@ -8722,6 +8728,8 @@ function itemPromptHtml(item) {
   if (['xchoice', 'xfill', 'xorder'].includes(item.type)) return item.jp || '';
   if (item.type === 'xpara' || item.type === 'xask') return '';
   if (item.type === 'kform' || item.type === 'korder') return '';
+  if (/^kl[123]$/.test(item.type)) return '';
+  if (item.type === 'kl4') return `<div class="ws-letter">${escHtml(item.memo).replace(item.blank === 0 ? '( ① )' : '( ② )', m => `<b class="ws-hl">${m}</b>`)}</div>`;
   if (item.type === 'kscene') return item.scene;
   if (item.type === 'cwcond' || item.type === 'cwfree') {
     // 2行目からは手紙・メモ・対話などの本文。枠で囲んで行ごとに見せる
@@ -8833,6 +8841,8 @@ function itemBodyHtml(item) {
       return `<div class="ws-dialog">${item.lines.map(([who, text]) => `<b>${who}:</b><span>${text === null ? '<span class="ws-blank">（　　　　　　　　）</span>' : text}</span>`).join('')}</div>${optionsHtml(item)}`;
     case 'cwtrans':
       return answerLineHtml('英文を書こう');
+    case 'kl1': case 'kl2': case 'kl3': case 'kl4':
+      return `${item.type === 'kl4' && item.blank === 1 ? '<div class="ws-listen no-print"><span class="ws-listen-note">（上と同じ英文です）</span></div>' : `<div class="ws-listen no-print"><button class="btn btn-ghost btn-small ws-play">▶ 英語を聞く（2回）</button><span class="ws-listen-note">読み上げは端末の音声で再生されます</span></div>`}${item.type === 'kl4' ? `<div class="ws-listen-blank">${item.blank === 0 ? '①' : '②'} に入るもの</div>` : ''}${optionsHtml(item)}`;
     case 'kform': case 'korder': {
       const line = t => (t === null ? '<span class="ws-blank">（　　　　　　）</span>'
         : item.type === 'korder' ? t.replace(/\(\s*_+\s*\)/, `（ ${item.words.map((w, k) => `${CHOICE_LABELS5[k]} ${w}`).join('　')} ）`) : t);
@@ -8974,6 +8984,8 @@ function makeItemEl(item, num, typeLine) {
       if (next) next.focus(); else checkWorksheet();
     });
   }
+  const play = el.querySelector('.ws-play');
+  if (play) play.onclick = () => speakListening(item, play);
   el.querySelectorAll('.ws-opt').forEach(btn => {
     const opt = item.options[Number(btn.dataset.opt)];
     btn.classList.toggle('selected', item.userAnswer === opt);
@@ -9351,7 +9363,7 @@ function renderGuideWorksheet() {
 const POINT_WEIGHTS = {
   vmeaning: 1, vjp: 2, vword: 2, vblank: 2, vidiom: 2,
   choice: 2, usage: 2, lack: 3, myself: 3, svo: 3, slash: 3, pattern: 2, tone: 2, insert: 2, fillin: 2, form: 2, error: 3, extra: 3, reorder: 3, rewrite: 3, paraphrase: 3, translate: 4, entoja: 4,
-  rchoice: 3, rtf: 2, rfill: 3, rja: 4, rea: 4, cdialog: 3, cphrase: 3, cform: 2, cfree: 3, cwtrans: 4, cwcond: 5, cwfree: 10, cetoj: 4, xchoice: 2, xfill: 3, xorder: 3, xpara: 3, xask: 4, clist: 1, ccheck: 1, kform: 3, korder: 3, kscene: 6,
+  rchoice: 3, rtf: 2, rfill: 3, rja: 4, rea: 4, cdialog: 3, cphrase: 3, cform: 2, cfree: 3, cwtrans: 4, cwcond: 5, cwfree: 10, cetoj: 4, xchoice: 2, xfill: 3, xorder: 3, xpara: 3, xask: 4, clist: 1, ccheck: 1, kform: 3, korder: 3, kscene: 6, kl1: 3, kl2: 3, kl3: 3, kl4: 3,
 };
 function assignPoints(items) {
   items.forEach(it => { delete it.points; });
@@ -9976,6 +9988,10 @@ function addEditControls() {
 
 // ---------- 入試対策 ----------
 const EXAM_TYPES = {
+  kl1: { label: 'リスニング 大問1', instr: '英語の対話を聞いて、最後の発言に対する受け答えとして最も適当なものを、A〜D のうちから一つずつ選びなさい。（対話は2回ずつ放送されます）' },
+  kl2: { label: 'リスニング 大問2', instr: '英語の対話または英語の文章を聞いて、それぞれの質問の答えとして最も適当なものを、A〜D のうちから一つずつ選びなさい。（英文と質問は2回ずつ放送されます）' },
+  kl3: { label: 'リスニング 大問3', instr: '英語の対話または英語の文章を聞いて、それぞれの内容についての質問に答えなさい。質問の答えとして最も適当なものを、A〜D のうちから一つずつ選びなさい。（英文と質問は2回ずつ放送されます）' },
+  kl4: { label: 'リスニング 大問4', instr: '英語の文章を聞いて、その内容について答えなさい。メモを完成させるために、①・② に入る最も適当なものを、A〜D のうちから一つずつ選びなさい。（英文は2回放送されます）' },
   cdialog: { label: '会話表現', instr: '対話が成り立つように、（　）に入る最も適切なものをア〜エから選びなさい。' },
   cphrase: { label: '重要表現', instr: '日本語に合うように、（　）に適切な英語を1語ずつ入れなさい。' },
   cform: { label: '語形変化', instr: '次の語の変化形（（　）に示されたもの）を書きなさい。' },
@@ -10062,6 +10078,13 @@ function generateExamItems(cfg, used) {
     // 基礎 → 入試の順に並べる(同じ形式の中で)
     picked.sort((a, b) => (String(a.i)[0] === 'b' ? 0 : 1) - (String(b.i)[0] === 'b' ? 0 : 1));
     picked.forEach(q => out.push(examGrammarItem(cfg.chapter, q)));
+  }
+  if (cfg.chibaListen && typeof CHIBA_LISTEN !== 'undefined') {
+    const pool = CHIBA_LISTEN.map((x, i) => ({ ...x, i }));
+    [1, 2, 3, 4].forEach(part => {
+      if (!cfg.chibaListen[part]) return;
+      take(pool.filter(x => x.part === part), cfg.chibaListen[part], x => `e|kl${part}|kl${x.i}`).forEach(x => chibaListenItems(x).forEach(it => out.push(it)));
+    });
   }
   if (typeof CHIBA_FORM !== 'undefined') {
     if (cfg.chibaForm) take(CHIBA_FORM.map((x, i) => ({ ...x, i })), cfg.chibaForm, x => `e|kform|kf${x.i}`).forEach(x => out.push(chibaFormItem(x)));
@@ -10153,6 +10176,39 @@ function examGrammarItem(chapter, q) {
   if (q.type === 'order') return { ...base, words: shuffle([...q.words]), answer: q.answer };
   if (q.type === 'ask') return { ...base, en: q.en, answer: q.answer, answers: [q.answer, ...(q.alts || [])] };
   return { ...base, en1: q.en1, en2: q.en2, answers: q.answers };
+}
+// リスニング(大問1〜4)。解答ページに台本をのせる(端末で再生できないときは先生が読み上げる)
+const LISTEN_LABELS = ['A', 'B', 'C', 'D'];
+function listenScript(x) {
+  const body = x.lines.map(([who, t]) => (who ? `${who}: ${t}` : t)).join(' / ');
+  return `【台本】${body}${x.question ? ` / Question: ${x.question}` : ''}`;
+}
+function chibaListenItems(x) {
+  const base = { section: 'exam', type: `kl${x.part}`, key: `kl${x.i}`, lines: x.lines, question: x.question, why: listenScript(x) };
+  if (x.part !== 4) return [{ ...base, options: x.options, answer: x.options[x.answer] }];
+  return x.blanks.map((b, k) => ({ ...base, key: `kl${x.i}-${k}`, memo: x.memo, blank: k, options: b.options, answer: b.options[b.answer], why: k === 0 ? base.why : '（台本は上と同じ）' }));
+}
+// 読み上げ: 話し手ごとに声(または高さ)を変え、本番と同じく2回くり返す
+function speakListening(item, btn) {
+  const synth = window.speechSynthesis;
+  if (!synth) { alert('この端末では読み上げが使えません。解答ページの台本を先生が読み上げてください。'); return; }
+  if (synth.speaking) { synth.cancel(); btn.textContent = '▶ 英語を聞く（2回）'; return; }
+  const voices = synth.getVoices().filter(v => /^en(-|_)/i.test(v.lang));
+  const speakers = [...new Set(item.lines.map(([w]) => w))];
+  const female = /^(Woman|Girl|Mother|Miki|Emma|Lisa|Saki|Aya|Yumi|Miho)$/;
+  const seq = [...item.lines, ...(item.question ? [['', `Question: ${item.question}`]] : [])];
+  const all = [...seq, ['pause', ''], ...seq];
+  btn.textContent = '■ 止める';
+  all.forEach(([who, t], k) => {
+    const u = new SpeechSynthesisUtterance(who === 'pause' ? ' ' : t);
+    u.lang = 'en-US'; u.rate = who === 'pause' ? 2 : 0.9;
+    const si = speakers.indexOf(who);
+    if (voices.length > 1 && who && who !== 'pause') u.voice = voices[(female.test(who) ? 1 : 0) % voices.length];
+    else if (voices.length) u.voice = voices[0];
+    u.pitch = who && female.test(who) ? 1.25 : si > 0 ? 0.9 : 1;
+    if (k === all.length - 1) u.onend = () => { btn.textContent = '▶ 英語を聞く（2回）'; };
+    synth.speak(u);
+  });
 }
 function chibaFormItem(x) {
   return { section: 'exam', type: 'kform', key: `kf${x.i}`, lines: x.lines, answer: x.answer, why: x.point };
@@ -10369,7 +10425,8 @@ function startChapterPrint(key) {
 }
 
 const CHIBA_PARTS = [
-  { title: '実戦問題（1回分）', sub: '大問5〜9をまとめて（100点）', make: () => ({ chibaForm: 2, chibaOrder: 3, chibaScene10: 1, chibaScene25: 1, readingCount: 4, examReadingPlan: ['chiba7p', 'chiba7n', 'chiba8>standard|advanced', 'chiba9'] }) },
+  { title: '実戦問題（1回分）', sub: '大問1〜9をまとめて（リスニングつき）', make: () => ({ chibaListen: { 1: 3, 2: 2, 3: 2, 4: 1 }, chibaForm: 2, chibaOrder: 3, chibaScene10: 1, chibaScene25: 1, readingCount: 4, examReadingPlan: ['chiba7p', 'chiba7n', 'chiba8>standard|advanced', 'chiba9'] }) },
+  { title: '大問1〜4 リスニング', sub: '画面で読み上げ（2回ずつ）・台本は解答ページ', make: () => ({ chibaListen: { 1: 3, 2: 2, 3: 2, 4: 2 } }) },
   { title: '大問5 対話文完成', sub: '語形変化・並べかえ（符号で答える）', make: () => ({ chibaForm: 4, chibaOrder: 6 }) },
   { title: '大問6 場面英作文', sub: '10語程度・25語程度', make: () => ({ chibaScene10: 2, chibaScene25: 2 }) },
   { title: '大問7 資料・発表の読解', sub: 'スライドつきの発表とお知らせ・広告', make: () => ({ readingCount: 2, examReadingPlan: ['chiba7p', 'chiba7n'] }) },
@@ -10382,7 +10439,7 @@ function renderChibaParts() {
   const hasLevel = lv => typeof EXAM_READING !== 'undefined' && EXAM_READING.some(p => lv.split('|').includes(p.level));
   CHIBA_PARTS.forEach((part, i) => {
     const cfg = part.make();
-    const ok = (!(cfg.chibaForm || cfg.chibaOrder || cfg.chibaScene10 || cfg.chibaScene25) || hasForm)
+    const ok = (!(cfg.chibaForm || cfg.chibaOrder || cfg.chibaScene10 || cfg.chibaScene25) || hasForm) && (!cfg.chibaListen || typeof CHIBA_LISTEN !== 'undefined')
       && (cfg.examReadingPlan || []).every(hasLevel);
     const b = document.createElement('button');
     b.className = 'exam-round' + (i === 0 ? ' main' : '');
