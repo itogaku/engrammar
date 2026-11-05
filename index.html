@@ -5217,16 +5217,17 @@ const STAGE_FOCUS = {
 const FALLBACK_FOCUS = ['verb', 'be', 'do', 'pronoun'];
 // 基礎文法(ゼロから)のレッスンを、中1の全単元の文から作る(grade: 'basic' なので学年ごとの一覧には出ない)
 if (typeof BASIC_LESSONS !== 'undefined') {
-  const pool = [], seen = new Set();
-  stages.filter(st => st.grade === 1).forEach(st => st.questions.forEach(q => { if (q.jp && !seen.has(q.jp)) { seen.add(q.jp); pool.push(q); } }));
-  BASIC_LESSONS.forEach(L => {
+  const pools = {};
+  [1, 2, 3].forEach(g => { const seen = new Set(); pools[g] = []; stages.filter(st => st.grade === g).forEach(st => st.questions.forEach(q => { if (q.jp && !seen.has(q.jp)) { seen.add(q.jp); pools[g].push(q); } })); });
+  [...BASIC_LESSONS.map(L => ({ ...L, level: 1 })), ...(typeof BASIC_LESSONS_2 !== 'undefined' ? BASIC_LESSONS_2.map(L => ({ ...L, level: 2 })) : [])].forEach(L => {
     const key = `basic${String(L.no).padStart(2, '0')}`;
+    const pool = (L.pool || [1]).flatMap(g => pools[g]);
     const questions = pool.filter(q => {
       const lw = sentenceTokens(q.pieces).map(t => t.toLowerCase().replace(/[,.!?]+$/, ''));
       try { return L.match(lw); } catch (e) { return false; }
     });
     if (questions.length < 4) return;
-    stages.push({ key, grade: 'basic', basicNo: L.no, prog: { grade: 1, program: L.prog }, splitLevel: 2,
+    stages.push({ key, grade: 'basic', basicLevel: L.level, basicNo: L.no, prog: { grade: Math.max(...(L.pool || [1])), program: L.prog }, splitLevel: 2,
       label: `基礎${L.no}: ${L.title}`, eyebrow: `基礎文法 ${L.no} &middot; ${L.title}`, desc: L.desc,
       promptLabel: '日本語の意味', typePlaceholder: '英文を入力してね', questions });
     STAGE_FOCUS[key] = L.focus;
@@ -7415,8 +7416,9 @@ function renderProgramList() {
     });
   }
   // 中1では、教科書の順によらない「基礎文法（ゼロから）」のレッスンも出す
-  const basics = stages.filter(st => st.grade === 'basic');
-  if (currentGrade === 1 && (programMode === 'print' || programMode === 'guide') && basics.length) {
+  const basics = stages.filter(st => st.grade === 'basic' && st.basicLevel === currentGrade);
+  const reviewSets = currentGrade === 1 ? (typeof BASIC_REVIEWS !== 'undefined' ? BASIC_REVIEWS : []) : (typeof BASIC_REVIEWS_2 !== 'undefined' ? BASIC_REVIEWS_2 : []);
+  if ( (programMode === 'print' || programMode === 'guide') && basics.length) {
     const header = document.createElement('div');
     header.className = 'program-group-header';
     header.textContent = '基礎文法（ゼロから・教科書の順によらない）';
@@ -7435,7 +7437,7 @@ function renderProgramList() {
       };
       programList.appendChild(card);
     });
-    if (programMode === 'print' && typeof BASIC_REVIEWS !== 'undefined') BASIC_REVIEWS.forEach((nos, i) => {
+    if (programMode === 'print') reviewSets.forEach((nos, i) => {
       const keys = nos.map(n => `basic${String(n).padStart(2, '0')}`).filter(k => stages.some(st => st.key === k));
       if (keys.length < 2) return;
       const card = document.createElement('button');
