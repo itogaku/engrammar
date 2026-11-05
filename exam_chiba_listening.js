@@ -41,12 +41,12 @@ const CHIBA_LISTEN = [
     question: 'What time will they see the movie?', options: ['At ten.', 'At eleven.', 'At one.', 'At three.'], answer: 2 },
   { part: 2, lines: [['', "Here is the weather for this weekend. On Saturday, it will be sunny in the morning, but it will rain in the afternoon. On Sunday, it will be cloudy all day, and it will be cold."]],
     question: 'How will the weather be on Saturday afternoon?', options: ['Sunny.', 'Rainy.', 'Cloudy.', 'Snowy.'], answer: 1 },
-  { part: 2, lines: [['Girl', 'How many students are in your club?'], ['Boy', 'There are twenty. Twelve are boys and the others are girls.'], ['Girl', 'How many students are in the third grade?'], ['Boy', 'Five.']],
-    question: 'How many girls are in the club?', options: ['Five.', 'Eight.', 'Twelve.', 'Twenty.'], answer: 1 },
+  { part: 2, lines: [['Boy', 'What time do you leave home in the morning?'], ['Girl', 'My bus leaves at seven thirty. I leave home fifteen minutes before that.'], ['Boy', 'That\'s early!']],
+    question: 'What time does the girl leave home?', options: ['At seven.', 'At seven fifteen.', 'At seven thirty.', 'At seven forty-five.'], answer: 1 },
   { part: 2, lines: [['Man', 'Excuse me. I am looking for the station.'], ['Woman', 'Go down this street and turn right at the hospital. The station is next to the post office.'], ['Man', 'Thank you.']],
     question: 'Where is the station?', options: ['Next to the hospital.', 'Next to the post office.', 'In front of the school.', 'Near the park.'], answer: 1 },
   { part: 2, lines: [['', 'I asked my classmates, "What is your favorite season?" Spring was the most popular. Ten students chose it. Summer was second. Six students chose fall, and only four students chose winter.']],
-    question: 'Which season did six students choose?', options: ['Spring.', 'Summer.', 'Fall.', 'Winter.'], answer: 2 },
+    question: 'Which graph shows the answers of the class?', options: ['Spring 10, summer 8, fall 6, winter 4.', 'Spring 10, summer 6, fall 8, winter 4.', 'Spring 6, summer 8, fall 10, winter 4.', 'Spring 10, summer 8, fall 4, winter 6.'], answer: 0 },
   { part: 2, lines: [['Woman', 'What would you like for your birthday, Ken?'], ['Boy', 'I wanted a new bike, but my father bought one for me last month.'], ['Woman', 'Then how about a soccer ball?'], ['Boy', 'I have one. I need a new pair of shoes for soccer.']],
     question: 'What does Ken want for his birthday?', options: ['A bike.', 'A soccer ball.', 'Soccer shoes.', 'A new bag.'], answer: 2 },
 
@@ -88,3 +88,67 @@ const CHIBA_LISTEN = [
     memo: 'Class trip — Saki: Kyoto. There are many famous ( ① ).  Tom: Nara. We can see deer, and it takes ( ② ) time.',
     blanks: [{ options: ['shops', 'temples', 'parks', 'rivers'], answer: 1 }, { options: ['more', 'less', 'a long', 'no'], answer: 1 }] },
 ];
+
+// ---------- 大問2の絵(本番と同じく、絵の中から答えを選ぶ) ----------
+// 印刷でも見やすいように線画(黒と灰色)で描く。viewBox は 160×120
+const LISTEN_PICS = {
+  // 大問2 の i 番目(part 2 の中での順番) → A〜D の絵
+  0: [{ k: 'place', label: 'LIBRARY', icon: 'book' }, { k: 'place', label: 'BOOKSTORE', icon: 'shop' }, { k: 'place', label: 'SCHOOL', icon: 'school' }, { k: 'place', label: 'HOME', icon: 'house' }],
+  1: [{ k: 'person', glasses: true, hair: 'short' }, { k: 'person', hair: 'bun' }, { k: 'person', hair: 'short', tall: true, dog: true }, { k: 'person', hair: 'long' }],
+  2: [{ k: 'clock', t: '10:00' }, { k: 'clock', t: '11:00' }, { k: 'clock', t: '1:00' }, { k: 'clock', t: '3:00' }],
+  3: [{ k: 'weather', w: 'sunny' }, { k: 'weather', w: 'rainy' }, { k: 'weather', w: 'cloudy' }, { k: 'weather', w: 'snowy' }],
+  4: [{ k: 'clock', t: '7:00' }, { k: 'clock', t: '7:15' }, { k: 'clock', t: '7:30' }, { k: 'clock', t: '7:45' }],
+  5: [{ k: 'map', blocks: ['Hospital', 'Station', 'School'] }, { k: 'map', blocks: ['Hospital', 'Post Office', 'Station'] }, { k: 'map', blocks: ['Station', 'Hospital', 'Post Office'] }, { k: 'map', blocks: ['Park', 'Station', 'Hospital'] }],
+  6: [{ k: 'chart', v: [10, 8, 6, 4] }, { k: 'chart', v: [10, 6, 8, 4] }, { k: 'chart', v: [6, 8, 10, 4] }, { k: 'chart', v: [10, 8, 4, 6] }],
+  7: [{ k: 'thing', w: 'bike' }, { k: 'thing', w: 'ball' }, { k: 'thing', w: 'shoes' }, { k: 'thing', w: 'bag' }],
+};
+function listenPicSvg(p) {
+  const S = 'stroke="#18212E" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"';
+  const G = 'fill="#C9D2DC"';
+  let g = '';
+  if (p.k === 'clock') {
+    const [h, m] = p.t.split(':').map(Number);
+    const a = (deg, len) => { const r = (deg - 90) * Math.PI / 180; return `${80 + Math.cos(r) * len},${60 + Math.sin(r) * len}`; };
+    g = `<circle cx="80" cy="60" r="48" ${S}/>` + Array.from({ length: 12 }, (_, i) => { const [x1, y1] = a(i * 30, 42).split(','); const [x2, y2] = a(i * 30, 47).split(','); return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" ${S}/>`; }).join('')
+      + `<polyline points="80,60 ${a((h % 12) * 30 + m / 2, 26)}" ${S} stroke-width="4"/><polyline points="80,60 ${a(m * 6, 38)}" ${S}/><circle cx="80" cy="60" r="3" fill="#18212E"/>`;
+  } else if (p.k === 'weather') {
+    const sun = (x, y, r) => `<circle cx="${x}" cy="${y}" r="${r}" ${S}/>` + Array.from({ length: 8 }, (_, i) => { const t = i * Math.PI / 4; return `<line x1="${x + Math.cos(t) * (r + 5)}" y1="${y + Math.sin(t) * (r + 5)}" x2="${x + Math.cos(t) * (r + 12)}" y2="${y + Math.sin(t) * (r + 12)}" ${S}/>`; }).join('');
+    const cloud = (x, y) => `<path d="M${x - 34},${y + 14} a14,14 0 0,1 6,-27 a20,20 0 0,1 38,-4 a16,16 0 0,1 24,16 a12,12 0 0,1 0,15 z" ${S} ${G}/>`;
+    if (p.w === 'sunny') g = sun(80, 58, 22);
+    if (p.w === 'cloudy') g = cloud(84, 52);
+    if (p.w === 'rainy') g = cloud(84, 40) + [56, 76, 96, 116].map(x => `<line x1="${x}" y1="74" x2="${x - 6}" y2="92" ${S}/>`).join('');
+    if (p.w === 'snowy') g = cloud(84, 40) + [56, 80, 104].map((x, i) => `<text x="${x}" y="${96 - i % 2 * 8}" font-size="18" text-anchor="middle" fill="#18212E">＊</text>`).join('');
+  } else if (p.k === 'place') {
+    const icon = { book: '<rect x="66" y="34" width="28" height="20" rx="2" ' + S + '/><line x1="80" y1="34" x2="80" y2="54" ' + S + '/>',
+      shop: '<path d="M60,40 h40 l-4,14 h-32 z" ' + S + '/><circle cx="68" cy="58" r="2" fill="#18212E"/><circle cx="92" cy="58" r="2" fill="#18212E"/>',
+      school: '<circle cx="80" cy="44" r="9" ' + S + '/><polyline points="80,38 80,44 85,47" ' + S + '/>',
+      house: '<path d="M68,54 v-12 l12,-10 l12,10 v12 z" ' + S + '/>' }[p.icon];
+    g = `<path d="M24,108 V40 L80,14 L136,40 V108 Z" ${S} ${G}/><rect x="40" y="28" width="80" height="34" fill="#fff" ${S.replace('fill="none"', '')}/>${icon}<rect x="68" y="80" width="24" height="28" ${S}/><rect x="34" y="66" width="92" height="12" fill="#fff" stroke="#18212E"/><text x="80" y="75.5" font-size="10" font-weight="700" text-anchor="middle" fill="#18212E">${p.label}</text>`;
+  } else if (p.k === 'person') {
+    const tall = p.tall ? 1.15 : 1;
+    const top = 118 - 92 * tall;
+    const hy = top + 16;
+    const hair = p.hair === 'long' ? `<path d="M64,${hy - 4} q16,-22 32,0 v26 h-6 v-20 h-20 v20 h-6 z" ${G} stroke="#18212E" stroke-width="2"/>`
+      : p.hair === 'bun' ? `<circle cx="80" cy="${hy - 20}" r="6" ${G} stroke="#18212E" stroke-width="2"/><path d="M65,${hy - 2} q15,-20 30,0" ${G} stroke="#18212E" stroke-width="2"/>`
+        : `<path d="M65,${hy - 2} q15,-20 30,0" ${G} stroke="#18212E" stroke-width="2"/>`;
+    const glasses = p.glasses ? `<circle cx="74" cy="${hy}" r="4" ${S}/><circle cx="86" cy="${hy}" r="4" ${S}/><line x1="78" y1="${hy}" x2="82" y2="${hy}" ${S}/>` : `<circle cx="75" cy="${hy}" r="1.5" fill="#18212E"/><circle cx="85" cy="${hy}" r="1.5" fill="#18212E"/>`;
+    const body = `<circle cx="80" cy="${hy}" r="14" ${S}/>${hair}${glasses}<line x1="80" y1="${hy + 14}" x2="80" y2="${hy + 58 * tall}" ${S}/><line x1="80" y1="${hy + 58 * tall}" x2="68" y2="118" ${S}/><line x1="80" y1="${hy + 58 * tall}" x2="92" y2="118" ${S}/>`;
+    const arms = p.dog ? `<line x1="80" y1="${hy + 26}" x2="104" y2="${hy + 38}" ${S}/><line x1="80" y1="${hy + 26}" x2="62" y2="${hy + 44}" ${S}/>` : `<line x1="80" y1="${hy + 26}" x2="62" y2="${hy + 46}" ${S}/><line x1="80" y1="${hy + 26}" x2="98" y2="${hy + 46}" ${S}/>`;
+    const dog = p.dog ? `<g transform="translate(104,${hy + 30})"><ellipse cx="14" cy="12" rx="14" ry="8" ${S} ${G}/><circle cx="28" cy="2" r="7" ${S} ${G}/><line x1="4" y1="18" x2="4" y2="26" ${S}/><line x1="22" y1="18" x2="22" y2="26" ${S}/></g>` : '';
+    g = body + arms + dog;
+  } else if (p.k === 'thing') {
+    if (p.w === 'bike') g = `<circle cx="46" cy="76" r="24" ${S}/><circle cx="114" cy="76" r="24" ${S}/><polyline points="46,76 72,44 104,44 114,76" ${S}/><polyline points="72,44 84,76 104,44" ${S}/><line x1="66" y1="36" x2="78" y2="36" ${S}/><line x1="100" y1="36" x2="110" y2="34" ${S}/>`;
+    if (p.w === 'ball') g = `<circle cx="80" cy="60" r="40" ${S}/><path d="M80,44 l15,11 -6,18 h-18 l-6,-18 z" fill="#18212E"/><line x1="80" y1="44" x2="80" y2="20" ${S}/><line x1="95" y1="55" x2="117" y2="47" ${S}/><line x1="65" y1="55" x2="43" y2="47" ${S}/><line x1="89" y1="73" x2="102" y2="93" ${S}/><line x1="71" y1="73" x2="58" y2="93" ${S}/>`;
+    if (p.w === 'shoes') g = [20, 84].map(x => `<path d="M${x},84 v-30 h18 q4,18 30,20 q10,2 10,10 z" ${S} ${G}/><line x1="${x}" y1="84" x2="${x + 58}" y2="84" stroke="#18212E" stroke-width="5"/>`).join('');
+    if (p.w === 'bag') g = `<rect x="40" y="44" width="80" height="58" rx="8" ${S} ${G}/><path d="M60,44 v-12 q20,-18 40,0 v12" ${S}/><rect x="70" y="62" width="20" height="10" fill="#fff" stroke="#18212E" stroke-width="2"/>`;
+  } else if (p.k === 'map') {
+    g = `<rect x="6" y="66" width="148" height="16" ${G}/><text x="80" y="78" font-size="8" text-anchor="middle" fill="#18212E">street</text>`
+      + p.blocks.map((b, i) => `<rect x="${8 + i * 50}" y="${b === 'Station' ? 18 : 28}" width="44" height="${b === 'Station' ? 44 : 34}" ${b === 'Station' ? 'fill="#18212E"' : 'fill="#fff" stroke="#18212E" stroke-width="2"'}/><text x="${30 + i * 50}" y="${b === 'Station' ? 44 : 48}" font-size="${b.length > 8 ? 7.5 : 9}" text-anchor="middle" fill="${b === 'Station' ? '#fff' : '#18212E'}" font-weight="700">${b}</text>`).join('')
+      + `<text x="80" y="104" font-size="9" text-anchor="middle" fill="#18212E">You</text><polygon points="80,88 75,96 85,96" fill="#18212E"/>`;
+  } else if (p.k === 'chart') {
+    const labels = ['spring', 'summer', 'fall', 'winter'];
+    g = `<line x1="24" y1="10" x2="24" y2="96" ${S}/><line x1="24" y1="96" x2="156" y2="96" ${S}/>` + [0, 5, 10].map(v => `<text x="20" y="${99 - v * 8}" font-size="8" text-anchor="end" fill="#18212E">${v}</text>`).join('')
+      + p.v.map((v, i) => `<rect x="${34 + i * 31}" y="${96 - v * 8}" width="20" height="${v * 8}" fill="#18212E"/><text x="${44 + i * 31}" y="108" font-size="8.5" text-anchor="middle" fill="#18212E">${labels[i]}</text>`).join('');
+  }
+  return `<svg viewBox="0 0 160 120" width="100%" style="max-width:170px" role="img">${g}</svg>`;
+}

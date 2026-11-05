@@ -801,6 +801,10 @@
   /* 解答欄を最後にまとめる(確認テストの形) */
   .ws-listen { margin: 4px 0 6px 36px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
   .ws-listen-note { font-size: 11.5px; color: var(--ink-soft); }
+  .ws-listen-pics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin: 4px 0 4px 36px; }
+  .ws-listen-pic { border: 1px solid var(--ink); padding: 2px 4px 4px; text-align: center; break-inside: avoid; }
+  .ws-listen-pic b { display: block; text-align: left; font-size: 12px; }
+  @media (max-width: 560px) { .ws-listen-pics { grid-template-columns: repeat(2, 1fr); } }
   .ws-listen-blank { margin-left: 36px; font-size: 13px; font-weight: 700; }
   .ws-gap { display: inline-block; font-size: 11px; font-weight: 700; line-height: 1; padding: 1px 3px; border: 1px solid var(--ink); border-radius: 3px; vertical-align: 2px; margin-right: 2px; }
   .ans-grid-box { margin-top: 18px; border-top: 2px solid var(--ink); padding-top: 8px; break-inside: avoid; }
@@ -8752,7 +8756,7 @@ function answerLineHtml(placeholder, size) {
 
 function optionsHtml(item) {
   const opts = item.options.map((o, k) => {
-    if (/^kl\d$/.test(item.type)) return `<button class="ws-opt" data-opt="${k}"><span class="ws-opt-label">${LISTEN_LABELS[k]}</span>${o}</button>`;
+    if (/^kl\d$/.test(item.type)) return `<button class="ws-opt" data-opt="${k}"><span class="ws-opt-label">${LISTEN_LABELS[k]}</span>${item.pics ? '' : o}</button>`;
     const label = item.type === 'rtf' || item.type === 'insert' || item.graphs || item.combo ? '' : `<span class="ws-opt-label">${CHOICE_LABELS[k]}</span>`;
     return `<button class="ws-opt" data-opt="${k}">${label}${o}</button>`;
   }).join('');
@@ -8892,7 +8896,7 @@ function itemBodyHtml(item) {
     case 'cwtrans':
       return answerLineHtml('英文を書こう');
     case 'kl1': case 'kl2': case 'kl3': case 'kl4':
-      return `${item.type === 'kl4' && item.blank === 1 ? '<div class="ws-listen no-print"><span class="ws-listen-note">（上と同じ英文です）</span></div>' : `<div class="ws-listen no-print"><button class="btn btn-ghost btn-small ws-play">▶ 英語を聞く（2回）</button><span class="ws-listen-note">読み上げは端末の音声で再生されます</span></div>`}${item.type === 'kl4' ? `<div class="ws-listen-blank">${item.blank === 0 ? '①' : '②'} に入るもの</div>` : ''}${optionsHtml(item)}`;
+      return `${item.type === 'kl4' && item.blank === 1 ? '<div class="ws-listen no-print"><span class="ws-listen-note">（上と同じ英文です）</span></div>' : `<div class="ws-listen no-print"><button class="btn btn-ghost btn-small ws-play">▶ 英語を聞く（2回）</button><span class="ws-listen-note">読み上げは端末の音声で再生されます</span></div>`}${item.pics ? `<div class="ws-listen-pics">${item.pics.map((pc, k) => `<div class="ws-listen-pic"><b>${LISTEN_LABELS[k]}</b>${listenPicSvg(pc)}</div>`).join('')}</div>` : ''}${item.type === 'kl4' ? `<div class="ws-listen-blank">${item.blank === 0 ? '①' : '②'} に入るもの</div>` : ''}${optionsHtml(item)}`;
     case 'kform': case 'korder': {
       const line = t => (t === null ? '<span class="ws-blank">（　　　　　　）</span>'
         : item.type === 'korder' ? t.replace(/\(\s*_+\s*\)/, `（ ${item.words.map((w, k) => `${CHOICE_LABELS5[k]} ${w}`).join('　')} ）`) : t);
@@ -10235,7 +10239,9 @@ function listenScript(x) {
 }
 function chibaListenItems(x) {
   const base = { section: 'exam', type: `kl${x.part}`, key: `kl${x.i}`, lines: x.lines, question: x.question, why: listenScript(x) };
-  if (x.part !== 4) return [{ ...base, options: x.options, answer: x.options[x.answer] }];
+  // 大問2 は本番と同じく絵から選ぶ(絵がある問題)
+  const p2 = x.part === 2 && typeof LISTEN_PICS !== 'undefined' ? LISTEN_PICS[CHIBA_LISTEN.filter(y => y.part === 2).indexOf(CHIBA_LISTEN[x.i])] : null;
+  if (x.part !== 4) return [{ ...base, options: x.options, answer: x.options[x.answer], pics: p2 || undefined }];
   return x.blanks.map((b, k) => ({ ...base, key: `kl${x.i}-${k}`, memo: x.memo, blank: k, options: b.options, answer: b.options[b.answer], why: k === 0 ? base.why : '（台本は上と同じ）' }));
 }
 // 読み上げ: 話し手ごとに声(または高さ)を変え、本番と同じく2回くり返す
