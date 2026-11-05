@@ -1168,6 +1168,7 @@
 <script src="reading_parts_g3.js"></script>
 <script src="reading_program2.js"></script>
 <script src="guides.js"></script>
+<script src="grammar_basics.js"></script>
 <script src="exam_dialogs.js"></script>
 <script src="exam_phrases.js"></script>
 <script src="exam_tables.js"></script>
@@ -5030,6 +5031,7 @@ PRONOUN_SETS.forEach(set => set.forEach(w => { if (!PRONOUN_SET_OF[w.toLowerCase
 
 const DETERMINERS = new Set(['a', 'an', 'the', 'this', 'that', 'these', 'those', 'my', 'your', 'his', 'her', 'our', 'their', 'some', 'any']);
 
+
 // 語のグループ。match(語, 位置, 全語) が {options, hint} を返せば、その語を空所にできる。
 // options: 選択肢の候補(正解を含む) / hint: 語形変化で [ ] に示す元の形(なければ語形変化には使わない)
 const WORD_FAMILIES = {
@@ -5213,6 +5215,25 @@ const STAGE_FOCUS = {
   'g3program7-iwish': ['be', 'modal', 'verb'],
 };
 const FALLBACK_FOCUS = ['verb', 'be', 'do', 'pronoun'];
+// 基礎文法(ゼロから)のレッスンを、中1の全単元の文から作る(grade: 'basic' なので学年ごとの一覧には出ない)
+if (typeof BASIC_LESSONS !== 'undefined') {
+  const pool = [], seen = new Set();
+  stages.filter(st => st.grade === 1).forEach(st => st.questions.forEach(q => { if (q.jp && !seen.has(q.jp)) { seen.add(q.jp); pool.push(q); } }));
+  BASIC_LESSONS.forEach(L => {
+    const key = `basic${String(L.no).padStart(2, '0')}`;
+    const questions = pool.filter(q => {
+      const lw = sentenceTokens(q.pieces).map(t => t.toLowerCase().replace(/[,.!?]+$/, ''));
+      try { return L.match(lw); } catch (e) { return false; }
+    });
+    if (questions.length < 4) return;
+    stages.push({ key, grade: 'basic', basicNo: L.no, prog: { grade: 1, program: L.prog }, splitLevel: 2,
+      label: `基礎${L.no}: ${L.title}`, eyebrow: `基礎文法 ${L.no} &middot; ${L.title}`, desc: L.desc,
+      promptLabel: '日本語の意味', typePlaceholder: '英文を入力してね', questions });
+    STAGE_FOCUS[key] = L.focus;
+    STAGE_GUIDES[key] = L.guide;
+  });
+}
+
 function stageFocus(s) {
   if (STAGE_FOCUS[s.key]) return STAGE_FOCUS[s.key];
   if (/^program1-/.test(s.key) || /^g1program[47]-/.test(s.key)) return ['be', 'pronoun'];
@@ -7393,6 +7414,43 @@ function renderProgramList() {
       programList.appendChild(card);
     });
   }
+  // 中1では、教科書の順によらない「基礎文法（ゼロから）」のレッスンも出す
+  const basics = stages.filter(st => st.grade === 'basic');
+  if (currentGrade === 1 && (programMode === 'print' || programMode === 'guide') && basics.length) {
+    const header = document.createElement('div');
+    header.className = 'program-group-header';
+    header.textContent = '基礎文法（ゼロから・教科書の順によらない）';
+    programList.appendChild(header);
+    basics.forEach(st => {
+      const picked = pickedUnits.has(st.key);
+      const card = document.createElement('button');
+      card.className = 'program-card' + (picked ? ' picked' : '');
+      card.innerHTML = `<div><div class="p-label">${st.basicNo}. ${escHtml(st.label.replace(/^基礎\d+: /, ''))}</div><div class="p-desc">${escHtml(st.desc)}（${st.questions.length}文）</div></div><span class="p-pick">${picked ? '✓ 選択中' : '＋ 選ぶ'}</span><div class="p-check"></div>`;
+      card.onclick = (e) => {
+        if (e.target.closest('.p-pick')) { if (picked) pickedUnits.delete(st.key); else pickedUnits.add(st.key); renderProgramList(); return; }
+        stageIndex = stages.indexOf(st);
+        printSource = programMode === 'guide' ? { kind: 'guide', keys: [st.key] } : { kind: 'stage' };
+        showScreen('print');
+        generateWorksheet();
+      };
+      programList.appendChild(card);
+    });
+    if (programMode === 'print' && typeof BASIC_REVIEWS !== 'undefined') BASIC_REVIEWS.forEach((nos, i) => {
+      const keys = nos.map(n => `basic${String(n).padStart(2, '0')}`).filter(k => stages.some(st => st.key === k));
+      if (keys.length < 2) return;
+      const card = document.createElement('button');
+      card.className = 'program-card review-card';
+      card.innerHTML = `<div><div class="p-label">復習テスト${CIRCLED[i]}（基礎 ${nos.join('・')}）</div><div class="p-desc">${keys.length}つのレッスンをまぜて出題</div></div><div class="p-check"></div>`;
+      card.onclick = () => {
+        stageIndex = stages.findIndex(st => st.key === keys[0]);
+        printSource = { kind: 'stage', keys };
+        printTypes = new Set(['choice', 'fillin', 'rewrite', 'reorder', 'translate']);
+        showScreen('print');
+        generateWorksheet();
+      };
+      programList.appendChild(card);
+    });
+  }
   renderMultiBar();
 }
 
@@ -7409,7 +7467,7 @@ function renderMultiBar() {
   bar.innerHTML = `<span class="mb-count">${list.length}単元を選択中</span>
     <button class="btn btn-primary" id="mbMake"${list.length < 2 ? ' disabled' : ''}>まとめて${kind}を作る</button>
     <button class="btn btn-ghost" id="mbClear">選択を解除</button>
-    <div class="mb-list">${list.map(st => escHtml(`${st.grade}年 ${st.label.replace(/^[1-3]年 /, '')}`)).join('　/　')}${list.length < 2 ? '（もう1つ以上選ぶと、まとめて作れます）' : ''}</div>`;
+    <div class="mb-list">${list.map(st => escHtml(st.grade === 'basic' ? st.label : `${st.grade}年 ${st.label.replace(/^[1-3]年 /, '')}`)).join('　/　')}${list.length < 2 ? '（もう1つ以上選ぶと、まとめて作れます）' : ''}</div>`;
   document.getElementById('mbClear').onclick = () => { pickedUnits.clear(); renderProgramList(); };
   document.getElementById('mbMake').onclick = () => {
     stageIndex = stages.indexOf(list[0]);
@@ -7444,6 +7502,7 @@ backToProgram.addEventListener('click', () => showScreen('program'));
 
 // 単元 → 教科書の学年・Program番号(単語データ・長文と対応させるため)
 function stageProgram(s) {
+  if (s.prog) return s.prog;
   if (s.key === 'getready') return { grade: 1, program: 0 };
   // 中1 P9 の be動詞の過去形・過去進行形は、教科書では Program 10 にあたる
   if (s.key === 'g1program9-be' || s.key === 'g1program9-whprog' || s.key === 'g1program9-prog') return { grade: 1, program: 10 };
@@ -9457,7 +9516,7 @@ function renderWorksheet() {
     const multi = sourceStages();
     if (multi.length > 1) {
       sheetTitle.textContent = `英語プリント ${multi.length}単元のまとめ${roundLabel}`;
-      sheetSub.textContent = multi.map(st => `${st.grade}年 ${st.label.replace(/^[1-3]年 /, '')}`).join('・');
+      sheetSub.textContent = multi.map(st => (st.grade === 'basic' ? st.label : `${st.grade}年 ${st.label.replace(/^[1-3]年 /, '')}`)).join('・');
     } else {
       sheetTitle.textContent = `英語プリント ${s.label}${roundLabel}`;
       sheetSub.innerHTML = `${gradeName} &middot; ${s.eyebrow}`;
