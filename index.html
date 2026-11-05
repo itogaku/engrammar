@@ -8384,8 +8384,58 @@ function grammarSlots() {
 let printSeed = 0;
 let printStates = new Map();   // 単元ごとの出題順(差しかえ・追加でも同じ文が重ならないように続きから使う)
 function printStateOf(stage) {
-  if (!printStates.has(stage)) printStates.set(stage, { order: shuffle(stage.questions.map((_, i) => i)), n: 0 });
+  if (!printStates.has(stage)) {
+    // 似た形の文(The girl who … is my sister. が2つ など)が近くに並ばない順にする。
+    // 1周目に全部使ったあとの2周目は、別の順番で(3周目が1周目と同じ文の並びにならないように)
+    const first = diverseOrder(stage, shuffle(stage.questions.map((_, i) => i)));
+    const second = stage.questions.length > 1 ? diverseOrder(stage, shuffle(stage.questions.map((_, i) => i)), first.slice(-8)) : [];
+    printStates.set(stage, { order: [...first, ...second], n: 0 });
+  }
   return printStates.get(stage);
+}
+// 文の似ている度合い: 2語のつながり(the girl / is my など)がどれだけ重なるか(0〜1)
+function sentenceBigrams(q) {
+  const w = q.pieces.map(p => p.en).join(' ').toLowerCase().replace(/[,.!?]/g, '').split(/\s+/).filter(Boolean);
+  return new Set(w.slice(1).map((x, i) => `${w[i]} ${x}`).concat(w.length ? [`^${w[0]}`] : []));
+}
+function bigramSim(a, b) {
+  if (!a.size || !b.size) return 0;
+  let n = 0;
+  a.forEach(x => { if (b.has(x)) n++; });
+  return n / Math.min(a.size, b.size);
+}
+// 直前の数問といちばん似ていない文を順に選ぶ(同じくらいなら最初の並び＝ランダムの順)
+function diverseOrder(stage, start, before = []) {
+  // 何通りか作って、近く(10問以内)に似た文の組がいちばん少ない順を使う
+  const grams = stage.questions.map(sentenceBigrams);
+  const cost = order => {
+    const all = [...before, ...order];
+    let c = 0;
+    for (let i = before.length; i < all.length; i++) for (let j = Math.max(0, i - 9); j < i; j++) { const v = bigramSim(grams[all[i]], grams[all[j]]); if (v >= 0.4) c += v; }
+    return c;
+  };
+  let best = null, bestCost = Infinity;
+  const tries = stage.questions.length > 40 ? 3 : 12;
+  for (let t = 0; t < tries; t++) {
+    const o = diverseOrderOnce(grams, t ? shuffle(start.slice()) : start, before);
+    const c = cost(o);
+    if (c < bestCost) { bestCost = c; best = o; }
+  }
+  return best;
+}
+function diverseOrderOnce(grams, start, before) {
+  const rest = start.slice(), out = [];
+  const recent = () => [...before, ...out].slice(-8);
+  while (rest.length) {
+    let best = 0, bestScore = Infinity;
+    rest.forEach((qi, k) => {
+      const sims = recent().map(r => bigramSim(grams[qi], grams[r]));
+      const score = sims.length ? Math.max(...sims) + sims.reduce((a, x) => a + x, 0) / sims.length / 4 : 0;
+      if (score < bestScore - 1e-9) { bestScore = score; best = k; }
+    });
+    out.push(rest.splice(best, 1)[0]);
+  }
+  return out;
 }
 function generateWorksheet(seed) {
   // プリント番号(乱数の種)。番号を指定すると同じ問題を作り直せる
