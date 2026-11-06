@@ -806,6 +806,19 @@
   .ws-listen-pic b { display: block; text-align: left; font-size: 12px; }
   @media (max-width: 560px) { .ws-listen-pics { grid-template-columns: repeat(2, 1fr); } }
   .ws-listen-blank { margin-left: 36px; font-size: 13px; font-weight: 700; }
+  .ws-rules { border: 2px solid var(--ink); border-radius: 8px; padding: 10px 14px; margin-bottom: 14px; }
+  .ws-rules-title { font-weight: 800; font-size: 14px; margin-bottom: 6px; }
+  .ws-rules-lesson { font-weight: 800; font-size: 13px; margin: 8px 0 2px; border-bottom: 1px solid var(--line); }
+  .ws-rule { padding: 5px 0; border-bottom: 1px dotted #bbb; break-inside: avoid; }
+  .ws-rule:last-of-type { border-bottom: none; }
+  .ws-rule-t { font-weight: 700; font-size: 13.5px; }
+  .ws-rule-no { display: inline-block; background: var(--ink); color: #fff; font-size: 11px; padding: 1px 6px; border-radius: 4px; margin-right: 6px; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .ws-rule-s { font-size: 12.5px; line-height: 1.6; margin: 2px 0 2px 4px; }
+  .ws-rule-ex { font-size: 13px; margin-left: 16px; }
+  .ws-rule-ex b { text-decoration: underline; }
+  .ws-rule-ex small { color: var(--ink-soft); margin-left: 10px; font-size: 11.5px; }
+  .ws-rule-words { margin-top: 6px; font-size: 11.5px; display: flex; flex-wrap: wrap; gap: 4px 14px; color: var(--ink-soft); }
+  .ws-rule-hint { margin: 0 0 4px 36px; font-size: 11.5px; color: var(--ink-soft); }
   .ws-gap { display: inline-block; font-size: 11px; font-weight: 700; line-height: 1; padding: 1px 3px; border: 1px solid var(--ink); border-radius: 3px; vertical-align: 2px; margin-right: 2px; }
   .ans-grid-box { margin-top: 18px; border-top: 2px solid var(--ink); padding-top: 8px; break-inside: avoid; }
   .ans-grid-title { font-weight: 700; font-size: 14px; margin-bottom: 6px; }
@@ -1169,6 +1182,7 @@
 <script src="reading_program2.js"></script>
 <script src="guides.js"></script>
 <script src="grammar_basics.js"></script>
+<script src="grammar_basics_rules.js"></script>
 <script src="exam_dialogs.js"></script>
 <script src="exam_phrases.js"></script>
 <script src="exam_tables.js"></script>
@@ -5231,7 +5245,9 @@ if (typeof BASIC_LESSONS !== 'undefined') {
       label: `基礎${L.no}: ${L.title}`, eyebrow: `基礎文法 ${L.no} &middot; ${L.title}`, desc: L.desc,
       promptLabel: '日本語の意味', typePlaceholder: '英文を入力してね', questions });
     STAGE_FOCUS[key] = L.focus;
-    STAGE_GUIDES[key] = L.guide;
+    const R = typeof BASIC_RULES !== 'undefined' && BASIC_RULES[L.no];
+    // 解説つきプリントの「気をつけたいこと」に、ルールとことばの説明を入れる(初めての人が見ながら解けるように)
+    STAGE_GUIDES[key] = R ? { ...L.guide, tips: [...R.rules.map((r, i) => `ルール${i + 1}「${r.t}」：${r.s}`), ...(R.words || []).map(([w, m]) => `【ことば】${w}：${m}`)] } : L.guide;
   });
 }
 
@@ -7432,6 +7448,7 @@ function renderProgramList() {
         if (e.target.closest('.p-pick')) { if (picked) pickedUnits.delete(st.key); else pickedUnits.add(st.key); renderProgramList(); return; }
         stageIndex = stages.indexOf(st);
         printSource = programMode === 'guide' ? { kind: 'guide', keys: [st.key] } : { kind: 'stage' };
+        printExampleCheck.checked = true; // 初めての人向け: 最初の1問は答えつきの例題
         showScreen('print');
         generateWorksheet();
       };
@@ -9546,6 +9563,8 @@ function renderWorksheet() {
   const examTitle = examSectionTitle();
   renderExamSummary();
   if (printSource.kind === 'test' && printSource.config.review) sheetItems.appendChild(reviewSummaryEl());
+  const basicSrc = printSource.kind === 'stage' && sourceStages().every(st => st.grade === 'basic') && typeof BASIC_RULES !== 'undefined';
+  if (basicSrc) sheetItems.appendChild(basicRulesEl(sourceStages()));
   let instr = '';
   sections.forEach((sec, si) => {
     const numeral = numbered ? SECTION_NUMERALS[si] : '';
@@ -9592,8 +9611,49 @@ function renderWorksheet() {
   });
   answerList.innerHTML = answersHtml;
   answerSheet.classList.toggle('include', printIncludeAnswers.checked && !redSheetOn());
+  if (basicSrc) applyBasicHints();
   if (printExampleCheck.checked) applyExamples();
   addEditControls();
+}
+// 基礎文法: プリントの先頭の「ルール」(はじめはこれを見ながら解く)と、問題ごとの「→ ルール◯ を見よう」
+function basicRulesEl(list) {
+  const multi = list.length > 1;
+  const el = document.createElement('div');
+  el.className = 'ws-rules';
+  el.innerHTML = `<div class="ws-rules-title">ルール（わからないときは、ここを見ながら解こう）</div>` + list.map(st => {
+    const R = BASIC_RULES[st.basicNo];
+    if (!R) return '';
+    const head = multi ? `<div class="ws-rules-lesson">${escHtml(st.label)}</div>` : '';
+    const rules = R.rules.map((r, i) => `<div class="ws-rule"><div class="ws-rule-t"><span class="ws-rule-no">${basicRuleName(st, i, multi)}</span>${escHtml(r.t)}</div><div class="ws-rule-s">${escHtml(r.s)}</div>${(r.ex || []).map(([en, jp]) => `<div class="ws-rule-ex"><span>${escHtml(en).replace(/\*([^*]+)\*/g, '<b>$1</b>')}</span><small>${escHtml(jp)}</small></div>`).join('')}</div>`).join('');
+    const words = (R.words || []).length ? `<div class="ws-rule-words">${R.words.map(([w, m]) => `<span><b>${escHtml(w)}</b>…${escHtml(m)}</span>`).join('')}</div>` : '';
+    return head + rules + words;
+  }).join('');
+  return el;
+}
+function basicRuleName(st, i, multi) { return multi ? `${st.basicNo}-${i + 1}` : `ルール${i + 1}`; }
+// その問題で使うルール(うしろのルールほどくわしいので、うしろから探す)
+function basicRuleFor(item) {
+  const st = stages.find(x => x.key === item.stageKey);
+  const R = st && st.grade === 'basic' && BASIC_RULES[st.basicNo];
+  if (!R) return null;
+  const sent = item.answerSentence || (item.tokens ? fullSentence(item) : '');
+  const lw = sent.toLowerCase().replace(/[—,.!?]/g, ' ').split(/\s+/).filter(Boolean);
+  const a = ['choice', 'fillin', 'form', 'error', 'lack'].includes(item.type) ? String(item.type === 'lack' ? item.lackWord : item.answer || '').toLowerCase() : '';
+  for (let i = R.rules.length - 1; i >= 0; i--) {
+    try { if (R.rules[i].w(lw, a)) return { st, i, rule: R.rules[i] }; } catch (e) { /* ルールの判定に失敗したら次へ */ }
+  }
+  return { st, i: 0, rule: R.rules[0] }; // どれにも当たらないときは、いちばん基本のルール
+}
+function applyBasicHints() {
+  const multi = sourceStages().length > 1;
+  sheetItems.querySelectorAll('.ws-item').forEach(row => {
+    const item = row._item;
+    const r = item && basicRuleFor(item);
+    if (!r) return;
+    item.why = item.why || `${basicRuleName(r.st, r.i, multi)}「${r.rule.t}」`;
+    const top = row.querySelector('.ws-top');
+    if (top) top.insertAdjacentHTML('afterend', `<div class="ws-rule-hint">ヒント → ${basicRuleName(r.st, r.i, multi)}「${escHtml(r.rule.t)}」を見よう</div>`);
+  });
 }
 
 // 解答欄をまとめた表(確認テストの形): 問題の中の答えの線・□は印刷せず、最後の表に番号つきの欄を並べる。
