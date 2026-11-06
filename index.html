@@ -806,18 +806,35 @@
   .ws-listen-pic b { display: block; text-align: left; font-size: 12px; }
   @media (max-width: 560px) { .ws-listen-pics { grid-template-columns: repeat(2, 1fr); } }
   .ws-listen-blank { margin-left: 36px; font-size: 13px; font-weight: 700; }
-  .ws-rules { border: 2px solid var(--ink); border-radius: 8px; padding: 10px 14px; margin-bottom: 14px; }
-  .ws-rules-title { font-weight: 800; font-size: 14px; margin-bottom: 6px; }
-  .ws-rules-lesson { font-weight: 800; font-size: 13px; margin: 8px 0 2px; border-bottom: 1px solid var(--line); }
-  .ws-rule { padding: 5px 0; border-bottom: 1px dotted #bbb; break-inside: avoid; }
+  /* 基礎文法のルール: 小学5・6年生でも読めるように、大きめの字と図で */
+  .ws-rules { border: 2px solid var(--ink); border-radius: 10px; padding: 14px 18px; margin-bottom: 16px; }
+  .ws-rules-title { font-weight: 800; font-size: 16px; margin-bottom: 8px; }
+  .ws-rules-lesson { font-weight: 800; font-size: 15px; margin: 12px 0 4px; border-bottom: 1.5px solid var(--ink); }
+  .ws-rule { padding: 10px 0 12px; border-bottom: 1px dashed #aaa; break-inside: avoid; }
   .ws-rule:last-of-type { border-bottom: none; }
-  .ws-rule-t { font-weight: 700; font-size: 13.5px; }
-  .ws-rule-no { display: inline-block; background: var(--ink); color: #fff; font-size: 11px; padding: 1px 6px; border-radius: 4px; margin-right: 6px; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  .ws-rule-s { font-size: 12.5px; line-height: 1.6; margin: 2px 0 2px 4px; }
-  .ws-rule-ex { font-size: 13px; margin-left: 16px; }
+  .ws-rule-t { font-weight: 800; font-size: 16px; }
+  .ws-rule-no { display: inline-block; background: var(--ink); color: #fff; font-size: 12.5px; padding: 2px 8px; border-radius: 5px; margin-right: 8px; vertical-align: 1px; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .ws-rule-s { font-size: 14.5px; line-height: 1.85; margin: 6px 0 6px 4px; }
+  .ws-fig { margin: 8px 0 8px 4px; display: flex; flex-direction: column; gap: 6px; }
+  .ws-fig-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+  .ws-fig-lab { font-size: 12px; font-weight: 700; width: 3.5em; }
+  .ws-fig-box { display: inline-flex; flex-direction: column; align-items: center; border: 1.5px solid var(--ink); border-radius: 6px; padding: 4px 10px; min-width: 3em; }
+  .ws-fig-box b { font-size: 18px; font-weight: 700; }
+  .ws-fig-box small { font-size: 11.5px; color: var(--ink-soft); }
+  .ws-fig-box.hl { background: #FFE9A8; border-width: 2.5px; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .ws-fig-jpbox { border: 1.5px dashed var(--ink-soft); border-radius: 6px; padding: 4px 10px; font-size: 14px; }
+  .ws-fig-arrow { color: var(--ink-soft); font-weight: 700; }
+  .ws-okng { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 18px; margin: 4px 0 4px 4px; font-size: 15px; }
+  .ws-okng .ok { font-weight: 700; }
+  .ws-okng .ng { color: #C0392B; text-decoration: line-through; text-decoration-thickness: 1px; }
+  .ws-okng small { font-size: 12.5px; color: #C0392B; }
+  .ws-rule-exs { margin: 4px 0 0 4px; }
+  .ws-rule-exlab { font-size: 11.5px; font-weight: 700; color: var(--ink-soft); }
+  .ws-rule-ex { font-size: 15px; margin-left: 14px; line-height: 1.7; }
   .ws-rule-ex b { text-decoration: underline; }
-  .ws-rule-ex small { color: var(--ink-soft); margin-left: 10px; font-size: 11.5px; }
-  .ws-rule-words { margin-top: 6px; font-size: 11.5px; display: flex; flex-wrap: wrap; gap: 4px 14px; color: var(--ink-soft); }
+  .ws-rule-ex small { color: var(--ink-soft); margin-left: 12px; font-size: 12.5px; }
+  .ws-rule-words { margin-top: 10px; font-size: 13px; display: flex; flex-direction: column; gap: 2px; border-top: 1px solid var(--line); padding-top: 6px; }
+  @media print { .ws-rules { break-after: page; page-break-after: always; } }
   .ws-rule-hint { margin: 0 0 4px 36px; font-size: 11.5px; color: var(--ink-soft); }
   .ws-gap { display: inline-block; font-size: 11px; font-weight: 700; line-height: 1; padding: 1px 3px; border: 1px solid var(--ink); border-radius: 3px; vertical-align: 2px; margin-right: 2px; }
   .ans-grid-box { margin-top: 18px; border-top: 2px solid var(--ink); padding-top: 8px; break-inside: avoid; }
@@ -1183,6 +1200,7 @@
 <script src="guides.js"></script>
 <script src="grammar_basics.js"></script>
 <script src="grammar_basics_rules.js"></script>
+<script src="grammar_basics_figs.js"></script>
 <script src="exam_dialogs.js"></script>
 <script src="exam_phrases.js"></script>
 <script src="exam_tables.js"></script>
@@ -8633,7 +8651,8 @@ function buildRoundsPrint() {
     copy.querySelectorAll('[id]').forEach(e => e.removeAttribute('id'));
     copy.querySelectorAll('.no-print, .ws-edit, .ws-add').forEach(e => e.remove());
     copy.classList.add('round-copy');
-    fitRoundToPages(copy);
+    // 基礎文法はルールのページがあるので、1ページに縮めない
+    if (!copy.querySelector('.ws-rules')) fitRoundToPages(copy);
     roundsPrint.appendChild(copy);
   });
   useRound(keep);
@@ -9624,7 +9643,14 @@ function basicRulesEl(list) {
     const R = BASIC_RULES[st.basicNo];
     if (!R) return '';
     const head = multi ? `<div class="ws-rules-lesson">${escHtml(st.label)}</div>` : '';
-    const rules = R.rules.map((r, i) => `<div class="ws-rule"><div class="ws-rule-t"><span class="ws-rule-no">${basicRuleName(st, i, multi)}</span>${escHtml(r.t)}</div><div class="ws-rule-s">${escHtml(r.s)}</div>${(r.ex || []).map(([en, jp]) => `<div class="ws-rule-ex"><span>${escHtml(en).replace(/\*([^*]+)\*/g, '<b>$1</b>')}</span><small>${escHtml(jp)}</small></div>`).join('')}</div>`).join('');
+    const rules = R.rules.map((r, i) => {
+      const F = (typeof BASIC_FIGS !== 'undefined' && BASIC_FIGS[`${st.basicNo}-${i + 1}`]) || {};
+      // 図: 英語のまとまりを箱にして、下に日本語。大事なところに色。日本語の順番とくらべる
+      const fig = F.fig ? `<div class="ws-fig">${F.jp ? `<div class="ws-fig-row"><span class="ws-fig-lab">日本語</span>${F.jp.map(j => `<span class="ws-fig-jpbox">${escHtml(j)}</span>`).join('<span class="ws-fig-arrow">→</span>')}</div>` : ''}<div class="ws-fig-row">${F.jp ? '<span class="ws-fig-lab">英語</span>' : ''}${F.fig.map(([en, jp, hl]) => `<span class="ws-fig-box${hl ? ' hl' : ''}"><b>${escHtml(en)}</b><small>${escHtml(jp)}</small></span>`).join(F.jp ? '<span class="ws-fig-arrow">→</span>' : '')}</div></div>` : '';
+      const okng = F.ok && F.ng ? `<div class="ws-okng"><span class="ok">○ ${escHtml(F.ok)}</span><span class="ng">× ${escHtml(F.ng[0])}</span><small>← ${escHtml(F.ng[1])}</small></div>` : '';
+      const ex = (r.ex || []).map(([en, jp]) => `<div class="ws-rule-ex"><span>${escHtml(en).replace(/\*([^*]+)\*/g, '<b>$1</b>')}</span><small>${escHtml(jp)}</small></div>`).join('');
+      return `<div class="ws-rule"><div class="ws-rule-t"><span class="ws-rule-no">${basicRuleName(st, i, multi)}</span>${escHtml(r.t)}</div><div class="ws-rule-s">${escHtml(F.easy || r.s)}</div>${fig}${okng}${ex ? `<div class="ws-rule-exs"><span class="ws-rule-exlab">例文</span>${ex}</div>` : ''}</div>`;
+    }).join('');
     const words = (R.words || []).length ? `<div class="ws-rule-words">${R.words.map(([w, m]) => `<span><b>${escHtml(w)}</b>…${escHtml(m)}</span>`).join('')}</div>` : '';
     return head + rules + words;
   }).join('');
