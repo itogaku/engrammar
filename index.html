@@ -1211,6 +1211,7 @@
 <script src="grammar_basics.js"></script>
 <script src="grammar_basics_rules.js"></script>
 <script src="grammar_basics_figs.js"></script>
+<script src="grammar_basics_3.js"></script>
 <script src="exam_dialogs.js"></script>
 <script src="exam_phrases.js"></script>
 <script src="exam_tables.js"></script>
@@ -5261,10 +5262,14 @@ const FALLBACK_FOCUS = ['verb', 'be', 'do', 'pronoun'];
 if (typeof BASIC_LESSONS !== 'undefined') {
   const pools = {};
   [1, 2, 3].forEach(g => { const seen = new Set(); pools[g] = []; stages.filter(st => st.grade === g).forEach(st => st.questions.forEach(q => { if (q.jp && !seen.has(q.jp)) { seen.add(q.jp); pools[g].push(q); } })); });
-  [...BASIC_LESSONS.map(L => ({ ...L, level: 1 })), ...(typeof BASIC_LESSONS_2 !== 'undefined' ? BASIC_LESSONS_2.map(L => ({ ...L, level: 2 })) : [])].forEach(L => {
+  const fromStages = re => { const seen = new Set(), out = []; stages.filter(st => typeof st.grade === 'number' && re.test(st.key)).forEach(st => st.questions.forEach(q => { if (q.jp && !seen.has(q.jp)) { seen.add(q.jp); out.push(q); } })); return out; };
+  [...BASIC_LESSONS.map(L => ({ ...L, level: 1 })), ...(typeof BASIC_LESSONS_2 !== 'undefined' ? BASIC_LESSONS_2.map(L => ({ ...L, level: 2 })) : []),
+    ...(typeof BASIC_LESSONS_3 !== 'undefined' ? BASIC_LESSONS_3.map(L => ({ ...L, level: 3, pool: L.pool || [3] })) : [])].forEach(L => {
     const key = `basic${String(L.no).padStart(2, '0')}`;
-    const pool = (L.pool || [1]).flatMap(g => pools[g]);
+    // from: その文法の教科書の単元から文を集める(match があればさらにしぼる)
+    const pool = L.from ? fromStages(L.from) : (L.pool || [1]).flatMap(g => pools[g]);
     const questions = pool.filter(q => {
+      if (!L.match) return true;
       const lw = sentenceTokens(q.pieces).map(t => t.toLowerCase().replace(/[,.!?]+$/, ''));
       try { return L.match(lw); } catch (e) { return false; }
     });
@@ -7461,7 +7466,7 @@ function renderProgramList() {
   }
   // 中1では、教科書の順によらない「基礎文法（ゼロから）」のレッスンも出す
   const basics = stages.filter(st => st.grade === 'basic' && st.basicLevel === currentGrade);
-  const reviewSets = currentGrade === 1 ? (typeof BASIC_REVIEWS !== 'undefined' ? BASIC_REVIEWS : []) : (typeof BASIC_REVIEWS_2 !== 'undefined' ? BASIC_REVIEWS_2 : []);
+  const reviewSets = ({ 1: typeof BASIC_REVIEWS !== 'undefined' ? BASIC_REVIEWS : [], 2: typeof BASIC_REVIEWS_2 !== 'undefined' ? BASIC_REVIEWS_2 : [], 3: typeof BASIC_REVIEWS_3 !== 'undefined' ? BASIC_REVIEWS_3 : [] })[currentGrade] || [];
   if ( (programMode === 'print' || programMode === 'guide') && basics.length) {
     const header = document.createElement('div');
     header.className = 'program-group-header';
@@ -9668,15 +9673,16 @@ function basicRulesEl(list) {
     const head = multi ? `<div class="ws-rules-lesson">${escHtml(st.label)}</div>` : '';
     // 参考書のように「前回は〜。今回は〜。」から始める
     const prev = stages.find(x => x.grade === 'basic' && x.basicNo === st.basicNo - 1);
-    const L = [...(typeof BASIC_LESSONS !== 'undefined' ? BASIC_LESSONS : []), ...(typeof BASIC_LESSONS_2 !== 'undefined' ? BASIC_LESSONS_2 : [])].find(x => x.no === st.basicNo);
-    const lead = `<div class="ws-rules-lead">${prev ? `前回は「${escHtml(prev.label.replace(/^基礎\d+: /, ''))}」を学習しました。` : ''}今回は「${escHtml(st.label.replace(/^基礎\d+: /, ''))}」です。${L ? escHtml(L.desc) : ''}</div>`;
+    const L = [...(typeof BASIC_LESSONS !== 'undefined' ? BASIC_LESSONS : []), ...(typeof BASIC_LESSONS_2 !== 'undefined' ? BASIC_LESSONS_2 : []), ...(typeof BASIC_LESSONS_3 !== 'undefined' ? BASIC_LESSONS_3 : [])].find(x => x.no === st.basicNo);
+    const q = t => { const x = t.replace(/^基礎\d+: /, ''); return /^「/.test(x) ? escHtml(x) : `「${escHtml(x)}」`; };
+    const lead = `<div class="ws-rules-lead">${prev ? `前回は${q(prev.label)}を学習しました。` : ''}今回は${q(st.label)}です。${L ? escHtml(L.desc) : ''}</div>`;
     const T = typeof BASIC_TABLES !== 'undefined' && BASIC_TABLES[st.basicNo];
     const table = T ? `<div class="ws-rule-table"><div class="ws-rule-table-t">${escHtml(T.title)}</div><table><tr>${T.head.map(h => `<th>${escHtml(h)}</th>`).join('')}</tr>${T.rows.map(r => `<tr>${r.map((c, k) => `<td${k === 0 ? ' class="first"' : ''}>${escHtml(c)}</td>`).join('')}</tr>`).join('')}</table></div>` : '';
     const point = L && L.guide && L.guide.point ? `<div class="ws-rule-point"><b>ここがポイント</b>${escHtml(L.guide.point)}</div>` : '';
     const rules = R.rules.map((r, i) => {
       const F = (typeof BASIC_FIGS !== 'undefined' && BASIC_FIGS[`${st.basicNo}-${i + 1}`]) || {};
       // 図: 英語のまとまりを箱にして、下に日本語。大事なところに色。日本語の順番とくらべる
-      const fig = F.fig ? `<div class="ws-fig">${F.jp ? `<div class="ws-fig-row"><span class="ws-fig-lab">日本語</span>${F.jp.map(j => `<span class="ws-fig-jpbox">${escHtml(j)}</span>`).join('<span class="ws-fig-arrow">→</span>')}</div>` : ''}<div class="ws-fig-row">${F.jp ? '<span class="ws-fig-lab">英語</span>' : ''}${F.fig.map(([en, jp, hl, role]) => `<span class="ws-fig-box${hl ? ' hl' : ''}"><b>${escHtml(en)}</b><small>${escHtml(jp)}</small>${role ? `<i class="ws-fig-role">${{ S: '主語', V: '動詞', B: 'be動詞', SB: '主語＋be動詞' }[role] || ''}</i>` : ''}</span>`).join(F.jp ? '<span class="ws-fig-arrow">→</span>' : '')}</div></div>` : '';
+      const fig = F.fig ? `<div class="ws-fig">${F.jp ? `<div class="ws-fig-row"><span class="ws-fig-lab">日本語</span>${F.jp.map(j => `<span class="ws-fig-jpbox">${escHtml(j)}</span>`).join('<span class="ws-fig-arrow">→</span>')}</div>` : ''}<div class="ws-fig-row">${F.jp ? '<span class="ws-fig-lab">英語</span>' : ''}${F.fig.map(([en, jp, hl, role]) => `<span class="ws-fig-box${hl ? ' hl' : ''}"><b>${escHtml(en)}</b><small>${escHtml(jp)}</small>${role ? `<i class="ws-fig-role">${{ S: '主語', V: '動詞', B: 'be動詞', SB: '主語＋be動詞', SV: '主語＋動詞' }[role] || ''}</i>` : ''}</span>`).join(F.jp ? '<span class="ws-fig-arrow">→</span>' : '')}</div></div>` : '';
       const okng = F.ok && F.ng ? `<div class="ws-okng"><span class="ok">○ ${escHtml(F.ok)}</span><span class="ng">× ${escHtml(F.ng[0])}</span><small>← ${escHtml(F.ng[1])}</small></div>` : '';
       const ex = (r.ex || []).map(([en, jp]) => `<div class="ws-rule-ex"><span>${escHtml(en).replace(/\*([^*]+)\*/g, '<b>$1</b>')}</span><small>${escHtml(jp)}</small></div>`).join('');
       return `<div class="ws-rule"><div class="ws-rule-t"><span class="ws-rule-no">${basicRuleName(st, i, multi)}</span>${escHtml(r.t)}</div><div class="ws-rule-s">${escHtml(F.easy || r.s)}</div>${fig}${okng}${ex ? `<div class="ws-rule-exs"><span class="ws-rule-exlab">例文</span>${ex}</div>` : ''}</div>`;
