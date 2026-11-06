@@ -824,6 +824,16 @@
   .ws-fig-box.hl { background: #FFE9A8; border-width: 2.5px; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   .ws-fig-jpbox { border: 1.5px dashed var(--ink-soft); border-radius: 6px; padding: 4px 10px; font-size: 14px; }
   .ws-fig-arrow { color: var(--ink-soft); font-weight: 700; }
+  .ws-fig-role { font-style: normal; font-size: 10.5px; font-weight: 700; color: #fff; background: var(--ink-soft); border-radius: 3px; padding: 0 5px; margin-top: 3px; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .ws-rules-lead { font-size: 14.5px; line-height: 1.8; margin: 0 0 6px; padding: 6px 10px; background: #F3F5F7; border-radius: 6px; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .ws-rule-table { margin: 10px 0 4px; break-inside: avoid; }
+  .ws-rule-table-t { font-weight: 800; font-size: 14.5px; margin-bottom: 4px; }
+  .ws-rule-table table { border-collapse: collapse; font-size: 14px; }
+  .ws-rule-table th, .ws-rule-table td { border: 1.5px solid var(--ink); padding: 4px 12px; text-align: left; }
+  .ws-rule-table th { background: #FFE9A8; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .ws-rule-table td.first { font-weight: 700; }
+  .ws-rule-point { margin-top: 10px; padding: 8px 12px; border: 2px solid #E0A800; border-radius: 8px; font-size: 14.5px; line-height: 1.8; break-inside: avoid; }
+  .ws-rule-point b { display: block; font-size: 13px; color: #9A6B00; }
   .ws-okng { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 18px; margin: 4px 0 4px 4px; font-size: 15px; }
   .ws-okng .ok { font-weight: 700; }
   .ws-okng .ng { color: #C0392B; text-decoration: line-through; text-decoration-thickness: 1px; }
@@ -2551,7 +2561,7 @@ const stages = [
     questions: [
       { jp: "私はそのとき本を読んでいました。", pieces: [{en:"I", jp:"私は"}, {en:"was reading", jp:"読んでいました"}, {en:"a book", jp:"本を"}, {en:"then", jp:"そのとき"}] },
       { jp: "私たちはそのときテレビを見ていました。", pieces: [{en:"We", jp:"私たちは"}, {en:"were watching", jp:"見ていました"}, {en:"TV", jp:"テレビを"}, {en:"then", jp:"そのとき"}] },
-      { jp: "彼は昨夜8時に宿題をしていました。", pieces: [{en:"He", jp:"彼は"}, {en:"was doing", jp:"していました"}, {en:"his homework", jp:"宿題を"}, {en:"at eight last night", jp:"昨夜8時に"}] },
+      { jp: "彼は昨夜8時に宿題をしていました。", pieces: [{en:"He", jp:"彼は"}, {en:"was doing", jp:"していました"}, {en:"his homework", jp:"宿題を"}, {en:"at eight", jp:"8時に"}, {en:"last night", jp:"昨夜"}] },
       { jp: "私の母はそのとき夕食を作っていました。", pieces: [{en:"My mother", jp:"私の母は"}, {en:"was cooking", jp:"作っていました"}, {en:"dinner", jp:"夕食を"}, {en:"then", jp:"そのとき"}] },
       { jp: "彼らは公園でサッカーをしていました。", pieces: [{en:"They", jp:"彼らは"}, {en:"were playing", jp:"していました"}, {en:"soccer", jp:"サッカーを"}, {en:"in the park", jp:"公園で"}] },
       { jp: "ケンはそのとき音楽を聞いていました。", pieces: [{en:"Ken", jp:"ケンは"}, {en:"was listening", jp:"聞いていました"}, {en:"to music", jp:"音楽を"}, {en:"then", jp:"そのとき"}] },
@@ -2682,7 +2692,7 @@ const stages = [
       { jp: "あなたは今度の日曜日に私たちと一緒に来ますか。", pieces: [{en:"Will you", jp:"あなたは"}, {en:"come with us", jp:"私たちと一緒に来ますか"}, {en:"next Sunday", jp:"今度の日曜日に"}] },
       { jp: "彼らは明日の朝ここに来るでしょう。", pieces: [{en:"They", jp:"彼らは"}, {en:"will come here", jp:"ここに来るでしょう"}, {en:"tomorrow morning", jp:"明日の朝"}] },
       { jp: "私は二度と遅刻しません。", pieces: [{en:"I", jp:"私は"}, {en:"will not be late", jp:"遅刻しません"}, {en:"again", jp:"二度と"}] },
-      { jp: "あなたのお父さんは今日早く帰宅しますか。", pieces: [{en:"Will your father", jp:"あなたのお父さんは"}, {en:"come home", jp:"帰宅しますか"}, {en:"early today", jp:"今日早く"}] },
+      { jp: "あなたのお父さんは今日早く帰宅しますか。", pieces: [{en:"Will your father", jp:"あなたのお父さんは"}, {en:"come home", jp:"帰宅しますか"}, {en:"early", jp:"早く"}, {en:"today", jp:"今日"}] },
       { jp: "今日の午後は暑くなるでしょう。", pieces: [{en:"It", jp:"(天候)"}, {en:"will be hot", jp:"暑くなるでしょう"}, {en:"this afternoon", jp:"今日の午後"}] },
       { jp: "私があなたのかばんを運びます。", pieces: [{en:"I", jp:"私が"}, {en:"will carry", jp:"運びます"}, {en:"your bag", jp:"あなたのかばんを"}] },
       { jp: "マイクはパーティーに来るでしょうか。", pieces: [{en:"Will Mike", jp:"マイクは"}, {en:"come", jp:"来るでしょうか"}, {en:"to the party", jp:"パーティーに"}] },
@@ -2925,7 +2935,7 @@ const stages = [
       { jp: "私はいつか京都に行きたいです。", pieces: [{en:"I", jp:"私は"}, {en:"want to go", jp:"行きたいです"}, {en:"to Kyoto", jp:"京都に"}, {en:"someday", jp:"いつか"}] },
       { jp: "彼はギターを弾き始めました。", pieces: [{en:"He", jp:"彼は"}, {en:"started to play", jp:"弾き始めました"}, {en:"the guitar", jp:"ギターを"}] },
       { jp: "私の妹は絵をかくのが好きです。", pieces: [{en:"My sister", jp:"私の妹は"}, {en:"likes to draw", jp:"かくのが好きです"}, {en:"pictures", jp:"絵を"}] },
-      { jp: "私たちは毎日英語を勉強する必要があります。", pieces: [{en:"We", jp:"私たちは"}, {en:"need to study", jp:"勉強する必要があります"}, {en:"English every day", jp:"毎日英語を"}] },
+      { jp: "私たちは毎日英語を勉強する必要があります。", pieces: [{en:"We", jp:"私たちは"}, {en:"need to study", jp:"勉強する必要があります"}, {en:"English", jp:"英語を"}, {en:"every day", jp:"毎日"}] },
       { jp: "あなたは何を食べたいですか。", pieces: [{en:"What do you", jp:"あなたは何を"}, {en:"want to eat", jp:"食べたいですか"}] },
       { jp: "彼女は日本の歴史について学びたいと思っています。", pieces: [{en:"She", jp:"彼女は"}, {en:"wants to learn", jp:"学びたいと思っています"}, {en:"about Japanese history", jp:"日本の歴史について"}] },
       { jp: "彼女は新しい友だちを作ろうとしました。", pieces: [{en:"She", jp:"彼女は"}, {en:"tried to make", jp:"作ろうとしました"}, {en:"new friends", jp:"新しい友だちを"}] },
@@ -3017,7 +3027,7 @@ const stages = [
       { jp: "英語を話すことは難しいです。", pieces: [{en:"It is difficult", jp:"難しいです"}, {en:"to speak", jp:"話すこと"}, {en:"English", jp:"英語を"}] },
       { jp: "本を読むことはおもしろいです。", pieces: [{en:"It is interesting", jp:"おもしろいです"}, {en:"to read", jp:"読むこと"}, {en:"books", jp:"本を"}] },
       { jp: "このケーキを作ることは簡単です。", pieces: [{en:"It is easy", jp:"簡単です"}, {en:"to make", jp:"作ること"}, {en:"this cake", jp:"このケーキを"}] },
-      { jp: "毎日朝食を食べることは大切です。", pieces: [{en:"It is important", jp:"大切です"}, {en:"to eat", jp:"食べることは"}, {en:"breakfast every day", jp:"毎日朝食を"}] },
+      { jp: "毎日朝食を食べることは大切です。", pieces: [{en:"It is important", jp:"大切です"}, {en:"to eat", jp:"食べることは"}, {en:"breakfast", jp:"朝食を"}, {en:"every day", jp:"毎日"}] },
       { jp: "外国の人と話すことはわくわくします。", pieces: [{en:"It is exciting", jp:"わくわくします"}, {en:"to talk", jp:"話すことは"}, {en:"with people from other countries", jp:"外国の人と"}] },
       { jp: "新しい友だちを作ることは簡単ではありません。", pieces: [{en:"It is not easy", jp:"簡単ではありません"}, {en:"to make", jp:"作ることは"}, {en:"new friends", jp:"新しい友だちを"}] },
       { jp: "星を見ることはおもしろいです。", pieces: [{en:"It is interesting", jp:"おもしろいです"}, {en:"to look at", jp:"見ることは"}, {en:"the stars", jp:"星を"}] },
@@ -3143,7 +3153,7 @@ const stages = [
       { jp: "あなたは心配する必要はありません。", pieces: [{en:"You", jp:"あなたは"}, {en:"don't have to worry", jp:"心配する必要はありません"}] },
       { jp: "彼は今日宿題を終えなければなりません。", pieces: [{en:"He", jp:"彼は"}, {en:"has to finish", jp:"終えなければなりません"}, {en:"his homework", jp:"宿題を"}, {en:"today", jp:"今日"}] },
       { jp: "私の兄は今晩夕食を作らなければなりません。", pieces: [{en:"My brother", jp:"私の兄は"}, {en:"has to cook", jp:"作らなければなりません"}, {en:"dinner", jp:"夕食を"}, {en:"this evening", jp:"今晩"}] },
-      { jp: "彼女は今日早く帰宅しなければなりませんか。", pieces: [{en:"Does she", jp:"彼女は"}, {en:"have to come home", jp:"帰宅しなければなりませんか"}, {en:"early today", jp:"今日早く"}] },
+      { jp: "彼女は今日早く帰宅しなければなりませんか。", pieces: [{en:"Does she", jp:"彼女は"}, {en:"have to come home", jp:"帰宅しなければなりませんか"}, {en:"early", jp:"早く"}, {en:"today", jp:"今日"}] },
       { jp: "私は今日母を手伝わなければなりません。", pieces: [{en:"I", jp:"私は"}, {en:"have to help", jp:"手伝わなければなりません"}, {en:"my mother", jp:"母を"}, {en:"today", jp:"今日"}] },
       { jp: "トムは学校まで電車に乗らなければなりません。", pieces: [{en:"Tom", jp:"トムは"}, {en:"has to take", jp:"乗らなければなりません"}, {en:"the train", jp:"電車に"}, {en:"to school", jp:"学校まで"}] },
       { jp: "あなたは明日お弁当を持ってくる必要はありません。", pieces: [{en:"You", jp:"あなたは"}, {en:"don't have to bring", jp:"持ってくる必要はありません"}, {en:"lunch", jp:"お弁当を"}, {en:"tomorrow", jp:"明日"}] },
@@ -3231,7 +3241,7 @@ const stages = [
       { jp: "彼女は幸せそうに見えます。", pieces: [{en:"She", jp:"彼女"}, {en:"looks", jp:"見えます"}, {en:"happy", jp:"幸せそうに"}], coreSlotIndex: 2, corePool: [{en:"sad", jp:"悲しそうに"}, {en:"tired", jp:"疲れているように"}] },
       { jp: "彼は医者になりました。", pieces: [{en:"He", jp:"彼"}, {en:"became", jp:"なりました"}, {en:"a doctor", jp:"医者に"}], coreSlotIndex: 2, corePool: [{en:"a teacher", jp:"先生に"}, {en:"a singer", jp:"歌手に"}] },
       { jp: "夜になると寒くなります。", pieces: [{en:"It", jp:"(天候)"}, {en:"gets", jp:"なります"}, {en:"cold", jp:"寒く"}, {en:"at night", jp:"夜になると"}], coreSlotIndex: 2, corePool: [{en:"very cold", jp:"とても寒く"}] },
-      { jp: "あなたは今日うれしそうに見えます。", pieces: [{en:"You", jp:"あなたは"}, {en:"look", jp:"見えます"}, {en:"happy today", jp:"今日うれしそうに"}] },
+      { jp: "あなたは今日うれしそうに見えます。", pieces: [{en:"You", jp:"あなたは"}, {en:"look", jp:"見えます"}, {en:"happy", jp:"うれしそうに"}, {en:"today", jp:"今日"}] },
       { jp: "そのケーキはおいしそうに見えます。", pieces: [{en:"The cake", jp:"そのケーキは"}, {en:"looks", jp:"見えます"}, {en:"delicious", jp:"おいしそうに"}] },
       { jp: "夏にはとても暑くなります。", pieces: [{en:"It", jp:"天気は"}, {en:"gets", jp:"なります"}, {en:"very hot", jp:"とても暑く"}, {en:"in summer", jp:"夏には"}] },
       { jp: "私の姉は看護師になりました。", pieces: [{en:"My sister", jp:"私の姉は"}, {en:"became", jp:"なりました"}, {en:"a nurse", jp:"看護師に"}] },
@@ -3289,7 +3299,7 @@ const stages = [
       { jp: "この山はあれより高いです。", pieces: [{en:"This mountain", jp:"この山"}, {en:"is higher", jp:"高いです"}, {en:"than that one", jp:"あれより"}], coreSlotIndex: 0, corePool: [{en:"This building", jp:"この建物"}, {en:"This tree", jp:"この木"}] },
       { jp: "この本はあの本より面白いです。", pieces: [{en:"This book", jp:"この本"}, {en:"is more interesting", jp:"面白いです"}, {en:"than that one", jp:"あの本より"}] },
       { jp: "私の兄は私より背が高いです。", pieces: [{en:"My brother", jp:"私の兄は"}, {en:"is taller", jp:"背が高いです"}, {en:"than me", jp:"私より"}] },
-      { jp: "今日は昨日より暑いです。", pieces: [{en:"It", jp:"今日は"}, {en:"is hotter today", jp:"暑いです"}, {en:"than yesterday", jp:"昨日より"}] },
+      { jp: "今日は昨日より暑いです。", pieces: [{en:"It", jp:"（天気・気温）"}, {en:"is hotter", jp:"暑いです"}, {en:"today", jp:"今日は"}, {en:"than yesterday", jp:"昨日より"}] },
       { jp: "この問題はあの問題より難しいです。", pieces: [{en:"This question", jp:"この問題は"}, {en:"is more difficult", jp:"難しいです"}, {en:"than that one", jp:"あの問題より"}] },
       { jp: "彼女は私より速く走ります。", pieces: [{en:"She", jp:"彼女は"}, {en:"runs faster", jp:"速く走ります"}, {en:"than I do", jp:"私より"}] },
       { jp: "サッカーは日本で野球より人気がありますか。", pieces: [{en:"Is soccer", jp:"サッカーは"}, {en:"more popular than baseball", jp:"野球より人気がありますか"}, {en:"in Japan", jp:"日本で"}] },
@@ -4210,7 +4220,7 @@ const stages = [
       { jp: "あなたはこの筆箱をとても気に入るでしょう。", pieces: [{en:"You will love", jp:"とても気に入るでしょう"}, {en:"this pen case", jp:"この筆箱を"}] },
       { jp: "それは小型ですが、たくさんのものを入れられます。", pieces: [{en:"It's compact,", jp:"それは小型です"}, {en:"but you can put", jp:"しかし入れられます"}, {en:"many items in it", jp:"たくさんのものを"}] },
       { jp: "それはイタリア製です。", pieces: [{en:"It's", jp:"それは〜です"}, {en:"made", jp:"作られた"}, {en:"in Italy", jp:"イタリアで"}] },
-      { jp: "それは今だけ2,080円で販売中です。", pieces: [{en:"It is", jp:"それは〜です"}, {en:"on sale", jp:"販売中"}, {en:"for 2,080 yen now", jp:"今2,080円で"}] },
+      { jp: "それは今だけ2,080円で販売中です。", pieces: [{en:"It is", jp:"それは〜です"}, {en:"on sale", jp:"販売中"}, {en:"for 2,080 yen", jp:"2,080円で"}, {en:"now", jp:"今"}] },
       { jp: "この大セールを見逃さないでください。", pieces: [{en:"Don't miss out", jp:"見逃さないでください"}, {en:"on this big sale", jp:"この大セールを"}] },
       { jp: "お早めにお買い求めください。", pieces: [{en:"Don't wait", jp:"待たないでください"}, {en:"to buy", jp:"買うのを"}] },
       { jp: "その上、それはとても軽いです。", pieces: [{en:"What's more,", jp:"その上"}, {en:"it's", jp:"それは〜です"}, {en:"very light", jp:"とても軽い"}] },
@@ -4224,7 +4234,7 @@ const stages = [
       { jp: "その上、それは洗うのがかんたんです。", pieces: [{en:"What's more,", jp:"その上"}, {en:"it's easy", jp:"それはかんたんです"}, {en:"to wash", jp:"洗うのが"}] },
       { jp: "このチャンスを見逃さないでください。", pieces: [{en:"Don't miss out", jp:"見逃さないでください"}, {en:"on this chance", jp:"このチャンスを"}] },
       { jp: "あなたはこのかさをとても気に入るでしょう。", pieces: [{en:"You will love", jp:"とても気に入るでしょう"}, {en:"this umbrella", jp:"このかさを"}] },
-      { jp: "このTシャツは今800円で販売中です。", pieces: [{en:"This T-shirt", jp:"このTシャツは"}, {en:"is on sale for", jp:"〜で販売中です"}, {en:"800 yen now", jp:"今800円"}] },
+      { jp: "このTシャツは今800円で販売中です。", pieces: [{en:"This T-shirt", jp:"このTシャツは"}, {en:"is on sale", jp:"販売中です"}, {en:"for 800 yen", jp:"800円で"}, {en:"now", jp:"今"}] },
       { jp: "あなたの家族はこのゲームをとても気に入るでしょう。", pieces: [{en:"Your family", jp:"あなたの家族は"}, {en:"will love", jp:"とても気に入るでしょう"}, {en:"this game", jp:"このゲームを"}] },
       { jp: "これらのノートは今週100円で販売中です。", pieces: [{en:"These notebooks", jp:"これらのノートは"}, {en:"are on sale for", jp:"〜で販売中です"}, {en:"100 yen this week", jp:"今週100円"}] },
     ],
@@ -8696,12 +8706,18 @@ function lowerFirst(en) {
   const [first, ...rest] = en.split(' ');
   return KEEP_CAPITAL.has(first) || PROPER_NAMES.has(first) ? en : [first.charAt(0).toLowerCase() + first.slice(1), ...rest].join(' ');
 }
-// 文末の時の語句(every Sunday / yesterday / at night など)。並べ替えでは前の語句とくっつけて、文頭にも置けてしまうのを防ぐ
+// 文末の時の語句(every Sunday / yesterday / then など)。並べ替えでも1つのまとまりのまま出す
+// (その語句をとっても文になる＝ほかの語句とは別のまとまり)。文頭に置いた文も正解にする(timeFrontAlt)
 const isTimePhrase = en => isTrailingTime(en) || /^(every|last|next|this|on|at night|in the (morning|evening|afternoon)|yesterday|today|tomorrow|now|then|someday|after school|after dinner)\b/.test(en);
-function joinTrailingTime(pieces) {
-  if (pieces.length < 3 || !isTimePhrase(pieces[pieces.length - 1].en.toLowerCase())) return pieces;
-  const last = pieces[pieces.length - 1], prev = pieces[pieces.length - 2];
-  return [...pieces.slice(0, -2), { ...prev, en: `${prev.en} ${last.en}`, jp: `${last.jp}${prev.jp}` }];
+// 文末の時の語句を文頭に置いた文(I was reading a book then. → Then I was reading a book.)
+function timeFrontAlt(item) {
+  const last = (item.pieces || [])[item.pieces.length - 1];
+  if (!last || item.end === '?' || item.pieces.length < 3) return null;
+  const t = last.en.replace(/[.!?]$/, '');
+  if (!isTimePhrase(t.toLowerCase()) || /^(now|yet|twice|early|again)$/i.test(t)) return null;
+  const rest = item.tokens.slice(0, item.tokens.length - t.split(' ').length);
+  if (!rest.length || rest.some(w => /,$/.test(w))) return null;
+  return endWith([capitalize(t) + ',', lowerSubjectHead(rest[0]), ...rest.slice(1)].join(' '), item.end);
 }
 function worksheetPieces(item) {
   // 並べ替え(1語不要)は1語ずつにして、まちがった形の語を1つまぜる
@@ -8715,11 +8731,12 @@ function worksheetPieces(item) {
   if (item.type === 'extra') {
     const last = item.pieces[item.pieces.length - 1];
     const words = expandPieces(item.pieces, 3);
+    // 時の語句(every day / last night)は1つのまとまりのまま
     const n = isTimePhrase(last.en.toLowerCase()) ? last.en.split(' ').length : 0;
-    const joined = n && words.length > n + 1 ? [...words.slice(0, -(n + 1)), { en: words.slice(-(n + 1)).map(w => w.en).join(' '), jp: '' }] : words;
+    const joined = n > 1 && words.length > n ? [...words.slice(0, -n), { en: words.slice(-n).map(w => w.en).join(' '), jp: '' }] : words;
     pieces = [...joined, { en: item.wrongWord, jp: '' }];
   } else {
-    pieces = joinTrailingTime(expandPieces(item.pieces, printChunkLevel));
+    pieces = expandPieces(item.pieces, printChunkLevel);
   }
   return pieces.map((p, i) => (i === 0 || (item.type === 'extra' && i === pieces.length - 1) ? { ...p, en: lowerFirst(p.en) } : p));
 }
@@ -8776,6 +8793,10 @@ function answerText(item) {
   if (item.type === 'paraphrase') return item.answer;
   if (item.type === 'extra') return `${fullSentence(item)}（不要：${item.wrongWord}）`;
   if (item.type === 'lack') return `${fullSentence(item)}（不足：${item.lackWord}）`;
+  if ((item.type === 'reorder' || item.type === 'translate') && !item.custom && timeFrontAlt(item)) {
+    const t = item.pieces[item.pieces.length - 1].en.replace(/[.!?]$/, '');
+    return `${fullSentence(item)}<span class="ans-why">${t} を文のはじめに置いても正解（${timeFrontAlt(item)}）</span>`;
+  }
   if (item.type === 'myself') return `（例）${fullSentence(item)}`;
   const alt = ['reorder', 'translate', 'trace'].includes(item.type) && clauseAltSentence(item.tokens, item.end);
   return alt ? `${fullSentence(item)}（${alt} も可）` : fullSentence(item);
@@ -8839,6 +8860,8 @@ function isCorrect(item) {
   if (['reorder', 'translate', 'extra', 'lack', 'trace'].includes(item.type)) {
     const alt = clauseAltSentence(item.tokens, item.end);
     if (alt && normalize(answer) === normalize(alt)) return true;
+    const tf = timeFrontAlt(item);
+    if (tf && normalize(answer) === normalize(tf)) return true;
   }
   const target = ['form', 'fillin', 'vword', 'vblank', 'rfill', 'chunkorder'].includes(item.type) ? item.answer : fullSentence(item);
   return normalize(answer) !== '' && normalize(answer) === normalize(target);
@@ -9643,16 +9666,23 @@ function basicRulesEl(list) {
     const R = BASIC_RULES[st.basicNo];
     if (!R) return '';
     const head = multi ? `<div class="ws-rules-lesson">${escHtml(st.label)}</div>` : '';
+    // 参考書のように「前回は〜。今回は〜。」から始める
+    const prev = stages.find(x => x.grade === 'basic' && x.basicNo === st.basicNo - 1);
+    const L = [...(typeof BASIC_LESSONS !== 'undefined' ? BASIC_LESSONS : []), ...(typeof BASIC_LESSONS_2 !== 'undefined' ? BASIC_LESSONS_2 : [])].find(x => x.no === st.basicNo);
+    const lead = `<div class="ws-rules-lead">${prev ? `前回は「${escHtml(prev.label.replace(/^基礎\d+: /, ''))}」を学習しました。` : ''}今回は「${escHtml(st.label.replace(/^基礎\d+: /, ''))}」です。${L ? escHtml(L.desc) : ''}</div>`;
+    const T = typeof BASIC_TABLES !== 'undefined' && BASIC_TABLES[st.basicNo];
+    const table = T ? `<div class="ws-rule-table"><div class="ws-rule-table-t">${escHtml(T.title)}</div><table><tr>${T.head.map(h => `<th>${escHtml(h)}</th>`).join('')}</tr>${T.rows.map(r => `<tr>${r.map((c, k) => `<td${k === 0 ? ' class="first"' : ''}>${escHtml(c)}</td>`).join('')}</tr>`).join('')}</table></div>` : '';
+    const point = L && L.guide && L.guide.point ? `<div class="ws-rule-point"><b>ここがポイント</b>${escHtml(L.guide.point)}</div>` : '';
     const rules = R.rules.map((r, i) => {
       const F = (typeof BASIC_FIGS !== 'undefined' && BASIC_FIGS[`${st.basicNo}-${i + 1}`]) || {};
       // 図: 英語のまとまりを箱にして、下に日本語。大事なところに色。日本語の順番とくらべる
-      const fig = F.fig ? `<div class="ws-fig">${F.jp ? `<div class="ws-fig-row"><span class="ws-fig-lab">日本語</span>${F.jp.map(j => `<span class="ws-fig-jpbox">${escHtml(j)}</span>`).join('<span class="ws-fig-arrow">→</span>')}</div>` : ''}<div class="ws-fig-row">${F.jp ? '<span class="ws-fig-lab">英語</span>' : ''}${F.fig.map(([en, jp, hl]) => `<span class="ws-fig-box${hl ? ' hl' : ''}"><b>${escHtml(en)}</b><small>${escHtml(jp)}</small></span>`).join(F.jp ? '<span class="ws-fig-arrow">→</span>' : '')}</div></div>` : '';
+      const fig = F.fig ? `<div class="ws-fig">${F.jp ? `<div class="ws-fig-row"><span class="ws-fig-lab">日本語</span>${F.jp.map(j => `<span class="ws-fig-jpbox">${escHtml(j)}</span>`).join('<span class="ws-fig-arrow">→</span>')}</div>` : ''}<div class="ws-fig-row">${F.jp ? '<span class="ws-fig-lab">英語</span>' : ''}${F.fig.map(([en, jp, hl, role]) => `<span class="ws-fig-box${hl ? ' hl' : ''}"><b>${escHtml(en)}</b><small>${escHtml(jp)}</small>${role ? `<i class="ws-fig-role">${{ S: '主語', V: '動詞', B: 'be動詞', SB: '主語＋be動詞' }[role] || ''}</i>` : ''}</span>`).join(F.jp ? '<span class="ws-fig-arrow">→</span>' : '')}</div></div>` : '';
       const okng = F.ok && F.ng ? `<div class="ws-okng"><span class="ok">○ ${escHtml(F.ok)}</span><span class="ng">× ${escHtml(F.ng[0])}</span><small>← ${escHtml(F.ng[1])}</small></div>` : '';
       const ex = (r.ex || []).map(([en, jp]) => `<div class="ws-rule-ex"><span>${escHtml(en).replace(/\*([^*]+)\*/g, '<b>$1</b>')}</span><small>${escHtml(jp)}</small></div>`).join('');
       return `<div class="ws-rule"><div class="ws-rule-t"><span class="ws-rule-no">${basicRuleName(st, i, multi)}</span>${escHtml(r.t)}</div><div class="ws-rule-s">${escHtml(F.easy || r.s)}</div>${fig}${okng}${ex ? `<div class="ws-rule-exs"><span class="ws-rule-exlab">例文</span>${ex}</div>` : ''}</div>`;
     }).join('');
     const words = (R.words || []).length ? `<div class="ws-rule-words">${R.words.map(([w, m]) => `<span><b>${escHtml(w)}</b>…${escHtml(m)}</span>`).join('')}</div>` : '';
-    return head + rules + words;
+    return head + lead + rules + table + point + words;
   }).join('');
   return el;
 }
