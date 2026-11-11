@@ -846,6 +846,9 @@
   .ws-rule-words { margin-top: 10px; font-size: 13px; display: flex; flex-direction: column; gap: 2px; border-top: 1px solid var(--line); padding-top: 6px; }
   @media print { .ws-rules { break-after: page; page-break-after: always; } }
   .ws-rule-hint { margin: 0 0 4px 36px; font-size: 11.5px; color: var(--ink-soft); }
+  .ws-part { position: relative; }
+  .ws-part-del { position: absolute; top: 4px; right: 4px; z-index: 2; font-family: inherit; font-size: 11.5px; font-weight: 700; color: #C0392B; background: #fff; border: 1.5px solid #C0392B; border-radius: 6px; padding: 2px 8px; cursor: pointer; }
+  .ws-part-del:hover { background: #FDECEA; }
   .ws-gap { display: inline-block; font-size: 11px; font-weight: 700; line-height: 1; padding: 1px 3px; border: 1px solid var(--ink); border-radius: 3px; vertical-align: 2px; margin-right: 2px; }
   .ans-grid-box { margin-top: 18px; border-top: 2px solid var(--ink); padding-top: 8px; break-inside: avoid; }
   .ans-grid-title { font-weight: 700; font-size: 14px; margin-bottom: 6px; }
@@ -1102,6 +1105,11 @@
           <label class="opt-check" id="printGridLabel"><input type="checkbox" id="printGridCheck"> 解答欄を最後にまとめる（確認テストの形。問題の中には書かず、下の表に答えを書く）</label>
           <label class="opt-check" id="printRedLabel"><input type="checkbox" id="printRedCheck"> 赤シート用（□チェック欄つき・答えを赤字で空らんに入れる。解答ページなし）</label>
         </div>
+      </section>
+
+      <section class="opt-sec" id="printPartsSec" style="display:none;">
+        <div class="opt-sec-head">説明の部分<span>チェックを外すとプリントから消えます（問題は消えません）</span></div>
+        <div class="opt-checks" id="printPartsList" style="flex-direction: column; align-items: flex-start;"></div>
       </section>
 
       <div class="print-actions">
@@ -7382,6 +7390,7 @@ function reviewSummaryEl() {
   }).join('');
   const el = document.createElement('div');
   el.className = 'ws-review-box';
+  setPart(el, 'review', 'ポイントの整理');
   el.innerHTML = `<div class="ws-review-title">ポイントの整理（形のちがいに注目して読もう）</div><table>${rows}</table>`;
   return el;
 }
@@ -9573,7 +9582,7 @@ function renderWorksheet() {
   document.getElementById('sheet').classList.toggle('redsheet', redSheetOn());
   sheetNo.textContent = '';
   if (printSource.kind === 'guide') { allWorksheetItems().forEach(it => { delete it.points; }); renderGuideWorksheet(); addEditControls(); return; }
-  if (printSource.kind === 'howto') { renderHowtoWorksheet(); return; }
+  if (printSource.kind === 'howto') { renderHowtoWorksheet(); applyPartControls(); return; }
   renderRoundTabs();
   const roundLabel = roundCount() > 1 ? `（${activeRound + 1}周目）` : '';
   if (printSource.kind === 'stage') {
@@ -9659,6 +9668,7 @@ function renderWorksheet() {
   answerList.innerHTML = answersHtml;
   answerSheet.classList.toggle('include', printIncludeAnswers.checked && !redSheetOn());
   if (basicSrc) applyBasicHints();
+  applyPartControls();
   if (printExampleCheck.checked) applyExamples();
   addEditControls();
 }
@@ -9667,6 +9677,7 @@ function basicRulesEl(list) {
   const multi = list.length > 1;
   const el = document.createElement('div');
   el.className = 'ws-rules';
+  setPart(el, 'rules', 'ルール（説明のページ）');
   el.innerHTML = `<div class="ws-rules-title">ルール（わからないときは、ここを見ながら解こう）</div>` + list.map(st => {
     const R = BASIC_RULES[st.basicNo];
     if (!R) return '';
@@ -10528,6 +10539,40 @@ function examSectionTitle() {
   return '表現・会話';
 }
 // 文法の総まとめ: 問題の前に、その回の単元のルールを1ページにまとめる
+// 問題以外の部分(まとめ・解き方・よく出る文法など)は data-part をつけておき、プリントから消せるようにする。
+// 消した部分は printSource.hiddenParts に残す(作り直しても、履歴から開いても消えたまま)
+function partAttr(key, label) { return ` data-part="${escHtml(key)}" data-label="${escHtml(label)}"`; }
+function setPart(el, key, label) { el.dataset.part = key; el.dataset.label = label; return el; }
+function applyPartControls() {
+  const hidden = new Set(printSource.hiddenParts || []);
+  const seen = [];
+  sheetItems.querySelectorAll('[data-part]').forEach(el => {
+    seen.push([el.dataset.part, el.dataset.label]);
+    if (hidden.has(el.dataset.part)) { el.remove(); return; }
+    el.classList.add('ws-part');
+    const btn = document.createElement('button');
+    btn.className = 'ws-part-del no-print';
+    btn.textContent = '× この部分を消す';
+    btn.onclick = () => togglePart(el.dataset.part, true);
+    el.prepend(btn);
+  });
+  const sec = document.getElementById('printPartsSec'), list = document.getElementById('printPartsList');
+  sec.style.display = seen.length ? '' : 'none';
+  list.innerHTML = '';
+  seen.forEach(([key, label]) => {
+    const lab = document.createElement('label');
+    lab.className = 'opt-check';
+    lab.innerHTML = `<input type="checkbox"${hidden.has(key) ? '' : ' checked'}> ${escHtml(label)}`;
+    lab.querySelector('input').onchange = e => togglePart(key, !e.target.checked);
+    list.appendChild(lab);
+  });
+}
+function togglePart(key, hide) {
+  const set = new Set(printSource.hiddenParts || []);
+  if (hide) set.add(key); else set.delete(key);
+  printSource.hiddenParts = [...set];
+  renderWorksheet();
+}
 function renderExamSummary() {
   const cfg = printSource.kind === 'test' ? printSource.config : null;
   if (cfg && cfg.examReadingLevels && activeRound === 0) { renderReadingTips(); return; }
@@ -10537,6 +10582,7 @@ function renderExamSummary() {
   const keys = cfg.keys.filter(k => STAGE_GUIDES[k]);
   const box = document.createElement('div');
   box.className = 'ws-exam-summary';
+  setPart(box, 'summary', 'まとめ（ルールの確認）');
   const fmt = t => t.replace(/\*([^*]+)\*/g, '<b>$1</b>');
   box.innerHTML = `<div class="ws-es-head">まとめ ― ルールを確認してから問題を解こう</div><div class="ws-es-grid">${keys.map(k => {
     const g = STAGE_GUIDES[k];
@@ -10571,12 +10617,12 @@ function renderExamExtras() {
   const boxes = [];
   Object.values(EXAM_RANKINGS).forEach(r => {
     if (!r.types.some(t => types.has(t))) return;
-    boxes.push(`<div class="ws-rank"><div class="ws-rank-head">入試でよく出る形（${r.title}）</div><ol>${r.ranks.map(([g, ex]) => `<li><b>${g}</b><span>${ex}</span></li>`).join('')}</ol>
+    boxes.push(`<div class="ws-rank"${partAttr('rank-' + r.title, `入試でよく出る形（${r.title}）`)}><div class="ws-rank-head">入試でよく出る形（${r.title}）</div><ol>${r.ranks.map(([g, ex]) => `<li><b>${g}</b><span>${ex}</span></li>`).join('')}</ol>
       <div class="ws-rank-other">ほかによく出るもの：${r.others}</div><div class="ws-rank-tip">解き方：${r.tip}</div></div>`);
   });
   const themes = new Set(examItems.filter(it => it.type === 'cphrase' || it.type === 'clist').map(it => it.themeKey));
   EXAM_COMPARE_BOXES.filter(b => b.themes.some(t => themes.has(t))).forEach(b => {
-    boxes.push(`<div class="ws-rank ws-compare"><div class="ws-rank-head">くらべて覚えよう：${b.title}</div><table>${b.rows.map(r => `<tr><th>${r[0]}</th><td>${r[1]}</td><td class="ws-ex-en">${r[2]}</td></tr>`).join('')}</table></div>`);
+    boxes.push(`<div class="ws-rank ws-compare"${partAttr('cmp-' + b.title, `くらべて覚えよう：${b.title}`)}><div class="ws-rank-head">くらべて覚えよう：${b.title}</div><table>${b.rows.map(r => `<tr><th>${r[0]}</th><td>${r[1]}</td><td class="ws-ex-en">${r[2]}</td></tr>`).join('')}</table></div>`);
   });
   if (!boxes.length) return;
   const box = document.createElement('div');
@@ -10589,6 +10635,7 @@ function renderExamExtras() {
 function renderReadingTips() {
   const box = document.createElement('div');
   box.className = 'ws-reading-tips';
+  setPart(box, 'readtips', '長文の読み方のコツ');
   box.innerHTML = `<div class="ws-es-head">長文の読み方のコツ</div><ol>
     <li><b>先に設問を読む</b>：何を聞かれるかを知ってから本文を読むと、答えの場所に気づきやすい。</li>
     <li><b>段落ごとに要点をつかむ</b>：1段落読んだら「だれが・何をした／何について」を一言でメモする。</li>
@@ -10620,11 +10667,12 @@ const EXAM_CHAPTER_TIPS = {
 function renderChapterSummary(ch) {
   const box = document.createElement('div');
   box.className = 'ws-exam-summary ws-chapter';
+  setPart(box, 'chapter', 'まとめ全体');
   const star = n => '★'.repeat(n) + '<span class="dim">' + '★'.repeat(3 - n) + '</span>';
   const key = Object.keys(EXAM_GRAMMAR).find(k => EXAM_GRAMMAR[k] === ch);
   const tip = EXAM_CHAPTER_TIPS[key];
-  box.innerHTML = `<div class="ws-es-head">第${ch.no}章 ${ch.title} ― まとめ</div>${tip ? `<div class="ws-ch-exam"><b>入試では</b>${tip}</div>` : ''}<div class="ws-ch-grid">` + ch.sections.map((sec, i) => `
-    <div class="ws-ch-sec">
+  box.innerHTML = `<div class="ws-es-head">第${ch.no}章 ${ch.title} ― まとめ</div>${tip ? `<div class="ws-ch-exam"${partAttr('ch-exam', '入試では（出やすい形）')}><b>入試では</b>${tip}</div>` : ''}<div class="ws-ch-grid">` + ch.sections.map((sec, i) => `
+    <div class="ws-ch-sec"${partAttr('ch-sec-' + i, `まとめ ${i + 1}. ${sec.title.replace(/<[^>]+>/g, '')}`)}>
       <div class="ws-ch-title"><span class="ws-ch-no">${i + 1}</span>${sec.title}<span class="ws-ch-star">${star(sec.stars || 2)}</span></div>
       ${sec.key ? `<div class="ws-ch-key"><b>${sec.key[0]}</b><span>${sec.key[1]}</span></div>` : ''}
       <ul class="ws-ch-points">${(sec.points || []).map(pt => `<li>${pt}</li>`).join('')}</ul>
@@ -10756,16 +10804,16 @@ function renderHowtoWorksheet() {
   let bno = 0;
   const page1 = `<div class="hw-page">
     <div class="hw-unit"><span>UNIT ${u.no}</span>${u.title}</div>
-    <p class="hw-intro">${u.intro || ''}</p>
-    <div class="hw-steps"><div class="hw-label">解き方</div>${u.steps.map((st, i) => `<div class="hw-steprow">${stepBadge(i + 1)}<div><b>${st.title}</b><div>${st.text}</div></div></div>`).join('')}</div>
-    <div class="hw-label">例題</div>${hwProblemHtml(ex)}
-    <div class="hw-walk"><div class="hw-label">例題の解き方</div>${ex.walkthrough.map(w => `<div class="hw-steprow">${stepBadge(w.step)}<div>${hwText(w.text)}</div></div>`).join('')}
+    <p class="hw-intro"${partAttr('hw-intro', 'はじめの説明')}>${u.intro || ''}</p>
+    <div class="hw-steps"${partAttr('hw-steps', '解き方（✓1〜）')}><div class="hw-label">解き方</div>${u.steps.map((st, i) => `<div class="hw-steprow">${stepBadge(i + 1)}<div><b>${st.title}</b><div>${st.text}</div></div></div>`).join('')}</div>
+    <div${partAttr('hw-example', '例題')}><div class="hw-label">例題</div>${hwProblemHtml(ex)}</div>
+    <div class="hw-walk"${partAttr('hw-walk', '例題の解き方')}><div class="hw-label">例題の解き方</div>${ex.walkthrough.map(w => `<div class="hw-steprow">${stepBadge(w.step)}<div>${hwText(w.text)}</div></div>`).join('')}
       <div class="hw-exans">例題の答え：<b>${ex.answer}</b></div></div>
   </div>`;
-  const page2 = `<div class="hw-page">
+  const page2 = `<div class="hw-page"${partAttr('hw-check', '解き方チェック問題')}>
     <div class="hw-label hw-label-big">解き方チェック問題</div>${hwProblemHtml(ck)}
     <div class="hw-label">解き方を使って解いてみよう</div>
-    <div class="hw-guide">${ck.guide.map(gd => `<div class="hw-steprow">${stepBadge(gd.step)}<div>${hwText(gd.text)}</div></div>`).join('')}</div>
+    <div class="hw-guide"${partAttr('hw-guide', '解き方チェックの手順（空欄つき）')}>${ck.guide.map(gd => `<div class="hw-steprow">${stepBadge(gd.step)}<div>${hwText(gd.text)}</div></div>`).join('')}</div>
     ${ansLine}
   </div>`;
   const page3 = `<div class="hw-page">
