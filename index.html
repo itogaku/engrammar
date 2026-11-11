@@ -846,6 +846,10 @@
   .ws-rule-words { margin-top: 10px; font-size: 13px; display: flex; flex-direction: column; gap: 2px; border-top: 1px solid var(--line); padding-top: 6px; }
   @media print { .ws-rules { break-after: page; page-break-after: always; } }
   .ws-rule-hint { margin: 0 0 4px 36px; font-size: 11.5px; color: var(--ink-soft); }
+  .ws-diag-table { margin-top: 14px; break-inside: avoid; }
+  .ws-diag-table table { border-collapse: collapse; width: 100%; font-size: 13px; }
+  .ws-diag-table th, .ws-diag-table td { border: 1px solid var(--ink); padding: 3px 8px; text-align: left; }
+  .ws-diag-table td.mark { width: 3em; }
   .ws-part { position: relative; }
   .ws-part-del { position: absolute; top: 4px; right: 4px; z-index: 2; font-family: inherit; font-size: 11.5px; font-weight: 700; color: #C0392B; background: #fff; border: 1.5px solid #C0392B; border-radius: 6px; padding: 2px 8px; cursor: pointer; }
   .ws-part-del:hover { background: #FDECEA; }
@@ -898,6 +902,10 @@
     <div class="card test-card exam-card" id="howtoCard">
       <div class="exam-head">解き方を学ぶ<span>問題の形式ごとに「例題と解き方（3つの手順）→ 手順にそって解くチェック問題 → 実践問題 → 解答・解説」</span></div>
       <div class="exam-rounds" id="howtoList"></div>
+    </div>
+    <div class="card test-card exam-card" id="diagCard">
+      <div class="exam-head">文法の理解度チェック<span>文法事項ごとに1問ずつ、その文法に合った形式（適語選択・語形変化・並べかえ・書きかえ・用法の識別など）で出題。形式は固定で、文は毎回ちがう（作り直すたび・何周でも別の問題）。解答ページに文法事項ごとの○×表つき</span></div>
+      <div class="exam-rounds" id="diagList"></div>
     </div>
     <div class="card test-card exam-card">
       <div class="exam-head">文法の総まとめ<span>章ごとに「まとめ（重要度★・例文・ポイント）→ 入試レベルの問題（適語選択・適語補充・並べかえ・同意文）」</span></div>
@@ -1220,6 +1228,7 @@
 <script src="grammar_basics_rules.js"></script>
 <script src="grammar_basics_figs.js"></script>
 <script src="grammar_basics_3.js"></script>
+<script src="grammar_diag.js"></script>
 <script src="exam_dialogs.js"></script>
 <script src="exam_phrases.js"></script>
 <script src="exam_tables.js"></script>
@@ -8588,7 +8597,8 @@ function generateWorksheet(seed) {
   roundSets = [];
   const rounds = isTestRangePrint() ? 1 : printRounds;
   for (let r = 0; r < rounds; r++) {
-  const slots = grammarSlots();
+  const diagCfg = isTest && printSource.config.diag;
+  const slots = diagCfg ? [] : grammarSlots();
   // 順番をランダムにしないときは単元順(同じ形式の中で)
   if (isTest && !printSource.config.shuffle) slots.sort((a, b) => stages.indexOf(a.stage) - stages.indexOf(b.stage));
   printItems = slots.map(({ stage, type, fixed }) => {
@@ -8622,6 +8632,7 @@ function generateWorksheet(seed) {
     readingItems = generateReadingItems(cfg.readingKeys ? stages.filter(st => cfg.readingKeys.includes(st.key)) : stageList, cfg, usedPassages);
     examItems = generateExamItems(cfg, usedExam);
   }
+  if (diagCfg) printItems = diagItems(printSource.config.diag, stateOf);
   printItems = groupByType(printItems, QUESTION_TYPES);
   roundSets.push({ vocab: vocabItems, grammar: printItems, reading: readingItems, exam: examItems });
   }
@@ -9665,6 +9676,7 @@ function renderWorksheet() {
         `<div class="answer-sub">${readingItems.length > 1 ? `[${ri + 1}] ` : ''}${r.passage.title}（${passageLabel(r.passage)}）</div>${listHtml(r.subs)}`).join('');
     }
   });
+  if (printSource.kind === 'test' && printSource.config.diag) answersHtml += diagTableHtml(printItems);
   answerList.innerHTML = answersHtml;
   answerSheet.classList.toggle('include', printIncludeAnswers.checked && !redSheetOn());
   if (basicSrc) applyBasicHints();
@@ -10573,6 +10585,50 @@ function togglePart(key, hide) {
   printSource.hiddenParts = [...set];
   renderWorksheet();
 }
+// ---------- 文法の理解度チェック ----------
+function renderDiagList() {
+  const list = document.getElementById('diagList');
+  if (!list || typeof DIAG_POINTS === 'undefined') return;
+  list.innerHTML = '';
+  [[[1], '中1の文法'], [[2], '中2の文法'], [[3], '中3の文法'], [[1, 2, 3], '中1〜中3 すべて']].forEach(([gs, title]) => {
+    const pts = DIAG_POINTS.filter(d => gs.includes(d.g));
+    const b = document.createElement('button');
+    b.className = 'exam-round';
+    b.innerHTML = `<b>${gs.length > 1 ? '総合' : `中${gs[0]}`}</b>${title}<small>${pts.length}問（文法事項ごとに1問）</small>`;
+    b.onclick = () => startDiagPrint(gs, title);
+    list.appendChild(b);
+  });
+}
+function startDiagPrint(gs, title) {
+  const pts = DIAG_POINTS.filter(d => gs.includes(d.g));
+  const keys = stages.filter(st => typeof st.grade === 'number' && pts.some(d => d.re.test(st.key))).map(st => st.key);
+  startExamPrint(`文法の理解度チェック（${title}・${pts.length}問）`, examConfig(`入試対策 文法の理解度チェック（${title}）`, { keys, diag: gs, shuffle: false }));
+}
+// 文法事項ごとに1問。形式は固定、文はその文法の単元からその都度えらぶ
+function diagItems(gs, stateOf) {
+  return DIAG_POINTS.filter(d => gs.includes(d.g)).map((d, i) => {
+    const list = shuffle(stages.filter(st => typeof st.grade === 'number' && d.re.test(st.key)));
+    let item = null;
+    for (const type of [d.type, d.alt || 'choice', 'reorder']) {
+      for (const st of list) {
+        const it = makeUnitQuestion(st, type, stateOf(st));
+        if (it.type === type) { item = it; break; }
+      }
+      if (item) break;
+    }
+    if (!item) return null;
+    item.diag = { no: i + 1, title: d.title };
+    item.why = item.why ? `${item.why}（文法：${d.title}）` : `文法：${d.title}`;
+    return item;
+  }).filter(Boolean);
+}
+// 解答ページの最後に、文法事項ごとの○×表(どの文法ができていないかがわかる)
+function diagTableHtml(items) {
+  const rows = items.map((it, i) => ({ it, no: i + 1 })).filter(x => x.it.diag).sort((a, b) => a.it.diag.no - b.it.diag.no);
+  if (!rows.length) return '';
+  return `<div class="ws-diag-table"><h3>文法事項ごとの結果（○×をつけて、×の文法を復習しよう）</h3><table><tr><th>文法事項</th><th>問題</th><th>形式</th><th>○×</th></tr>${rows.map(({ it, no }) => `<tr><td>${escHtml(it.diag.title)}</td><td>(${no})</td><td>${escHtml((QUESTION_TYPES[it.type] || {}).label || '')}</td><td class="mark"></td></tr>`).join('')}</table></div>`;
+}
+
 function renderExamSummary() {
   const cfg = printSource.kind === 'test' ? printSource.config : null;
   if (cfg && cfg.examReadingLevels && activeRound === 0) { renderReadingTips(); return; }
@@ -10881,6 +10937,7 @@ function renderExamScreen() {
     };
     examRoundList.appendChild(b);
   });
+  renderDiagList();
   const chips = (container, entries, set) => {
     container.innerHTML = '';
     const all = document.createElement('button');
