@@ -904,7 +904,7 @@
       <div class="exam-rounds" id="howtoList"></div>
     </div>
     <div class="card test-card exam-card" id="diagCard">
-      <div class="exam-head">文法の理解度チェック<span>文法事項ごとに1問ずつ、その文法に合った形式（適語選択・語形変化・並べかえ・書きかえ・用法の識別など）で出題。形式は固定で、文は毎回ちがう（作り直すたび・何周でも別の問題）。解答ページに文法事項ごとの○×表つき</span></div>
+      <div class="exam-head">文法の理解度チェック<span>文法事項ごとに1問ずつ、その文法に合った形式（適語選択・語形変化・並べかえ・書きかえなど）で出題。形式は固定で、文は毎回ちがう（作り直すたび・何周でも別の問題）。解答ページに文法事項ごとの○×表つき</span></div>
       <div class="exam-rounds" id="diagList"></div>
     </div>
     <div class="card test-card exam-card">
@@ -8445,7 +8445,7 @@ function renderPrintOptions() {
     printCount = v; generateWorksheet();
   });
   // 問題の種類は複数選べる(選んだ種類の中から1問ずつランダムに決める)
-  renderMultiSwitch(printTypeSwitch, Object.entries(QUESTION_TYPES), printTypes);
+  renderMultiSwitch(printTypeSwitch, Object.entries(visibleTypes(QUESTION_TYPES)), printTypes);
   // 周ごとのヒント・まとまり
   roundStyleRows.innerHTML = '';
   const nRows = isGuide ? 1 : roundCount() || 1;
@@ -8484,9 +8484,13 @@ function sourceStages() {
 // - 種類ごと: 形式ごとの数をそろえ、単元は毎回シャッフルした順に1問ずつ割り当てる(どの単元も偏りなく)。
 //   その形式にできない単元だったら、別の単元で作り直してよい(fixed: false)
 // - 単元ごと: 単元ごとの数をそろえ、形式は種類ごとの数を比として配る
+// 選べない(出さない)問題形式。用法の識別はテストに出ないので出さない(前に保存した設定に入っていても出さない)
+const HIDDEN_TYPES = new Set(['usage']);
+const visibleTypes = defs => Object.fromEntries(Object.entries(defs).filter(([k]) => !HIDDEN_TYPES.has(k)));
 function grammarSlots() {
   if (printSource.kind === 'stage') {
-    const weights = Object.fromEntries([...printTypes].map(t => [t, 1]));
+    const weights = Object.fromEntries([...printTypes].filter(t => !HIDDEN_TYPES.has(t)).map(t => [t, 1]));
+    if (!Object.keys(weights).length) weights.reorder = 1;
     const list = sourceStages();
     if (list.length === 1) return allocateTypes(weights, printCount).map(type => ({ stage: currentStage(), type, fixed: true }));
     // 複数の単元: 単元を順にまわして、どの単元からも同じくらい出す(その形式にできない単元はほかの単元で作る)
@@ -8500,10 +8504,10 @@ function grammarSlots() {
   const stageList = sourceStages();
   if (cfg.mode === 'perUnit') {
     const units = stageList.map(stage => ({ stage, count: cfg.perUnit[stage.key] || 0 })).filter(u => u.count > 0);
-    const types = allocateTypes(cfg.grammarCounts, units.reduce((a, u) => a + u.count, 0));
+    const types = allocateTypes(Object.fromEntries(Object.entries(cfg.grammarCounts).filter(([t]) => !HIDDEN_TYPES.has(t))), units.reduce((a, u) => a + u.count, 0));
     return units.flatMap(u => Array.from({ length: u.count }, () => ({ stage: u.stage, type: types.pop(), fixed: true })));
   }
-  const types = shuffle(Object.entries(cfg.grammarCounts).flatMap(([t, c]) => Array(c).fill(t)));
+  const types = shuffle(Object.entries(cfg.grammarCounts).filter(([t]) => !HIDDEN_TYPES.has(t)).flatMap(([t, c]) => Array(c).fill(t)));
   let pool = [];
   return types.map(type => {
     if (!pool.length) pool = shuffle(stageList);
@@ -11309,7 +11313,7 @@ function renderTestScreen() {
   renderTypeCounts(testVocabTypes, VOCAB_TYPES, testState.vocabCounts, 30,
     selected.length ? key => vocabTypePool(selected, key, testState.vocabImportant).length : null);
   // 文法問題: 種類ごとの数と、単元への割り振り方
-  renderTypeCounts(testGrammarTypes, QUESTION_TYPES, testState.grammarCounts, 30);
+  renderTypeCounts(testGrammarTypes, visibleTypes(QUESTION_TYPES), testState.grammarCounts, 30);
   renderOptionSwitch(testModeSwitch, [['byType', '範囲全体からバランスよく'], ['perUnit', '単元ごとに問題数を指定']], testState.mode, v => {
     testState.mode = v; renderTestScreen();
   });

@@ -22,7 +22,7 @@ const DIAG_POINTS = [
   { g: 2, title: 'will', re: /^g2program1-will$/, type: 'rewrite' },
   { g: 2, title: '動名詞（〜ing）', re: /^g2program1-(enjoystop|likegerund|subjgerund)$/, type: 'form' },
   { g: 2, title: '接続詞 when / if / that / because', re: /^g2program2-/, type: 'choice' },
-  { g: 2, title: '不定詞の3つの用法', re: /^g2program3-(noun|adverb|adj)$/, type: 'usage' },
+  { g: 2, title: '不定詞（〜すること・〜するために・〜するための）', re: /^g2program3-(noun|adverb|adj)$/, type: 'reorder' },
   { g: 2, title: 'It is 〜 to …', re: /^g2program3-itisto$/, type: 'reorder' },
   { g: 2, title: 'must / have to', re: /^g2program4-(must|haveto)$/, type: 'paraphrase', alt: 'choice' },
   { g: 2, title: '疑問詞 + to（how to など）', re: /^(g2program5-whto|g2program7-howto)$/, type: 'reorder' },
@@ -34,7 +34,7 @@ const DIAG_POINTS = [
   // ---------- 中3 ----------
   { g: 3, title: 'want / tell / ask 人 to 〜', re: /^g3program1-asktell$/, type: 'reorder' },
   { g: 3, title: 'It is 〜 for 人 to …', re: /^g3program1-itisfor$/, type: 'reorder' },
-  { g: 3, title: '現在完了の用法（経験・完了・継続）', re: /^(g3program1-experience|g3program2-(completion|continuation))$/, type: 'usage' },
+  { g: 3, title: '現在完了（経験・完了・継続の文）', re: /^(g3program1-experience|g3program2-(completion|continuation))$/, type: 'reorder' },
   { g: 3, title: '現在完了の形（have + 過去分詞）', re: /^(g3program1-experience|g3program2-(completion|continuation))$/, type: 'form' },
   { g: 3, title: '現在完了進行形', re: /^g3program2-progressive$/, type: 'rewrite', alt: 'form' },
   { g: 3, title: 'SVOC・make / let / help 人 〜', re: /^g3program3-(svoc|callname|makeletlelp)$/, type: 'reorder' },
