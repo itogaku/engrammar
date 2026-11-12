@@ -847,8 +847,11 @@
   @media print { .ws-rules { break-after: page; page-break-after: always; } }
   .ws-rule-hint { margin: 0 0 4px 36px; font-size: 11.5px; color: var(--ink-soft); }
   .ws-diag-table { margin-top: 14px; break-inside: avoid; }
+  .answer-sheet ol.ans-compact { columns: 2; column-gap: 28px; font-size: 13.5px; line-height: 1.6; }
+  .answer-sheet ol.ans-compact li { break-inside: avoid; }
   .ws-diag-table table { border-collapse: collapse; width: 100%; font-size: 13px; }
-  .ws-diag-table th, .ws-diag-table td { border: 1px solid var(--ink); padding: 3px 8px; text-align: left; }
+  .ws-diag-table th, .ws-diag-table td { border: 1px solid var(--ink); padding: 1px 8px; text-align: left; font-size: 12px; line-height: 1.5; }
+  .ws-diag-table h3 { font-size: 13px; margin: 0 0 4px; }
   .ws-diag-table td.mark { width: 3em; }
   .ws-part { position: relative; }
   .ws-part-del { position: absolute; top: 4px; right: 4px; z-index: 2; font-family: inherit; font-size: 11.5px; font-weight: 700; color: #C0392B; background: #fff; border: 1.5px solid #C0392B; border-radius: 6px; padding: 2px 8px; cursor: pointer; }
@@ -9668,7 +9671,11 @@ function renderWorksheet() {
   sheetInstr.style.display = sheetInstr.textContent ? 'block' : 'none';
 
   answerSheetTitle.textContent = `解答 ${sheetTitle.textContent.replace(/^英語(プリント|テスト) ?/, '')}`;
-  const listHtml = items => `<ol>${items.map(item => `<li>${answerText(item)}${item.why ? `<span class="ans-why">${item.why}</span>` : ''}</li>`).join('')}</ol>`;
+  const isDiag = printSource.kind === 'test' && printSource.config.diag;
+  // 理解度チェックは答えだけを2列でコンパクトに(文法事項は下の表で確認する)
+  const listHtml = items => (isDiag
+    ? `<ol class="ans-compact">${items.map(item => `<li>${answerText(item).replace(/<span class="ans-why">[\s\S]*?<\/span>/g, '')}</li>`).join('')}</ol>`
+    : `<ol>${items.map(item => `<li>${answerText(item)}${item.why ? `<span class="ans-why">${item.why}</span>` : ''}</li>`).join('')}</ol>`);
   let answersHtml = '';
   sections.forEach((sec, si) => {
     const head = numbered ? `<h3>${SECTION_NUMERALS[si]} ${{ vocab: '単語', grammar: '文法', exam: examTitle, reading: '長文' }[sec]}</h3>` : '';
@@ -10562,7 +10569,7 @@ function setPart(el, key, label) { el.dataset.part = key; el.dataset.label = lab
 function applyPartControls() {
   const hidden = new Set(printSource.hiddenParts || []);
   const seen = [];
-  sheetItems.querySelectorAll('[data-part]').forEach(el => {
+  document.getElementById('sheet').querySelectorAll('#sheetItems [data-part], #answerList [data-part]').forEach(el => {
     seen.push([el.dataset.part, el.dataset.label]);
     if (hidden.has(el.dataset.part)) { el.remove(); return; }
     el.classList.add('ws-part');
@@ -10628,9 +10635,9 @@ function diagItems(gs, stateOf) {
 }
 // 解答ページの最後に、文法事項ごとの○×表(どの文法ができていないかがわかる)
 function diagTableHtml(items) {
-  const rows = items.map((it, i) => ({ it, no: i + 1 })).filter(x => x.it.diag).sort((a, b) => a.it.diag.no - b.it.diag.no);
+  const rows = items.map((it, i) => ({ it, no: i + 1 })).filter(x => x.it.diag); // 問題の順番のまま
   if (!rows.length) return '';
-  return `<div class="ws-diag-table"><h3>文法事項ごとの結果（○×をつけて、×の文法を復習しよう）</h3><table><tr><th>文法事項</th><th>問題</th><th>形式</th><th>○×</th></tr>${rows.map(({ it, no }) => `<tr><td>${escHtml(it.diag.title)}</td><td>(${no})</td><td>${escHtml((QUESTION_TYPES[it.type] || {}).label || '')}</td><td class="mark"></td></tr>`).join('')}</table></div>`;
+  return `<div class="ws-diag-table"${partAttr('diag-table', '文法事項ごとの○×表（解答ページ）')}><h3>文法事項ごとの結果（○×をつけて、×の文法を復習しよう）</h3><table><tr><th>文法事項</th><th>問題</th><th>形式</th><th>○×</th></tr>${rows.map(({ it, no }) => `<tr><td>${escHtml(it.diag.title)}</td><td>(${no})</td><td>${escHtml((QUESTION_TYPES[it.type] || {}).label || '')}</td><td class="mark"></td></tr>`).join('')}</table></div>`;
 }
 
 function renderExamSummary() {
