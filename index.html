@@ -1043,7 +1043,7 @@
       <div class="mode-switch" id="testModeSwitch"></div>
       <div class="test-empty" id="testModeNote"></div>
       <div id="testPerUnitBox"><div id="testPerUnitList"></div></div>
-      <label class="opt-check test-shuffle"><input type="checkbox" id="testBestTypeCheck" checked> 単元に合った形式で出す（所有格・代名詞は適語補充、3単現・過去形・比較・受け身は語形変化、疑問詞・関係代名詞は適語選択 など）</label>
+      <label class="opt-check test-shuffle"><input type="checkbox" id="testBestTypeCheck" checked> 単元に合った形式を優先して出す（所有格・代名詞は適語補充、3単現・過去形・比較・受け身は語形変化、疑問詞・関係代名詞は適語選択 など。ほかの形式でも出ます）</label>
       <label class="opt-check test-shuffle"><input type="checkbox" id="testShuffleCheck" checked> 問題の順番をランダムにする（オフにすると単元順）</label>
     </div>
 
@@ -8488,6 +8488,7 @@ function sourceStages() {
 // - 種類ごと: 形式ごとの数をそろえ、単元は毎回シャッフルした順に1問ずつ割り当てる(どの単元も偏りなく)。
 //   その形式にできない単元だったら、別の単元で作り直してよい(fixed: false)
 // - 単元ごと: 単元ごとの数をそろえ、形式は種類ごとの数を比として配る
+const canMakeCache = new Map();
 // 選べない(出さない)問題形式。用法の識別はテストに出ないので出さない(前に保存した設定に入っていても出さない)
 const HIDDEN_TYPES = new Set(['usage']);
 const visibleTypes = defs => Object.fromEntries(Object.entries(defs).filter(([k]) => !HIDDEN_TYPES.has(k)));
@@ -8511,21 +8512,49 @@ function grammarSlots() {
   const best = st => (cfg.bestType && typeof bestTypeOf === 'function' ? bestTypeOf(st) : null);
   if (cfg.mode === 'perUnit') {
     const units = stageList.map(stage => ({ stage, count: cfg.perUnit[stage.key] || 0 })).filter(u => u.count > 0);
-    const types = allocateTypes(counts, units.filter(u => !best(u.stage)).reduce((a, u) => a + u.count, 0));
-    return units.flatMap(u => Array.from({ length: u.count }, () => (best(u.stage) ? { stage: u.stage, type: best(u.stage), fixed: true } : { stage: u.stage, type: types.pop(), fixed: true })));
+    // 合う形式がある単元は、1問目をその形式に。残りはほかの単元と同じく、種類ごとの数の比で配る(その形式だけにしない)
+    const types = allocateTypes(counts, units.reduce((a, u) => a + u.count - (best(u.stage) ? 1 : 0), 0));
+    return units.flatMap(u => Array.from({ length: u.count }, (_, k) => (k === 0 && best(u.stage) ? { stage: u.stage, type: best(u.stage), fixed: true } : { stage: u.stage, type: types.pop(), fixed: true })));
   }
-  const types = shuffle(Object.entries(counts).flatMap(([t, c]) => Array(c).fill(t)));
-  // 種類ごと: その形式が合う単元があれば、その単元から順に出す。なければ、合う形式が決まっていない単元
-  // (合う形式の数が0の単元もここに入る)から出す
-  const used = new Set(types);
-  const fitPools = {}, other = [];
-  stageList.forEach(st => { const b = best(st); if (b && used.has(b)) (fitPools[b] = fitPools[b] || []).push(st); else other.push(st); });
-  const queues = {};
-  const take = (key, list) => { if (!queues[key] || !queues[key].length) queues[key] = shuffle(list.slice()); return queues[key].pop(); };
-  return types.map(type => {
-    if (fitPools[type]) return { stage: take(type, fitPools[type]), type, fixed: false };
-    return { stage: take('*', other.length ? other : stageList), type, fixed: false };
-  });
+  // 種類ごと: 単元は順にまわして、どの単元からもバランスよく出す。形式は、その単元に合う形式が残っていればそれを
+  // 使い(合う形式だけに決めつけない)、なければ、ほかの単元に合う形式をなるべく残しながら選ぶ
+  const remain = { ...counts };
+  const total = Object.values(remain).reduce((a, c) => a + c, 0);
+  const bestOf = new Map(stageList.map(st => [st, best(st)]));
+  // その単元で作れる形式(否定文だけの単元は「否定文に書きかえ」が作れない など)。作れない形式は割り当てない
+  const canMake = (st, t) => {
+    const key = `${st.key}|${t}`;
+    if (!canMakeCache.has(key)) {
+      const saved = rngState;
+      canMakeCache.set(key, st.questions.slice(0, 8).some(q => { try { return buildQuestion(st, q, t).type === t; } catch (e) { return false; } }));
+      rngState = saved;
+    }
+    return canMakeCache.get(key);
+  };
+  let order = [];
+  const slots = [];
+  for (let n = 0; n < total; n++) {
+    if (!order.length) order = shuffle(stageList.slice());
+    const st = order.pop();
+    const left = Object.keys(remain).filter(t => remain[t] > 0);
+    const b = bestOf.get(st);
+    let type;
+    if (b && remain[b] > 0) type = b;
+    else {
+      // まだ出ていない単元に合う形式は、なるべくその単元のためにとっておく
+      const wanted = new Set(order.map(o => bestOf.get(o)).filter(Boolean));
+      const makeable = left.filter(t => canMake(st, t));
+      const base = makeable.length ? makeable : left;
+      const free = base.filter(t => !wanted.has(t));
+      const cand = free.length ? free : base;
+      const sum = cand.reduce((a, t) => a + remain[t], 0);
+      let r = rand() * sum;
+      type = cand.find(t => (r -= remain[t]) < 0) || cand[cand.length - 1];
+    }
+    remain[type]--;
+    slots.push({ stage: st, type, fixed: false });
+  }
+  return slots;
 }
 
 // 問題の中身(文・修飾語・形式)を作る。まとまりの大きさやヒントの切り替えでは作り直さず、
@@ -8618,16 +8647,19 @@ function generateWorksheet(seed) {
   const slots = diagCfg ? [] : grammarSlots();
   // 順番をランダムにしないときは単元順(同じ形式の中で)
   if (isTest && !printSource.config.shuffle) slots.sort((a, b) => stages.indexOf(a.stage) - stages.indexOf(b.stage));
+  const perStage = new Map();
   printItems = slots.map(({ stage, type, fixed }) => {
     let item = makeUnitQuestion(stage, type, stateOf(stage));
     // その形式にできない単元(疑問文ばかりで書きかえができない など)なら、ほかの単元で作る
-    // (範囲の単元をすべて順に試す。用法の識別のように、作れる単元が限られる形式もあるため)
+    // (範囲の単元をすべて試す。まだ問題の少ない単元から試して、単元のバランスをくずさないように)
     if (!fixed && item.type !== type) {
-      for (const other of shuffle(stageList)) {
+      for (const other of shuffle(stageList).sort((a, b) => (perStage.get(a) || 0) - (perStage.get(b) || 0))) {
         const alt = makeUnitQuestion(other, type, stateOf(other));
         if (alt.type === type) { item = alt; break; }
       }
     }
+    const st = stages.find(x => x.key === item.stageKey);
+    perStage.set(st, (perStage.get(st) || 0) + 1);
     return item;
   });
   // 同じ文が2回出ないように(ほかの形式で作れなかった単元は、文を多く使って一周することがある)
@@ -10054,11 +10086,22 @@ function newGrammarItem(type, preferKey) {
   const used = new Set(printItems.map(it => `${it.stageKey}|${it.jp}`));
   const list = sourceStages();
   const prefer = list.find(st => st.key === preferKey);
-  const pool = prefer ? [prefer, ...shuffle(list.filter(st => st !== prefer))] : shuffle(list);
+  let pool;
+  if (prefer) pool = [prefer, ...shuffle(list.filter(st => st !== prefer))];
+  else {
+    // 「1問追加」は、ほしい文法の問題を足すためのもの。範囲の単元を教科書の順に1つずつ出す(押すたびに次の単元)
+    printSource.addCursor = printSource.addCursor || {};
+    const start = (printSource.addCursor[type] || 0) % list.length;
+    pool = [...list.slice(start), ...list.slice(0, start)];
+    printSource.addCursor[type] = start + 1;
+  }
   for (const st of pool) {
     for (let k = 0; k < Math.min(st.questions.length, 8); k++) {
       const it = makeUnitQuestion(st, type, printStateOf(st));
-      if (it.type === type && !used.has(`${it.stageKey}|${it.jp}`) && !isExcluded(it)) return it;
+      if (it.type === type && !used.has(`${it.stageKey}|${it.jp}`) && !isExcluded(it)) {
+        if (!prefer) printSource.addCursor[type] = list.indexOf(st) + 1; // 次は、この単元の次から
+        return it;
+      }
     }
   }
   return null;
