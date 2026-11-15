@@ -44,3 +44,29 @@ const DIAG_POINTS = [
   { g: 3, title: '関係代名詞（目的格）・省略', re: /^g3program6-/, type: 'reorder' },
   { g: 3, title: '仮定法（I wish / If 〜）', re: /^g3program7-/, type: 'form', alt: 'choice' },
 ];
+
+// 定期テストで、その単元の文法に合った形式(あれば)。この単元の問題はこの形式で出す
+// (例：所有格・目的格は並べ替えより適語補充、3単現・過去形は語形変化、疑問詞・be動詞は適語選択)
+const STAGE_BEST_TYPES = [
+  [/^(program1-(aff|neg|q)|g1program4-(aff|neg|q)|program2-(neg|q)|g1program5-(neg|q)|g1program9-be|g1program7-(aff|neg|q))$/, 'choice'],
+  [/^(program1-where|program2-when|g1program3-whatcan|g1program4-who|g1program6-why|g1program7-(how|howmeans)|g1program8-wh|g1program9-whprog)$/, 'choice'],
+  [/^g1program6-(obj|pos|posp)$/, 'fillin'],
+  [/^program2-plural$/, 'form'],
+  [/^g1program5-aff$/, 'form'],
+  [/^(g1program8-(aff|neg|q)|g1program9-prog)$/, 'form'],
+  [/^g1program9-general$/, 'form'],
+  [/^g2program1-(enjoystop|likegerund|subjgerund)$/, 'form'],
+  [/^g2program2-/, 'choice'],
+  [/^g2program6-(comp|sup)$/, 'form'],
+  [/^g2program7-(better|best)$/, 'choice'],
+  [/^g2program8-/, 'form'],
+  [/^(g3program1-experience|g3program2-(completion|continuation))$/, 'form'],
+  [/^g3program4-(presentp|pastp)$/, 'form'],
+  [/^g3program5-/, 'choice'],
+  [/^g3program7-/, 'form'],
+  [/^(g2program3-itisto|g2program5-(whto|svoo)|g2program7-howto|g2program6-asas|g3program1-(asktell|itisfor)|g3program3-|g3program4-indirect|g3program6-)/, 'reorder'],
+];
+function bestTypeOf(st) {
+  const hit = STAGE_BEST_TYPES.find(([re]) => re.test(st.key));
+  return hit ? hit[1] : null;
+}

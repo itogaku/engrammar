@@ -1043,6 +1043,7 @@
       <div class="mode-switch" id="testModeSwitch"></div>
       <div class="test-empty" id="testModeNote"></div>
       <div id="testPerUnitBox"><div id="testPerUnitList"></div></div>
+      <label class="opt-check test-shuffle"><input type="checkbox" id="testBestTypeCheck" checked> 単元に合った形式で出す（所有格・代名詞は適語補充、3単現・過去形・比較・受け身は語形変化、疑問詞・関係代名詞は適語選択 など）</label>
       <label class="opt-check test-shuffle"><input type="checkbox" id="testShuffleCheck" checked> 問題の順番をランダムにする（オフにすると単元順）</label>
     </div>
 
@@ -4423,7 +4424,7 @@ let printSource = { kind: 'stage' };  // 出題元: 1つの単元(stage) / テ�
 // テスト範囲画面の状態
 // mode: 'byType'(種類ごとの数を範囲全体からバランスよく) / 'perUnit'(単元ごとに数を指定)
 const testState = {
-  grade: 1, keys: new Set(), mode: 'byType', perUnit: {}, shuffle: true, name: '',
+  grade: 1, keys: new Set(), mode: 'byType', perUnit: {}, shuffle: true, bestType: true, name: '',
   grammarCounts: { reorder: 4, choice: 3, fillin: 0, form: 3, rewrite: 2, translate: 2, entoja: 0 },
   vocabCounts: { vmeaning: 4, vjp: 0, vword: 3, vblank: 3, vidiom: 0 },
   vocabImportant: false, readingCount: 1, readingLevel: 'both',
@@ -8505,16 +8506,25 @@ function grammarSlots() {
   }
   const cfg = printSource.config;
   const stageList = sourceStages();
+  const counts = Object.fromEntries(Object.entries(cfg.grammarCounts).filter(([t]) => !HIDDEN_TYPES.has(t)));
+  // 単元に合った形式(所有格なら適語補充 など)があれば、その単元はその形式で出す
+  const best = st => (cfg.bestType && typeof bestTypeOf === 'function' ? bestTypeOf(st) : null);
   if (cfg.mode === 'perUnit') {
     const units = stageList.map(stage => ({ stage, count: cfg.perUnit[stage.key] || 0 })).filter(u => u.count > 0);
-    const types = allocateTypes(Object.fromEntries(Object.entries(cfg.grammarCounts).filter(([t]) => !HIDDEN_TYPES.has(t))), units.reduce((a, u) => a + u.count, 0));
-    return units.flatMap(u => Array.from({ length: u.count }, () => ({ stage: u.stage, type: types.pop(), fixed: true })));
+    const types = allocateTypes(counts, units.filter(u => !best(u.stage)).reduce((a, u) => a + u.count, 0));
+    return units.flatMap(u => Array.from({ length: u.count }, () => (best(u.stage) ? { stage: u.stage, type: best(u.stage), fixed: true } : { stage: u.stage, type: types.pop(), fixed: true })));
   }
-  const types = shuffle(Object.entries(cfg.grammarCounts).filter(([t]) => !HIDDEN_TYPES.has(t)).flatMap(([t, c]) => Array(c).fill(t)));
-  let pool = [];
+  const types = shuffle(Object.entries(counts).flatMap(([t, c]) => Array(c).fill(t)));
+  // 種類ごと: その形式が合う単元があれば、その単元から順に出す。なければ、合う形式が決まっていない単元
+  // (合う形式の数が0の単元もここに入る)から出す
+  const used = new Set(types);
+  const fitPools = {}, other = [];
+  stageList.forEach(st => { const b = best(st); if (b && used.has(b)) (fitPools[b] = fitPools[b] || []).push(st); else other.push(st); });
+  const queues = {};
+  const take = (key, list) => { if (!queues[key] || !queues[key].length) queues[key] = shuffle(list.slice()); return queues[key].pop(); };
   return types.map(type => {
-    if (!pool.length) pool = shuffle(stageList);
-    return { stage: pool.pop(), type, fixed: false };
+    if (fitPools[type]) return { stage: take(type, fitPools[type]), type, fixed: false };
+    return { stage: take('*', other.length ? other : stageList), type, fixed: false };
   });
 }
 
@@ -11177,7 +11187,7 @@ function applyRangeOnly(r) {
 }
 function currentFormat(name) {
   return {
-    name, mode: testState.mode, shuffle: testState.shuffle,
+    name, mode: testState.mode, shuffle: testState.shuffle, bestType: testState.bestType !== false,
     grammarCounts: { ...testState.grammarCounts }, vocabCounts: { ...testState.vocabCounts },
     vocabImportant: testState.vocabImportant, readingCount: testState.readingCount, readingLevel: testState.readingLevel,
     rounds: printRounds, points: printPointsCheck.checked, answers: printIncludeAnswers.checked,
@@ -11186,6 +11196,7 @@ function currentFormat(name) {
 function applyFormat(f) {
   testState.mode = f.mode === 'perUnit' ? 'perUnit' : 'byType';
   testState.shuffle = f.shuffle !== false;
+  testState.bestType = f.bestType !== false;
   testState.grammarCounts = { ...Object.fromEntries(Object.keys(QUESTION_TYPES).map(k => [k, 0])), ...f.grammarCounts };
   testState.vocabCounts = { ...Object.fromEntries(Object.keys(VOCAB_TYPES).map(k => [k, 0])), ...f.vocabCounts };
   testState.vocabImportant = !!f.vocabImportant;
@@ -11344,6 +11355,7 @@ function renderTestScreen() {
     });
   }
   testShuffleCheck.checked = testState.shuffle;
+  document.getElementById('testBestTypeCheck').checked = testState.bestType !== false;
   testVocabImportant.checked = testState.vocabImportant;
   testReadingInput.value = testState.readingCount;
   renderOptionSwitch(testReadingLevelSwitch, Object.entries(READING_LEVEL_LABELS), testState.readingLevel, v => {
@@ -11397,6 +11409,7 @@ testReadingInput.addEventListener('input', () => {
   updateTestMakeButton();
 });
 testShuffleCheck.addEventListener('change', () => { testState.shuffle = testShuffleCheck.checked; });
+document.getElementById('testBestTypeCheck').addEventListener('change', e => { testState.bestType = e.target.checked; });
 testClearBtn.addEventListener('click', () => { testState.keys.clear(); testState.name = ''; renderTestScreen(); });
 // 単元を選び直したら、登録した範囲の名前は外す(名前と中身がずれないように)
 testSaveConfirmBtn.addEventListener('click', () => {
@@ -11421,7 +11434,7 @@ testMakeBtn.addEventListener('click', () => {
     summary: rangeSummary(selected),
     config: {
       name: testState.name, keys: selected.map(s => s.key), mode: testState.mode,
-      perUnit: { ...testState.perUnit }, shuffle: testState.shuffle,
+      perUnit: { ...testState.perUnit }, shuffle: testState.shuffle, bestType: testState.bestType !== false,
       grammarCounts: { ...testState.grammarCounts }, vocabCounts: { ...testState.vocabCounts },
       vocabImportant: testState.vocabImportant, readingCount: testState.readingCount, readingLevel: testState.readingLevel,
     },
