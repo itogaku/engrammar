@@ -853,6 +853,7 @@
   .ws-diag-table th, .ws-diag-table td { border: 1px solid var(--ink); padding: 1px 8px; text-align: left; font-size: 12px; line-height: 1.5; }
   .ws-diag-table h3 { font-size: 13px; margin: 0 0 4px; }
   .ws-diag-table td.mark { width: 3em; }
+  .test-note-inline { font-weight: 400; font-size: 11.5px; color: var(--ink-soft); margin-left: 4px; }
   .ws-part { position: relative; }
   .ws-part-del { position: absolute; top: 4px; right: 4px; z-index: 2; font-family: inherit; font-size: 11.5px; font-weight: 700; color: #C0392B; background: #fff; border: 1.5px solid #C0392B; border-radius: 6px; padding: 2px 8px; cursor: pointer; }
   .ws-part-del:hover { background: #FDECEA; }
@@ -1032,7 +1033,9 @@
       <div class="test-label">Ⅰ 単語問題 <span class="test-avail" id="testVocabNote"></span></div>
       <div class="test-type-grid" id="testVocabTypes"></div>
       <div class="test-type-total" id="testVocabTotal"></div>
-      <label class="opt-check test-shuffle"><input type="checkbox" id="testVocabImportant"> 重要語（教科書の太字）だけから出す（熟語・前置詞は範囲内のすべてから）</label>
+      <label class="opt-check test-shuffle"><input type="checkbox" id="testVocabImportant"> 重要語（教科書の太字）だけから出す（熟語・前置詞は範囲内のすべてから）。チェックなしでも重要語を優先して出します</label>
+      <div class="test-sublabel">本文が出る Program<span class="test-note-inline">（「文法のみで本文は出ない」Program は外すと、その Program の単語・長文は出ません）</span></div>
+      <div class="chip-switch" id="testTextPrograms"></div>
     </div>
 
     <div class="card test-card">
@@ -4425,6 +4428,7 @@ let printSource = { kind: 'stage' };  // 出題元: 1つの単元(stage) / テ�
 // mode: 'byType'(種類ごとの数を範囲全体からバランスよく) / 'perUnit'(単元ごとに数を指定)
 const testState = {
   grade: 1, keys: new Set(), mode: 'byType', perUnit: {}, shuffle: true, bestType: true, name: '',
+  noText: new Set(), // 本文(単語・長文)がテストに出ない Program("学年|Program")
   grammarCounts: { reorder: 4, choice: 3, fillin: 0, form: 3, rewrite: 2, translate: 2, entoja: 0 },
   vocabCounts: { vmeaning: 4, vjp: 0, vword: 3, vblank: 3, vidiom: 0 },
   vocabImportant: false, readingCount: 1, readingLevel: 'both',
@@ -7768,7 +7772,9 @@ function generateVocabItems(stageList, cfg, usedBefore = new Set()) {
   ['vidiom', 'vblank', 'vword', 'vjp', 'vmeaning'].forEach(type => {
     let want = cfg.vocabCounts[type] || 0;
     // 前の回で出した語はあとまわし(足りないときだけ使う)
-    const cands = shuffle(vocabTypePool(stageList, type, cfg.vocabImportant));
+    // 重要語(教科書の太字)を先に。前の回で出した語はあとまわし(足りないときだけ使う)
+    const all = shuffle(vocabTypePool(stageList, type, cfg.vocabImportant));
+    const cands = [...all.filter(c => c.important), ...all.filter(c => !c.important)];
     for (const v of [...cands.filter(c => !usedBefore.has(c.word)), ...cands.filter(c => usedBefore.has(c.word))]) {
       if (want <= 0) break;
       if (used.has(v.word) || excludedSet.has(`v|${type}|${v.word}`)) continue;
@@ -8677,8 +8683,10 @@ function generateWorksheet(seed) {
   examItems = [];
   if (isTest) {
     const cfg = printSource.config;
-    vocabItems = groupByType(generateVocabItems(stageList, cfg, usedWords), VOCAB_TYPES);
-    readingItems = generateReadingItems(cfg.readingKeys ? stages.filter(st => cfg.readingKeys.includes(st.key)) : stageList, cfg, usedPassages);
+    // 単語・長文は、本文が出る Program からだけ
+    const textList = textStages(stageList, cfg.noText);
+    vocabItems = groupByType(generateVocabItems(textList, cfg, usedWords), VOCAB_TYPES);
+    readingItems = generateReadingItems(cfg.readingKeys ? stages.filter(st => cfg.readingKeys.includes(st.key)) : textList, cfg, usedPassages);
     examItems = generateExamItems(cfg, usedExam);
   }
   if (diagCfg) printItems = diagItems(printSource.config.diag, stateOf);
@@ -10107,10 +10115,11 @@ function newGrammarItem(type, preferKey) {
   return null;
 }
 function newVocabItem(type) {
-  const cfg = printSource.config, stageList = sourceStages();
+  const cfg = printSource.config, stageList = textStages(sourceStages(), cfg.noText);
   const pool = vocabPool(stageList, cfg.vocabImportant);
   const used = new Set(vocabItems.map(v => v.word));
-  for (const v of shuffle(vocabTypePool(stageList, type, cfg.vocabImportant))) {
+  const all = shuffle(vocabTypePool(stageList, type, cfg.vocabImportant));
+  for (const v of [...all.filter(c => c.important), ...all.filter(c => !c.important)]) {
     if (used.has(v.word) || excludedSet.has(`v|${type}|${v.word}`)) continue;
     const it = buildVocabQuestion(v, type, pool);
     if (it) return it;
@@ -11175,6 +11184,12 @@ function stageShortLabel(s) {
   return `${g ? g.name.replace('学', '').replace('年', '') : ''} ${s.label.replace(/^\d年 /, '')}`;
 }
 
+// 本文が出る Program の単元だけ(単語・長文はここから出す)
+const programKeyOf = s => { const p = stageProgram(s); return `${p.grade}|${p.program}`; };
+function textStages(list, noText) {
+  const ex = new Set(noText || []);
+  return ex.size ? list.filter(s => !ex.has(programKeyOf(s))) : list;
+}
 function selectedTestStages() {
   return stages.filter(s => testState.keys.has(s.key));
 }
@@ -11225,6 +11240,7 @@ function saveTestFormats(list) {
 })();
 function applyRangeOnly(r) {
   testState.keys = new Set(r.keys.filter(k => stages.some(s => s.key === k)));
+  testState.noText = new Set(r.noText || []);
   if (r.perUnit) testState.perUnit = { ...r.perUnit };
   testState.name = r.name;
 }
@@ -11252,7 +11268,9 @@ function applyFormat(f) {
 }
 let regSaving = null; // 'range' / 'format'
 function sameKeys(r) {
-  return r.keys.length === testState.keys.size && r.keys.every(k => testState.keys.has(k));
+  const nt = r.noText || [];
+  return r.keys.length === testState.keys.size && r.keys.every(k => testState.keys.has(k))
+    && nt.length === testState.noText.size && nt.every(k => testState.noText.has(k));
 }
 function sameFormat(f) {
   const c = currentFormat(f.name);
@@ -11370,9 +11388,24 @@ function renderTestScreen() {
     ? `選択中: ${selected.length}単元（${[...new Set(selected.map(s => grades.find(g => g.id === s.grade).name))].join('・')}）`
     : '単元を1つ以上選んでください';
 
+  // 本文が出る Program(範囲の Program ごとにオン・オフ)
+  const progBox = document.getElementById('testTextPrograms');
+  progBox.innerHTML = '';
+  const progs = [];
+  selected.forEach(st => { const k = programKeyOf(st); if (!progs.some(x => x.k === k)) progs.push({ k, label: `中${st.grade} ${(st.label.includes(': ') ? st.label.split(': ')[0] : st.label).replace(/^[1-3]年 /, '')}` }); });
+  if (!progs.length) progBox.innerHTML = '<span class="test-empty">単元を選ぶと、ここに Program が並びます。</span>';
+  progs.forEach(({ k, label }) => {
+    const btn = document.createElement('button');
+    btn.textContent = (testState.noText.has(k) ? '× ' : '✓ ') + label;
+    btn.className = testState.noText.has(k) ? '' : 'active';
+    btn.title = testState.noText.has(k) ? '本文は出ない（文法のみ）' : '本文も出る';
+    btn.onclick = () => { if (testState.noText.has(k)) testState.noText.delete(k); else testState.noText.add(k); renderTestScreen(); };
+    progBox.appendChild(btn);
+  });
+  const textSel = textStages(selected, testState.noText);
   // 単語問題: 種類ごとの数(範囲内で作れる数も出す)
   renderTypeCounts(testVocabTypes, VOCAB_TYPES, testState.vocabCounts, 30,
-    selected.length ? key => vocabTypePool(selected, key, testState.vocabImportant).length : null);
+    selected.length ? key => vocabTypePool(textSel, key, testState.vocabImportant).length : null);
   // 文法問題: 種類ごとの数と、単元への割り振り方
   renderTypeCounts(testGrammarTypes, visibleTypes(QUESTION_TYPES), testState.grammarCounts, 30);
   renderOptionSwitch(testModeSwitch, [['byType', '範囲全体からバランスよく'], ['perUnit', '単元ごとに問題数を指定']], testState.mode, v => {
@@ -11409,6 +11442,7 @@ function renderTestScreen() {
 
 // 単語問題の数(種類ごとに、範囲内で作れる数を上限にする。同じ語は2回出さないので全体の語数も上限)
 function testVocabCount(selected) {
+  selected = textStages(selected, testState.noText);
   if (!selected.length) return 0;
   const byType = Object.entries(testState.vocabCounts)
     .reduce((a, [t, n]) => a + Math.min(n || 0, vocabTypePool(selected, t, testState.vocabImportant).length), 0);
@@ -11420,14 +11454,15 @@ function testCounts() {
   const selected = selectedTestStages();
   return {
     questions: testTotalCount() + testVocabCount(selected),
-    passages: Math.min(testState.readingCount, readingPassagesFor(selected, testState.readingLevel).length),
+    passages: Math.min(testState.readingCount, readingPassagesFor(textStages(selected, testState.noText), testState.readingLevel).length),
   };
 }
 
 function updateTestMakeButton() {
   const selected = selectedTestStages();
-  const vocabAvail = vocabPool(selected, testState.vocabImportant).length;
-  const readingAvail = readingPassagesFor(selected, testState.readingLevel).length;
+  const textSel = textStages(selected, testState.noText);
+  const vocabAvail = vocabPool(textSel, testState.vocabImportant).length;
+  const readingAvail = readingPassagesFor(textSel, testState.readingLevel).length;
   testVocabNote.textContent = selected.length ? `（範囲内 ${vocabAvail}語）` : '';
   testVocabTotal.textContent = `合計 ${testVocabCount(selected) || sumCounts(testState.vocabCounts)}問`;
   testGrammarTotal.textContent = testState.mode === 'byType' ? `合計 ${testTotalCount()}問` : '';
@@ -11453,7 +11488,7 @@ testReadingInput.addEventListener('input', () => {
 });
 testShuffleCheck.addEventListener('change', () => { testState.shuffle = testShuffleCheck.checked; });
 document.getElementById('testBestTypeCheck').addEventListener('change', e => { testState.bestType = e.target.checked; });
-testClearBtn.addEventListener('click', () => { testState.keys.clear(); testState.name = ''; renderTestScreen(); });
+testClearBtn.addEventListener('click', () => { testState.keys.clear(); testState.noText.clear(); testState.name = ''; renderTestScreen(); });
 // 単元を選び直したら、登録した範囲の名前は外す(名前と中身がずれないように)
 testSaveConfirmBtn.addEventListener('click', () => {
   const name = testNameInput.value.trim();
@@ -11462,7 +11497,7 @@ testSaveConfirmBtn.addEventListener('click', () => {
     saveTestFormats([...loadTestFormats().filter(f => f.name !== name), currentFormat(name)]);
     testState.formatName = name;
   } else {
-    saveTestRanges([...loadTestRanges().filter(r => r.name !== name), { name, keys: [...testState.keys], perUnit: { ...testState.perUnit } }]);
+    saveTestRanges([...loadTestRanges().filter(r => r.name !== name), { name, keys: [...testState.keys], perUnit: { ...testState.perUnit }, noText: [...testState.noText] }]);
     testState.name = name;
   }
   testSaveForm.style.display = 'none';
@@ -11480,6 +11515,7 @@ testMakeBtn.addEventListener('click', () => {
       perUnit: { ...testState.perUnit }, shuffle: testState.shuffle, bestType: testState.bestType !== false,
       grammarCounts: { ...testState.grammarCounts }, vocabCounts: { ...testState.vocabCounts },
       vocabImportant: testState.vocabImportant, readingCount: testState.readingCount, readingLevel: testState.readingLevel,
+      noText: [...testState.noText],
     },
   };
   selected.forEach(s => { if (printSource.config.perUnit[s.key] == null) printSource.config.perUnit[s.key] = 2; });
