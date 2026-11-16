@@ -70,3 +70,56 @@ function bestTypeOf(st) {
   const hit = STAGE_BEST_TYPES.find(([re]) => re.test(st.key));
   return hit ? hit[1] : null;
 }
+
+// 単元ごとの「これがすべてできれば完璧」な問題形式(はじめの2つは定期テストのおまかせで使う)。
+// 参考: 中1〜中3の教科書準拠ワーク(書きかえ・適語補充・並べかえ・英作文)、中1〜中3の問題集(誤文訂正・語を入れる位置)、
+// 千葉県の公立入試(語形変化・並べかえ)、入試対策の参考書(同意文書きかえ)
+const STAGE_RECIPES = [
+  [/^getready$/, ['reorder', 'translate']],
+  [/^(program1-aff|g1program4-aff)$/, ['choice', 'fillin', 'error', 'reorder', 'translate']],
+  [/^(program1-(neg|q)|g1program4-(neg|q))$/, ['rewrite', 'fillin', 'reorder', 'translate']],
+  [/^(program1-where|program2-when|g1program3-whatcan|g1program4-who|g1program6-why|g1program7-how|g1program8-wh|g1program9-whprog)$/, ['choice', 'fillin', 'reorder', 'translate']],
+  [/^program2-aff$/, ['reorder', 'error', 'rewrite', 'translate']],
+  [/^program2-(neg|q)$/, ['rewrite', 'fillin', 'reorder', 'translate']],
+  [/^program2-(imperative|lets)$/, ['fillin', 'reorder', 'translate']],
+  [/^program2-plural$/, ['form', 'error', 'translate']],
+  [/^g1program3-(aff|neg|q)$/, ['reorder', 'rewrite', 'error', 'translate']],
+  [/^g1program5-aff$/, ['form', 'error', 'rewrite', 'translate']],
+  [/^g1program5-(neg|q)$/, ['choice', 'rewrite', 'error', 'translate']],
+  [/^g1program6-(obj|pos|posp)$/, ['fillin', 'choice', 'error', 'translate']],
+  [/^g1program7-(aff|neg|q)$/, ['choice', 'rewrite', 'reorder', 'translate']],
+  [/^g1program7-(howmeans|candoq)$/, ['choice', 'reorder', 'translate']],
+  [/^(g1program8-(aff|neg|q)|g1program9-prog)$/, ['form', 'rewrite', 'error', 'reorder', 'translate']],
+  [/^g1program9-general$/, ['form', 'rewrite', 'error', 'translate']],
+  [/^g1program9-be$/, ['choice', 'form', 'rewrite', 'translate']],
+  [/^g\dpowerup\d$/, ['reorder', 'translate']],
+  [/^g2program1-begoingto$/, ['reorder', 'rewrite', 'paraphrase', 'translate']],
+  [/^g2program1-will$/, ['rewrite', 'paraphrase', 'reorder', 'translate']],
+  [/^g2program1-(enjoystop|likegerund|subjgerund)$/, ['form', 'error', 'paraphrase', 'translate']],
+  [/^g2program2-that$/, ['insert', 'choice', 'reorder', 'translate']],
+  [/^g2program2-(when|if)$/, ['choice', 'rewrite', 'reorder', 'translate']],
+  [/^g2program3-(noun|adverb|adj)$/, ['reorder', 'fillin', 'translate']],
+  [/^g2program3-itisto$/, ['reorder', 'paraphrase', 'translate']],
+  [/^g2program4-emotion$/, ['reorder', 'fillin', 'translate']],
+  [/^g2program4-(must|haveto)$/, ['paraphrase', 'rewrite', 'fillin', 'translate']],
+  [/^(g2program5-whto|g2program7-howto)$/, ['reorder', 'fillin', 'translate']],
+  [/^g2program5-svc$/, ['choice', 'reorder', 'translate']],
+  [/^g2program5-svoo$/, ['reorder', 'paraphrase', 'translate']],
+  [/^g2program6-(comp|sup)$/, ['form', 'choice', 'paraphrase', 'reorder', 'translate']],
+  [/^g2program6-asas$/, ['reorder', 'paraphrase', 'translate']],
+  [/^g2program7-(better|best)$/, ['choice', 'reorder', 'translate']],
+  [/^g2program8-/, ['form', 'paraphrase', 'reorder', 'translate']],
+  [/^g3program1-(asktell|itisfor)$/, ['reorder', 'fillin', 'translate']],
+  [/^(g3program1-experience|g3program2-(completion|continuation))$/, ['form', 'rewrite', 'fillin', 'translate']],
+  [/^g3program2-progressive$/, ['rewrite', 'form', 'translate']],
+  [/^g3program3-/, ['reorder', 'fillin', 'translate']],
+  [/^g3program4-(presentp|pastp)$/, ['form', 'rewrite', 'reorder', 'translate']],
+  [/^g3program4-indirect$/, ['rewrite', 'reorder', 'translate']],
+  [/^(g3program5-|g3program6-withpronoun)/, ['choice', 'rewrite', 'reorder', 'translate']],
+  [/^g3program6-omitted$/, ['insert', 'reorder', 'translate']],
+  [/^g3program7-/, ['form', 'rewrite', 'reorder', 'translate']],
+];
+function recipeOf(st) {
+  const hit = STAGE_RECIPES.find(([re]) => re.test(st.key));
+  return hit ? hit[1] : ['reorder', 'choice', 'translate'];
+}

@@ -1046,6 +1046,8 @@
       <div class="mode-switch" id="testModeSwitch"></div>
       <div class="test-empty" id="testModeNote"></div>
       <div id="testPerUnitBox"><div id="testPerUnitList"></div></div>
+      <button class="btn btn-ghost" id="testCheckBtn" style="margin-top:8px;">単元チェックテストを作る</button>
+      <div class="test-empty">単元チェックテストは、定期テストとは別のプリントです。各単元を「この形式がすべてできれば完璧」という形式で全部出します（単語・長文なし）。</div>
       <label class="opt-check test-shuffle"><input type="checkbox" id="testBestTypeCheck" checked> 単元に合った形式を優先して出す（所有格・代名詞は適語補充、3単現・過去形・比較・受け身は語形変化、疑問詞・関係代名詞は適語選択 など。ほかの形式でも出ます）</label>
       <label class="opt-check test-shuffle"><input type="checkbox" id="testShuffleCheck" checked> 問題の順番をランダムにする（オフにすると単元順）</label>
     </div>
@@ -4427,7 +4429,7 @@ let printSource = { kind: 'stage' };  // 出題元: 1つの単元(stage) / テ�
 // テスト範囲画面の状態
 // mode: 'byType'(種類ごとの数を範囲全体からバランスよく) / 'perUnit'(単元ごとに数を指定)
 const testState = {
-  grade: 1, keys: new Set(), mode: 'byType', perUnit: {}, shuffle: true, bestType: true, name: '',
+  grade: 1, keys: new Set(), mode: 'auto', perUnit: {}, shuffle: true, bestType: true, name: '',
   noText: new Set(), // 本文(単語・長文)がテストに出ない Program("学年|Program")
   grammarCounts: { reorder: 4, choice: 3, fillin: 0, form: 3, rewrite: 2, translate: 2, entoja: 0 },
   vocabCounts: { vmeaning: 4, vjp: 0, vword: 3, vblank: 3, vidiom: 0 },
@@ -8495,6 +8497,26 @@ function sourceStages() {
 //   その形式にできない単元だったら、別の単元で作り直してよい(fixed: false)
 // - 単元ごと: 単元ごとの数をそろえ、形式は種類ごとの数を比として配る
 const canMakeCache = new Map();
+// その単元で作れる形式か(否定文だけの単元は「否定文に書きかえ」が作れない など)
+function canMakeType(st, t) {
+  const key = `${st.key}|${t}`;
+  if (!canMakeCache.has(key)) {
+    const saved = rngState;
+    canMakeCache.set(key, st.questions.slice(0, 8).some(q => { try { return buildQuestion(st, q, t).type === t; } catch (e) { return false; } }));
+    rngState = saved;
+  }
+  return canMakeCache.get(key);
+}
+// おまかせ・単元チェックテストの問題の組み立て: 単元ごとの形式(STAGE_RECIPES)から、その単元で作れるものを使う。
+// おまかせ(定期テスト)は各単元の上位2つ(多すぎるときは1つ)、チェックテストはすべて
+const AUTO_TEST_LIMIT = 30;
+function recipePlan(list, full) {
+  const forms = list.map(st => ({ st, types: (typeof recipeOf === 'function' ? recipeOf(st) : ['reorder']).filter(t => !HIDDEN_TYPES.has(t) && canMakeType(st, t)) }));
+  const take = n => forms.flatMap(({ st, types }) => types.slice(0, n).map(type => ({ stage: st, type, fixed: true })));
+  if (full) return take(99);
+  const two = take(2);
+  return two.length <= AUTO_TEST_LIMIT ? two : take(1);
+}
 // 選べない(出さない)問題形式。用法の識別はテストに出ないので出さない(前に保存した設定に入っていても出さない)
 const HIDDEN_TYPES = new Set(['usage']);
 const visibleTypes = defs => Object.fromEntries(Object.entries(defs).filter(([k]) => !HIDDEN_TYPES.has(k)));
@@ -8513,6 +8535,7 @@ function grammarSlots() {
   }
   const cfg = printSource.config;
   const stageList = sourceStages();
+  if (cfg.mode === 'auto' || cfg.mode === 'check') return recipePlan(stageList, cfg.mode === 'check');
   const counts = Object.fromEntries(Object.entries(cfg.grammarCounts).filter(([t]) => !HIDDEN_TYPES.has(t)));
   // 単元に合った形式(所有格なら適語補充 など)があれば、その単元はその形式で出す
   const best = st => (cfg.bestType && typeof bestTypeOf === 'function' ? bestTypeOf(st) : null);
@@ -8527,16 +8550,7 @@ function grammarSlots() {
   const remain = { ...counts };
   const total = Object.values(remain).reduce((a, c) => a + c, 0);
   const bestOf = new Map(stageList.map(st => [st, best(st)]));
-  // その単元で作れる形式(否定文だけの単元は「否定文に書きかえ」が作れない など)。作れない形式は割り当てない
-  const canMake = (st, t) => {
-    const key = `${st.key}|${t}`;
-    if (!canMakeCache.has(key)) {
-      const saved = rngState;
-      canMakeCache.set(key, st.questions.slice(0, 8).some(q => { try { return buildQuestion(st, q, t).type === t; } catch (e) { return false; } }));
-      rngState = saved;
-    }
-    return canMakeCache.get(key);
-  };
+  const canMake = canMakeType;
   let order = [];
   const slots = [];
   for (let n = 0; n < total; n++) {
@@ -8654,8 +8668,12 @@ function generateWorksheet(seed) {
   // 順番をランダムにしないときは単元順(同じ形式の中で)
   if (isTest && !printSource.config.shuffle) slots.sort((a, b) => stages.indexOf(a.stage) - stages.indexOf(b.stage));
   const perStage = new Map();
+  const recipeMode = isTest && ['auto', 'check'].includes(printSource.config.mode);
   printItems = slots.map(({ stage, type, fixed }) => {
     let item = makeUnitQuestion(stage, type, stateOf(stage));
+    // おまかせ・チェックテストは単元と形式が決まっているので、その形式になるまで別の文でためす(だめなら出さない)
+    for (let k = 0; recipeMode && item.type !== type && k < 4; k++) item = makeUnitQuestion(stage, type, stateOf(stage));
+    if (recipeMode && item.type !== type) return null;
     // その形式にできない単元(疑問文ばかりで書きかえができない など)なら、ほかの単元で作る
     // (範囲の単元をすべて試す。まだ問題の少ない単元から試して、単元のバランスをくずさないように)
     if (!fixed && item.type !== type) {
@@ -8666,8 +8684,9 @@ function generateWorksheet(seed) {
     }
     const st = stages.find(x => x.key === item.stageKey);
     perStage.set(st, (perStage.get(st) || 0) + 1);
+    if (recipeMode && st) item.diag = { title: st.label };
     return item;
-  });
+  }).filter(Boolean);
   // 同じ文が2回出ないように(ほかの形式で作れなかった単元は、文を多く使って一周することがある)
   const seenSentences = new Set();
   // 書きかえは、もとの文(日本語)が同じなら同じ文とみなす(同じ文の否定文と疑問文が並ばないように)
@@ -9737,7 +9756,7 @@ function renderWorksheet() {
         `<div class="answer-sub">${readingItems.length > 1 ? `[${ri + 1}] ` : ''}${r.passage.title}（${passageLabel(r.passage)}）</div>${listHtml(r.subs)}`).join('');
     }
   });
-  if (printSource.kind === 'test' && printSource.config.diag) answersHtml += diagTableHtml(printItems);
+  if (printSource.kind === 'test' && (printSource.config.diag || ['auto', 'check'].includes(printSource.config.mode))) answersHtml += diagTableHtml(printItems);
   answerList.innerHTML = answersHtml;
   answerSheet.classList.toggle('include', printIncludeAnswers.checked && !redSheetOn());
   if (basicSrc) applyBasicHints();
@@ -10697,9 +10716,19 @@ function diagItems(gs, stateOf) {
 }
 // 解答ページの最後に、文法事項ごとの○×表(どの文法ができていないかがわかる)
 function diagTableHtml(items) {
-  const rows = items.map((it, i) => ({ it, no: i + 1 })).filter(x => x.it.diag); // 問題の順番のまま
-  if (!rows.length) return '';
-  return `<div class="ws-diag-table"${partAttr('diag-table', '文法事項ごとの○×表（解答ページ）')}><h3>文法事項ごとの結果（○×をつけて、×の文法を復習しよう）</h3><table><tr><th>文法事項</th><th>問題</th><th>形式</th><th>○×</th></tr>${rows.map(({ it, no }) => `<tr><td>${escHtml(it.diag.title)}</td><td>(${no})</td><td>${escHtml((QUESTION_TYPES[it.type] || {}).label || '')}</td><td class="mark"></td></tr>`).join('')}</table></div>`;
+  // 同じ文法事項(単元)の問題は1行にまとめる。並びは、その文法事項の最初の問題の順番
+  const groups = [];
+  items.forEach((it, i) => {
+    if (!it.diag) return;
+    let g = groups.find(x => x.title === it.diag.title);
+    if (!g) { g = { title: it.diag.title, nos: [], types: [] }; groups.push(g); }
+    g.nos.push(`(${i + 1})`);
+    const lab = (QUESTION_TYPES[it.type] || {}).label || '';
+    if (!g.types.includes(lab)) g.types.push(lab);
+  });
+  if (!groups.length) return '';
+  const head = printSource.config && printSource.config.diag ? '文法事項' : '単元';
+  return `<div class="ws-diag-table"${partAttr('diag-table', `${head}ごとの○×表（解答ページ）`)}><h3>${head}ごとの結果（○×をつけて、×のところを復習しよう）</h3><table><tr><th>${head}</th><th>問題</th><th>形式</th><th>○×</th></tr>${groups.map(g => `<tr><td>${escHtml(g.title)}</td><td>${g.nos.join(' ')}</td><td>${escHtml(g.types.join('・'))}</td><td class="mark"></td></tr>`).join('')}</table></div>`;
 }
 
 function renderExamSummary() {
@@ -11196,6 +11225,7 @@ function selectedTestStages() {
 
 const sumCounts = counts => Object.values(counts).reduce((a, n) => a + (n || 0), 0);
 function testTotalCount() {
+  if (testState.mode === 'auto') return recipePlan(selectedTestStages(), false).length;
   if (testState.mode === 'byType') return sumCounts(testState.grammarCounts);
   return selectedTestStages().reduce((sum, s) => sum + (testState.perUnit[s.key] ?? 2), 0);
 }
@@ -11253,7 +11283,7 @@ function currentFormat(name) {
   };
 }
 function applyFormat(f) {
-  testState.mode = f.mode === 'perUnit' ? 'perUnit' : 'byType';
+  testState.mode = ['perUnit', 'auto'].includes(f.mode) ? f.mode : 'byType';
   testState.shuffle = f.shuffle !== false;
   testState.bestType = f.bestType !== false;
   testState.grammarCounts = { ...Object.fromEntries(Object.keys(QUESTION_TYPES).map(k => [k, 0])), ...f.grammarCounts };
@@ -11410,10 +11440,18 @@ function renderTestScreen() {
     selected.length ? key => vocabTypePool(textSel, key, testState.vocabImportant).length : null);
   // 文法問題: 種類ごとの数と、単元への割り振り方
   renderTypeCounts(testGrammarTypes, visibleTypes(QUESTION_TYPES), testState.grammarCounts, 30);
-  renderOptionSwitch(testModeSwitch, [['byType', '範囲全体からバランスよく'], ['perUnit', '単元ごとに問題数を指定']], testState.mode, v => {
+  renderOptionSwitch(testModeSwitch, [['auto', 'おまかせ（単元に合った形式）'], ['byType', '種類ごとの数を指定'], ['perUnit', '単元ごとに問題数を指定']], testState.mode, v => {
     testState.mode = v; renderTestScreen();
   });
-  testModeNote.textContent = testState.mode === 'byType'
+  testGrammarTypes.style.display = testState.mode === 'auto' ? 'none' : '';
+  document.getElementById('testBestTypeCheck').closest('label').style.display = testState.mode === 'auto' ? 'none' : '';
+  const autoN = recipePlan(selected, false).length, checkN = recipePlan(selected, true).length;
+  const checkBtn = document.getElementById('testCheckBtn');
+  checkBtn.disabled = !selected.length;
+  checkBtn.textContent = selected.length ? `単元チェックテストを作る（各単元のすべての形式・${checkN}問）` : '単元チェックテストを作る（単元を選んでください）';
+  testModeNote.textContent = testState.mode === 'auto'
+    ? `各単元に合った形式（所有格・目的格なら適語補充、3単現・過去形なら語形変化 など）を、単元ごとに${autoN > selected.length ? '2' : '1'}つずつ自動で出します（${autoN}問）。できたプリントで問題を足したり消したりできます。`
+    : testState.mode === 'byType'
     ? '上の数だけ、範囲の単元から偏りなく出題します。'
     : '単元ごとの問題数を下で決めます。上の種類ごとの数は、種類の割合として使います。';
   testPerUnitBox.style.display = testState.mode === 'perUnit' ? 'block' : 'none';
@@ -11507,6 +11545,16 @@ testSaveConfirmBtn.addEventListener('click', () => {
 });
 testSaveCancelBtn.addEventListener('click', () => { testSaveForm.style.display = 'none'; });
 testNameInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') testSaveConfirmBtn.click(); });
+document.getElementById('testCheckBtn').addEventListener('click', () => {
+  const selected = selectedTestStages();
+  if (!selected.length) return;
+  printRounds = 1;
+  printSource = { kind: 'test', summary: `単元チェックテスト：${rangeSummary(selected)}`, config: {
+    name: `単元チェックテスト${testState.name ? ` ${testState.name}` : ''}`, keys: selected.map(s => s.key), mode: 'check', perUnit: {}, shuffle: false,
+    grammarCounts: emptyCounts(QUESTION_TYPES), vocabCounts: emptyCounts(VOCAB_TYPES), readingCount: 0 } };
+  showScreen('print');
+  generateWorksheet();
+});
 testMakeBtn.addEventListener('click', () => {
   const selected = selectedTestStages();
   printSource = {
