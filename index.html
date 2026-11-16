@@ -6307,6 +6307,59 @@ const rewriteKindLabel = item => (item.rewriteKind === 'he' ? `主語を ${item.
   : REWRITE_KIND_LABELS[item.rewriteKind]);
 
 // kind: 'neg'(否定文) / 'q'(疑問文)。作れないときは null
+// 否定文・疑問文の単元: 教科書の否定文・疑問文から肯定文を作り、「否定文に」「疑問文に」と書きかえさせる(答えは教科書の文)。
+// 教科書準拠ワークで中1の各単元にいちばん多い形式。作れないときは null
+const REV_SUBJ_ONE = new Set(['i', 'you', 'he', 'she', 'it', 'we', 'they', 'this', 'that', 'these', 'those', 'there']);
+const REV_DET = new Set(['my', 'your', 'his', 'her', 'its', 'our', 'their', 'the', 'a', 'an', 'this', 'that', 'these', 'those']);
+const revThird = v => (v === 'have' ? 'has' : v === 'do' ? 'does' : verbThirdPerson(v));
+function revSome(words) {
+  return words.map(w => ({ any: 'some', anything: 'something', anyone: 'someone' }[w.toLowerCase()] || w));
+}
+function negQToAff(tokens, kind, pieces) {
+  const lower = tokens.map(t => t.toLowerCase());
+  if (tokens.length < 3 || tokens.some(t => /[,—–]/.test(t))) return null;
+  if (lower.some(t => ['either', 'never', 'ever', 'yet', 'and', 'or', 'because', 'when', 'if'].includes(t))) return null;
+  const fix = ws => { const out = revSome(ws); out[0] = out[0] === 'i' ? 'I' : capitalize(out[0]); return out; };
+  if (kind === 'q') {
+    const aux = lower[0];
+    if (!['am', 'are', 'is', 'was', 'were', 'do', 'does', 'did', 'can', 'will'].includes(aux)) return null;
+    // 主語の長さは教科書の区切り(pieces)から: [Is][this book][interesting] / [Does][Ms. Smith][speak]…
+    const p0 = pieces && pieces[0] && pieces[0].en.split(' ');
+    const p1 = pieces && pieces[1] && pieces[1].en.split(' ');
+    let n = p0 && p0.length === 1 && p1 ? p1.length : 0;
+    if (lower[1] === 'there') n = 1;
+    if (!n || tokens.length < 2 + n) return null;
+    // 疑問文にするときは I・my・me を you・your・you にするルールなので、それらをふくむ文は使わない
+    if (lower.some(t => ['i', 'my', 'me', 'mine', 'myself'].includes(t))) return null;
+    const subj = tokens.slice(1, 1 + n).map(t => (t === 'I' || /^[A-Z][a-z]*\.?$/.test(t) && !REV_SUBJ_ONE.has(t.toLowerCase()) && !REV_DET.has(t.toLowerCase()) ? t : t.toLowerCase()));
+    const rest = tokens.slice(1 + n);
+    if (['do', 'does', 'did'].includes(aux)) {
+      const v = rest[0].toLowerCase();
+      if (!/^[a-z]+$/.test(v)) return null;
+      const verb = aux === 'do' ? v : aux === 'does' ? revThird(v) : verbPast(v);
+      return fix([...subj, verb, ...rest.slice(1)]);
+    }
+    return fix([...subj, aux, ...rest]);
+  }
+  // 否定文
+  const i = lower.findIndex(t => t === 'not' || t === 'cannot' || /n't$/.test(t));
+  if (i < 1) return null;
+  const t = lower[i];
+  if (t === 'cannot' || t === "can't") return fix([...tokens.slice(0, i), 'can', ...tokens.slice(i + 1)]);
+  if (t === "won't") return fix([...tokens.slice(0, i), 'will', ...tokens.slice(i + 1)]);
+  const doAux = { do: 'do', does: 'does', did: 'did', "don't": 'do', "doesn't": 'does', "didn't": 'did' };
+  const aux = t === 'not' ? lower[i - 1] : t;
+  if (doAux[aux]) {
+    const d = doAux[aux], vi = i + 1, v = lower[vi];
+    if (!v || !/^[a-z]+$/.test(v)) return null;
+    const verb = d === 'do' ? v : d === 'does' ? revThird(v) : verbPast(v);
+    const start = t === 'not' ? i - 1 : i;
+    return fix([...tokens.slice(0, start), verb, ...tokens.slice(vi + 1)]);
+  }
+  if (t === 'not') return ['am', 'are', 'is', 'was', 'were', 'can', 'will', 'should', 'must', 'have', 'has'].includes(aux) ? fix([...tokens.slice(0, i), ...tokens.slice(i + 1)]) : null;
+  const be = { "isn't": 'is', "aren't": 'are', "wasn't": 'was', "weren't": 'were', "haven't": 'have', "hasn't": 'has' }[t];
+  return be ? fix([...tokens.slice(0, i), be, ...tokens.slice(i + 1)]) : null;
+}
 function rewriteSentence(tokens, jp, kind) {
   const lower = tokens.map(t => t.toLowerCase());
   if (sentenceEnd(jp) !== '.' || rewriteUnsafe(tokens)) return null;
@@ -6889,6 +6942,15 @@ function buildQuestion(stage, q, type) {
     // 否定文・疑問文のどちらかをランダムに。どちらも作れない文(疑問文・否定文・命令文など)は適語選択にする
     // 中1 Program 5(3人称単数)からは「主語を He に」、Program 9(過去形)からは「過去の文に」も出す
     const prog = stageProgram(stage);
+    // 否定文・疑問文の単元: 肯定文から「否定文に」「疑問文に」(答えは教科書の文)
+    const revKind = (/-(neg)$/.test(stage.key) && 'neg') || (/-q$/.test(stage.key) && 'q');
+    if (revKind && rand() < 0.85) {
+      const aff = negQToAff(tokens, revKind, q.pieces);
+      if (aff) {
+        const original = fullSentence({ ...item, tokens });
+        return { ...item, type: 'rewrite', rewriteKind: revKind, rewriteRev: true, tokens: aff, end: '.', answerSentence: original, answers: rewriteVariants(original) };
+      }
+    }
     const kinds = ['neg', 'q'];
     if (prog.grade > 1 || prog.program >= 5) kinds.push('he');
     if (prog.grade > 1 || prog.program >= 9) kinds.push('past');
@@ -9032,7 +9094,7 @@ function itemPromptHtml(item) {
   if (item.type === 'wtable') return '次の日本語に合う英単語を書こう';
   // 否定文・疑問文・下線部・主語の書きかえは、答えの文と日本語が合わないので、もとの文の意味として小さく出す(主語をかえる問題は出さない)
   if (item.type === 'insert') return '';
-  if (item.type === 'rewrite' && ['neg', 'q', 'wh', 'he', 'qa', 'plural'].includes(item.rewriteKind)) return ['he', 'plural'].includes(item.rewriteKind) ? '' : `<span class="ws-cmean">もとの文の意味：${item.jp}</span>`;
+  if (item.type === 'rewrite' && ['neg', 'q', 'wh', 'he', 'qa', 'plural'].includes(item.rewriteKind)) return ['he', 'plural'].includes(item.rewriteKind) || item.rewriteRev ? '' : `<span class="ws-cmean">もとの文の意味：${item.jp}</span>`;
   const tags = item.jpTags.map(t => `<span class="ws-tag">＋${t}</span>`).join('');
   return `${item.jp}${tags}`;
 }
