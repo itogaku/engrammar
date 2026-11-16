@@ -205,6 +205,9 @@
   .chip-switch { flex: 1; display: flex; flex-wrap: wrap; gap: 6px; min-width: 0; }
   .chip-switch button { border: 1.5px solid var(--line); background: var(--panel); color: var(--ink-soft); padding: 6px 12px; border-radius: 999px; font-size: 12.5px; font-weight: 600; cursor: pointer; font-family: inherit; }
   .chip-switch button.active { background: var(--teal); border-color: var(--teal); color: #fff; }
+  #testTextPrograms { flex-direction: column; gap: 6px; }
+  .text-prog-row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+  .text-prog-row .text-part-chip { padding: 3px 10px !important; font-size: 12px !important; }
   .opt-more { margin-top: 4px; }
   .opt-more summary { font-size: 12.5px; font-weight: 700; color: var(--teal-dark); cursor: pointer; padding: 4px 0; }
   .opt-more[open] summary { margin-bottom: 8px; }
@@ -1034,7 +1037,7 @@
       <div class="test-type-grid" id="testVocabTypes"></div>
       <div class="test-type-total" id="testVocabTotal"></div>
       <label class="opt-check test-shuffle"><input type="checkbox" id="testVocabImportant"> 重要語（教科書の太字）だけから出す（熟語・前置詞は範囲内のすべてから）。チェックなしでも重要語を優先して出します</label>
-      <div class="test-sublabel">本文が出る Program<span class="test-note-inline">（「文法のみで本文は出ない」Program は外すと、その Program の単語・長文は出ません）</span></div>
+      <div class="test-sublabel">本文が出る Part<span class="test-note-inline">（「文法のみで本文は出ない」Part を外すと、その Part の単語・長文は出ません。Part 1 は Scene 1 の単語も含みます）</span></div>
       <div class="chip-switch" id="testTextPrograms"></div>
     </div>
 
@@ -1227,6 +1230,7 @@
 </div>
 
 <script src="vocab.js"></script>
+<script src="vocab_sections.js"></script>
 <script src="reading.js"></script>
 <script src="reading_parts_g1.js"></script>
 <script src="reading_parts_g2.js"></script>
@@ -7621,10 +7625,15 @@ function isTestableVocab(v) {
 // 文の形の表現(I see. / Thank you.)かどうか(選択肢は同じ種類どうしでそろえる)
 const isExpression = v => /[.?!]$/.test(v.word.trim()) || /。/.test(v.meaning);
 function vocabPool(stageList, importantOnly) {
-  const keys = programKeySet(stageList);
+  const keys = programKeySet(stageList), ex = stageList.noText;
   const seen = new Set();
   return PROGRAM_VOCAB.filter(v => {
     if (!keys.has(`${v.grade}|${v.program}`) || (importantOnly && !v.important)) return false;
+    // 本文が出ない Part の単語は出さない(どこに出る語か分からない語は出す)
+    if (ex && ex.size) {
+      const sec = typeof VOCAB_SECTIONS !== 'undefined' && VOCAB_SECTIONS[`${v.grade}|${v.program}|${v.word}`];
+      if (sec && textGroupExcluded(ex, `${v.grade}|${v.program}`, textGroupOf(sec))) return false;
+    }
     // 「look at ~」と「look at ～」のような表記ちがいも同じ語として扱う
     const key = v.word.replace(/~/g, '～');
     if (VOCAB_EXCLUDE_MEANING.test(v.meaning) || !isTestableVocab(v) || seen.has(key)) return false;
@@ -7794,9 +7803,10 @@ function generateVocabItems(stageList, cfg, usedBefore = new Set()) {
 // level: 'part'(Part 単位) / 'program'(Program 単位) / 'both'
 const READING_LEVEL_LABELS = { both: '両方', part: 'Part単位', program: 'Program単位' };
 function readingPassagesFor(stageList, level = 'both') {
-  const keys = programKeySet(stageList);
+  const keys = programKeySet(stageList), ex = stageList.noText;
   return READING_PASSAGES.filter(p => keys.has(`${p.grade}|${p.program}`)
-    && (level === 'both' || (p.level || 'program') === level));
+    && (level === 'both' || (p.level || 'program') === level)
+    && !(ex && ex.size && readingExcluded(ex, p)));
 }
 const EXAM_READING_LEVELS = { basic: '入門（200〜280語）', standard: '標準（300〜400語）', advanced: '発展（400語〜）' };
 const CHIBA_READING_LABELS = { chiba7p: '発表・スライド', chiba7n: 'お知らせ・広告', chiba8: 'スピーチ・説明文', chiba9: '対話文' };
@@ -11215,9 +11225,46 @@ function stageShortLabel(s) {
 
 // 本文が出る Program の単元だけ(単語・長文はここから出す)
 const programKeyOf = s => { const p = stageProgram(s); return `${p.grade}|${p.program}`; };
+// 本文が出る/出ないは Part ごと。noText のキーは "学年|Program|p1"(Scene 1 + Part 1)、"…|etc"(Action など)、
+// または Program まるごとの "学年|Program"(Part に分かれていない Program と、前の版で保存した範囲)
+function textGroupOf(sec) {
+  const m = /^(?:scene|part)\s*(\d)$/.exec(sec);
+  return m ? 'p' + m[1] : 'etc';
+}
+let PROGRAM_TEXT_GROUPS = null;
+function textGroupsOf(pk) {
+  if (!PROGRAM_TEXT_GROUPS) {
+    PROGRAM_TEXT_GROUPS = {};
+    if (typeof VOCAB_SECTIONS !== 'undefined') Object.entries(VOCAB_SECTIONS).forEach(([k, sec]) => {
+      const prog = k.split('|').slice(0, 2).join('|');
+      (PROGRAM_TEXT_GROUPS[prog] = PROGRAM_TEXT_GROUPS[prog] || new Set()).add(textGroupOf(sec));
+    });
+  }
+  const set = PROGRAM_TEXT_GROUPS[pk];
+  // Part に分かれていない Program(Power-Up など)は Program まるごとで切りかえる
+  if (!set || ![...set].some(g => g !== 'etc')) return [];
+  return [...set].sort((a, b) => (a === 'etc') - (b === 'etc') || a.localeCompare(b));
+}
+const textGroupLabel = g => g === 'etc' ? 'Action など' : 'Part ' + g.slice(1);
+function textGroupExcluded(ex, pk, g) { return ex.has(pk) || ex.has(`${pk}|${g}`); }
+function programTextExcluded(ex, pk) {
+  if (ex.has(pk)) return true;
+  const groups = textGroupsOf(pk);
+  return groups.length > 0 && groups.every(g => ex.has(`${pk}|${g}`));
+}
+function readingExcluded(ex, p) {
+  const pk = `${p.grade}|${p.program}`;
+  if (ex.has(pk)) return true;
+  // Part の長文はその Part が出るときだけ。Program 全体の長文は、出ない Part が1つでもあれば出さない
+  if ((p.level || 'program') === 'part' && p.part) return ex.has(`${pk}|p${p.part}`);
+  return textGroupsOf(pk).some(g => g !== 'etc' && ex.has(`${pk}|${g}`));
+}
 function textStages(list, noText) {
   const ex = new Set(noText || []);
-  return ex.size ? list.filter(s => !ex.has(programKeyOf(s))) : list;
+  if (!ex.size) return list;
+  const out = list.filter(s => !programTextExcluded(ex, programKeyOf(s)));
+  out.noText = ex;
+  return out;
 }
 function selectedTestStages() {
   return stages.filter(s => testState.keys.has(s.key));
@@ -11426,13 +11473,38 @@ function renderTestScreen() {
   const progs = [];
   selected.forEach(st => { const k = programKeyOf(st); if (!progs.some(x => x.k === k)) progs.push({ k, label: `中${st.grade} ${(st.label.includes(': ') ? st.label.split(': ')[0] : st.label).replace(/^[1-3]年 /, '')}` }); });
   if (!progs.length) progBox.innerHTML = '<span class="test-empty">単元を選ぶと、ここに Program が並びます。</span>';
+  const nt = testState.noText;
   progs.forEach(({ k, label }) => {
-    const btn = document.createElement('button');
-    btn.textContent = (testState.noText.has(k) ? '× ' : '✓ ') + label;
-    btn.className = testState.noText.has(k) ? '' : 'active';
-    btn.title = testState.noText.has(k) ? '本文は出ない（文法のみ）' : '本文も出る';
-    btn.onclick = () => { if (testState.noText.has(k)) testState.noText.delete(k); else testState.noText.add(k); renderTestScreen(); };
-    progBox.appendChild(btn);
+    const groups = textGroupsOf(k);
+    const row = document.createElement('div');
+    row.className = 'text-prog-row';
+    const head = document.createElement('button');
+    const allOff = programTextExcluded(nt, k);
+    const someOff = !allOff && groups.some(g => nt.has(`${k}|${g}`));
+    head.textContent = (allOff ? '× ' : someOff ? '△ ' : '✓ ') + label;
+    head.className = allOff ? '' : 'active';
+    head.title = allOff ? '本文は出ない（文法のみ）' : 'クリックで Program まるごと切りかえ';
+    head.onclick = () => {
+      nt.delete(k); groups.forEach(g => nt.delete(`${k}|${g}`));
+      if (!allOff) { if (groups.length) groups.forEach(g => nt.add(`${k}|${g}`)); else nt.add(k); }
+      renderTestScreen();
+    };
+    row.appendChild(head);
+    groups.forEach(g => {
+      const gk = `${k}|${g}`, off = textGroupExcluded(nt, k, g);
+      const btn = document.createElement('button');
+      btn.className = 'text-part-chip' + (off ? '' : ' active');
+      btn.textContent = (off ? '× ' : '✓ ') + textGroupLabel(g);
+      btn.title = off ? 'この Part の本文は出ない' : 'この Part の本文も出る';
+      btn.onclick = () => {
+        // 前の版の「Program まるごと」を Part ごとにほどいてから切りかえる
+        if (nt.has(k)) { nt.delete(k); groups.forEach(x => nt.add(`${k}|${x}`)); }
+        if (nt.has(gk)) nt.delete(gk); else nt.add(gk);
+        renderTestScreen();
+      };
+      row.appendChild(btn);
+    });
+    progBox.appendChild(row);
   });
   const textSel = textStages(selected, testState.noText);
   // 単語問題: 種類ごとの数(範囲内で作れる数も出す)
