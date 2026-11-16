@@ -6301,6 +6301,7 @@ const rewriteKindLabel = item => (item.rewriteKind === 'he' ? `主語を ${item.
   : item.rewriteKind === 'indirect' ? `「${item.rewriteFrame}」に続けて、1つの文に`
   : item.rewriteKind === 'combine' ? `${item.rewriteWord === 'ing' ? '2つ目の文の動詞を 〜ing の形にして' : item.rewriteWord === 'pp' ? '2つ目の文の動詞を過去分詞にして' : `${item.rewriteWord} を使って`}、2つの文を1つの文に`
   : item.rewriteKind === 'subj' ? (item.rewriteWord === 'wish' ? 'I wish を使って、ほぼ同じ意味の文に' : 'if を使って、ほぼ同じ意味の文に（仮定法）')
+  : item.rewriteKind === 'perfectAdv' ? `${item.rewriteWord} を使って、現在完了の文に`
   : item.rewriteKind === 'join' ? `${item.rewriteWord} を使って、2つの文を1つの文に`
   : item.rewriteKind === 'qa' ? `疑問文にして、${item.rewriteYes ? 'Yes' : 'No'} で答える`
   : item.rewriteKind === 'plural' ? `主語を ${item.rewriteSubj} にかえて、複数の文に`
@@ -6359,6 +6360,150 @@ function negQToAff(tokens, kind, pieces) {
   if (t === 'not') return ['am', 'are', 'is', 'was', 'were', 'can', 'will', 'should', 'must', 'have', 'has'].includes(aux) ? fix([...tokens.slice(0, i), ...tokens.slice(i + 1)]) : null;
   const be = { "isn't": 'is', "aren't": 'are', "wasn't": 'was', "weren't": 'were', "haven't": 'have', "hasn't": 'has' }[t];
   return be ? fix([...tokens.slice(0, i), be, ...tokens.slice(i + 1)]) : null;
+}
+// 中1の疑問詞の単元: 教科書の疑問詞の疑問文から、答えの語句を入れた文を作り、「下線部をたずねる疑問文に」(答えは教科書の文)。
+// 疑問文にするときは I・my・me を you・your・you にするルールなので、文の you・your は I(me)・my にしておく
+const WH_PLACE_PERSON = ['in the library', 'in the gym', 'at home', 'in the classroom'];
+const WH_PLACE_THING = ['on the desk', 'under the table', 'in the box'];
+const WH_BUILDINGS = new Set(['library', 'park', 'hospital', 'school', 'house', 'station', 'museum', 'zoo']);
+const WH_PEOPLE = new Set(['he', 'she', 'you', 'they', 'we', 'sister', 'brother', 'mother', 'father', 'friend', 'friends', 'students', 'teacher', 'children', 'grandmother', 'grandfather']);
+const WH_OBJ_OF = { eat: ['an apple', 'curry', 'lunch'], make: ['a cake', 'curry'], read: ['a book', 'a newspaper'], 'look for': ['a pen', 'the key'], write: ['a letter'],
+  draw: ['a cat', 'a flower'], study: ['math', 'English'], 'listen to': ['music', 'the radio'], watch: ['TV', 'a movie'], cook: ['curry'], buy: ['bread', 'a T-shirt'],
+  play: ['the guitar', 'tennis'], sing: ['an English song'], see: ['pandas'], like: ['dogs', 'music'], have: ['a cat', 'a computer'], want: ['a new bag'], bring: ['a camera'] };
+const WH_NOUN_ANS = { sport: 'tennis', sports: 'tennis', songs: 'English songs', song: 'an English song', animals: 'pandas', animal: 'pandas', subject: 'math', color: 'blue', food: 'sushi', fruit: 'apples' };
+function whAnswerStatement(stage, q) {
+  const P = (q.pieces || []).map(p => p.en.split(' '));
+  if (P.length < 2 || sentenceEnd(q.jp) !== '?') return null;
+  const all = P.flat().map(t => t.toLowerCase());
+  if (all.some(t => ['i', 'my', 'me', 'mine', 'and', 'or'].includes(t) || /[,"]/.test(t))) return null;
+  const wh = P[0].map(t => t.toLowerCase());
+  const swap = (ws, subjectPos) => ws.map((t, k) => { const l = t.toLowerCase(); return l === 'you' ? (k === 0 && subjectPos ? 'I' : 'me') : l === 'your' ? 'my' : l === 'yours' ? 'mine' : t; });
+  // How many 〜 are there (in 〜)?
+  if (wh[0] === 'how' && wh[1] === 'many' && P[1].join(' ').toLowerCase() === 'are there') {
+    const rest = swap(P.slice(2).flat(), false);
+    const rl = rest.join(' ').toLowerCase();
+    const num = /^days?$/.test(wh[2]) && rl === 'in a week' ? 'seven' : /^months?$/.test(wh[2]) ? 'twelve' : pickRandom(['two', 'three', 'four', 'five']);
+    return { tokens: ['There', 'are', num, ...P[0].slice(2), ...rest], ul: [2, 3] };
+  }
+  if (P[1].length !== 1 || P.length < 3) return null;
+  const aux = P[1][0].toLowerCase();
+  if (!['do', 'does', 'did', 'am', 'are', 'is', 'was', 'were', 'can'].includes(aux)) return null;
+  const subjL = P[2].map(t => t.toLowerCase());
+  const subjYou = subjL[0] === 'you';
+  const subj = swap(P[2].map((t, k) => (/^[A-Z][a-z]*\.?$/.test(t) && !REV_SUBJ_ONE.has(t.toLowerCase()) && !REV_DET.has(t.toLowerCase()) ? t : t.toLowerCase())), true);
+  let restP = P.slice(3).map(ws => swap(ws, false));
+  let verbWords;
+  if (['do', 'does', 'did'].includes(aux)) {
+    if (!restP.length) return null;
+    const v = restP[0][0].toLowerCase();
+    if (!/^[a-z]+$/.test(v)) return null;
+    const c = aux === 'do' ? v : aux === 'does' ? revThird(v) : verbPast(v);
+    restP[0] = [c, ...restP[0].slice(1)];
+    verbWords = [];
+  } else {
+    const be = subjYou ? ({ are: 'am', were: 'was' }[aux] || aux) : aux;
+    verbWords = [be];
+  }
+  const head = [...subj, ...verbWords];
+  const flatRest = () => restP.flat();
+  const build = (before, ans, after) => {
+    const toks = [...head, ...before, ...ans, ...after];
+    const start = head.length + before.length;
+    return { tokens: toks, ul: [start, start + ans.length] };
+  };
+  const words = s2 => s2.split(' ');
+  const verbBase = restP[0] ? (VERB_BASE_OF[restP[0][0].toLowerCase()] || restP[0][0].toLowerCase()) : '';
+  const verbKey = restP[0] ? [verbBase, ...restP[0].slice(1).map(t => t.toLowerCase())].join(' ') : '';
+  if (wh[0] === 'why' && wh.length === 1) {
+    const i = stage.questions.findIndex(x => x.jp === q.jp), next = i >= 0 && stage.questions[i + 1];
+    if (!next || !/^Because$/i.test(next.pieces[0].en)) return null;
+    const bec = next.pieces.map(p => p.en).join(' ').split(' ');
+    if (bec.some(t => ['you', 'your'].includes(t.toLowerCase()))) return null;
+    return build(flatRest(), ['because', ...bec.slice(1)], []);
+  }
+  if (wh[0] === 'where' && wh.length === 1) {
+    const rest = flatRest();
+    if (rest.length && rest[rest.length - 1].toLowerCase() === 'from') return build(rest, words(pickRandom(['Canada', 'Australia', 'Osaka', 'London'])), []);
+    let pool;
+    if (!rest.length) {
+      const noun = subjL[subjL.length - 1].replace(/s$/, '');
+      pool = WH_BUILDINGS.has(noun) ? [noun === 'station' ? 'near the park' : 'near the station'] : WH_PEOPLE.has(subjL[subjL.length - 1]) || WH_PEOPLE.has(noun) ? WH_PLACE_PERSON
+        : ['cat', 'dog'].includes(noun) ? ['under the table', 'in the garden'] : WH_PLACE_THING;
+    } else {
+      const v0 = rest[0].toLowerCase();
+      pool = /^(study|studying|read|reading|sit|sitting)$/.test(v0) ? ['in the library'] : /^(run|running|play|playing|walk|walking)$/.test(v0) ? ['in the park']
+        : /^(swim|swimming)$/.test(v0) ? ['in the river'] : /^(go|going|come|coming)$/.test(v0) ? ['to the park', 'to the library'] : ['in the gym', 'in the library'];
+    }
+    // now / then などの時の語は、場所のあとに置く
+    let tail = 0;
+    while (tail < rest.length && ['now', 'then', 'today'].includes(rest[rest.length - 1 - tail].toLowerCase())) tail++;
+    return build(rest.slice(0, rest.length - tail), words(pickRandom(pool)), rest.slice(rest.length - tail));
+  }
+  if (wh[0] === 'when' && wh.length === 1) {
+    const rest = flatRest();
+    const pool = verbKey.startsWith('get up') ? ['at six'] : verbKey.startsWith('go to bed') ? ['at ten'] : verbBase === 'have' ? ['on Mondays'] : verbKey.startsWith('take a bath') ? ['after dinner'] : ['after school', 'after dinner', 'on Sundays'];
+    return build(rest, words(pickRandom(pool)), []);
+  }
+  if (wh[0] === 'how' && wh.length === 1) {
+    if (!['go', 'come', 'get'].includes(verbBase) || !restP.length) return null;
+    return build(flatRest(), words(pickRandom(['by bike', 'by bus', 'by train'])), []);
+  }
+  if (wh[0] === 'who' && wh.length === 1) {
+    if (aux !== 'is' || restP.length) return null;
+    const n = subjL[subjL.length - 1];
+    const ans = /^(she|woman|mother|sister|grandmother)$/.test(n) || /女の人|彼女/.test(q.jp) ? 'Ms. Green' : /^(he|man|father|brother|grandfather)$/.test(n) ? 'Mr. Brown'
+      : n === 'girl' ? 'Aya' : n === 'boy' ? 'Ken' : ['friend', 'student', 'classmate'].includes(n) ? 'Ken' : ['teacher', 'singer', 'player', 'hero'].includes(n) ? 'Mr. Brown' : null;
+    return ans ? build([], words(ans), []) : null;
+  }
+  if (wh[0] === 'what') {
+    if (!restP.length) return null;
+    // What is he doing? → He is playing tennis. / What can he do? → He can play the guitar.
+    const r0 = restP[0].map(t => t.toLowerCase());
+    if (wh.length === 1 && (r0[0] === 'doing' || r0[0] === 'do' && aux === 'can')) {
+      const animal = ['dog', 'cat', 'bird'].includes(subjL[subjL.length - 1]);
+      const ans = r0[0] === 'doing' ? pickRandom(animal ? ['sleeping', 'running in the park'] : ['playing tennis', 'reading a book', 'cleaning the room', 'studying math'])
+        : pickRandom(animal ? ['swim fast', 'run fast'] : ['play the guitar', 'cook curry', 'swim fast']);
+      return build([], words(ans), [...restP[0].slice(1), ...restP.slice(1).flat()]);
+    }
+    let ans;
+    if (wh.length === 1) {
+      const key = Object.keys(WH_OBJ_OF).find(k => verbKey === k || verbKey.startsWith(k + ' ') || (r0.length === 1 && verbBase === k));
+      if (!key) return null;
+      ans = key === 'play' && restP.slice(1).flat().some(t => /^(piano|guitar)$/i.test(t)) ? 'a Japanese song' : pickRandom(WH_OBJ_OF[key]);
+    } else if (wh.length === 2 && WH_NOUN_ANS[wh[1]]) ans = WH_NOUN_ANS[wh[1]];
+    else return null;
+    return build(restP[0], words(ans), restP.slice(1).flat());
+  }
+  return null;
+}
+// 中3 現在完了(完了)の単元: 過去の文から「just / already / yet を使って、現在完了の文に」(答えは教科書の文)
+function completionToPast(tokens) {
+  const lw = tokens.map(t => t.toLowerCase());
+  if (lw.some(t => ['and', 'or', 'for', 'since', 'ever', 'never'].includes(t) || /,$/.test(t))) return null;
+  const h = lw.findIndex(t => t === 'have' || t === 'has');
+  if (h < 0) return null;
+  const baseOf = pp => {
+    if (pp === 'had') return 'have';
+    if (IRREGULAR_VERBS[pp] && IRREGULAR_VERBS[pp][1] === pp) return pp; // read / come
+    if (isPerfectParticiple(pp) && VERB_BASE_OF[pp]) return VERB_BASE_OF[pp];
+    const b = Object.keys(IRREGULAR_VERBS).find(k => IRREGULAR_VERBS[k][1] === pp);
+    if (b) return b;
+    return /ed$/.test(pp) ? [pp.slice(0, -1), pp.slice(0, -2), pp.slice(0, -3)].find(c => c && verbPast(c) === pp) || null : null;
+  };
+  if (h >= 1 && ['just', 'already'].includes(lw[h + 1])) {
+    const base = baseOf(lw[h + 2]);
+    return base ? { past: [...tokens.slice(0, h), verbPast(base), ...tokens.slice(h + 3)], word: lw[h + 1], end: '.' } : null;
+  }
+  if (h >= 1 && lw[h + 1] === 'not' && lw[lw.length - 1] === 'yet') {
+    const base = baseOf(lw[h + 2]);
+    return base ? { past: [...tokens.slice(0, h), 'did', 'not', base, ...tokens.slice(h + 3, -1)], word: 'yet', end: '.' } : null;
+  }
+  if (h === 0 && lw[lw.length - 1] === 'yet') {
+    const p = lw.findIndex((t, k) => k > 1 && baseOf(t));
+    if (p < 0) return null;
+    return { past: ['Did', ...tokens.slice(1, p), baseOf(lw[p]), ...tokens.slice(p + 1, -1)], word: 'yet', end: '?' };
+  }
+  return null;
 }
 function rewriteSentence(tokens, jp, kind) {
   const lower = tokens.map(t => t.toLowerCase());
@@ -6951,6 +7096,36 @@ function buildQuestion(stage, q, type) {
         return { ...item, type: 'rewrite', rewriteKind: revKind, rewriteRev: true, tokens: aff, end: '.', answerSentence: original, answers: rewriteVariants(original) };
       }
     }
+    // 中1の疑問詞の単元: 答えの語句を入れた文から「下線部をたずねる疑問文に」(答えは教科書の文)
+    if (/^(program1-where|program2-when|g1program3-whatcan|g1program4-who|g1program6-why|g1program7-(how|howmeans)|g1program8-wh|g1program9-whprog)$/.test(stage.key) && rand() < 0.85) {
+      // Because 〜. の文は、その前の Why 〜? の文で作る
+      const qi = stage.questions.findIndex(x => x.jp === q.jp);
+      const qq = /^Because$/i.test(q.pieces[0].en) && qi > 0 ? stage.questions[qi - 1] : qi >= 0 ? stage.questions[qi] : q;
+      const w = whAnswerStatement(stage, qq);
+      const fixCap = ts => [ts[0] === 'i' ? 'I' : capitalize(ts[0]), ...ts.slice(1)];
+      if (w) {
+        const qt = qq === q ? tokens : qq.pieces.map(x => x.en).join(' ').split(' ');
+        const original = fullSentence({ ...item, tokens: qt, end: '?' });
+        return { ...item, jp: qq.jp, type: 'rewrite', rewriteKind: 'wh', rewriteRev: true, tokens: fixCap(w.tokens), ul: w.ul, end: '.', answerSentence: original, answers: rewriteVariants(original) };
+      }
+      const byAt = tokens.length - 2;
+      if (sentenceEnd(q.jp) === '.' && byAt >= 2 && tokens[byAt].toLowerCase() === 'by' && ['i', 'he', 'she', 'my', 'ken', 'they'].includes(tokens[0].toLowerCase())
+        && tokens.some(t => /^(go|goes|come|comes|went|came|get|gets)$/i.test(t))) {
+        const qs = rewriteSentence(tokens.slice(0, byAt), q.jp, 'q');
+        if (qs) {
+          const vs = qs.variants.map(v => 'How ' + lowerSubjectHead(v.split(' ')[0]) + ' ' + v.split(' ').slice(1).join(' '));
+          return { ...item, type: 'rewrite', rewriteKind: 'wh', ul: [byAt, tokens.length], answerSentence: vs[0], answers: vs };
+        }
+      }
+    }
+    // 中3 完了用法: 過去の文から「just / already / yet を使って、現在完了の文に」
+    if (stage.key === 'g3program2-completion' && rand() < 0.75) {
+      const c = completionToPast(tokens);
+      if (c) {
+        const original = fullSentence({ ...item, tokens });
+        return { ...item, type: 'rewrite', rewriteKind: 'perfectAdv', rewriteWord: c.word, tokens: c.past, end: c.end, answerSentence: original, answers: rewriteVariants(original) };
+      }
+    }
     const kinds = ['neg', 'q'];
     if (prog.grade > 1 || prog.program >= 5) kinds.push('he');
     if (prog.grade > 1 || prog.program >= 9) kinds.push('past');
@@ -7042,10 +7217,15 @@ function buildQuestion(stage, q, type) {
     const r = paraphraseOf(tokens, sentenceEnd(q.jp), stage.key);
     if (!r) return buildQuestion(stage, q, 'rewrite');
     const [from, to] = rand() < 0.5 ? [tokens, r] : [r, tokens];
-    const fromSet = new Set(from.map(t => t.toLowerCase().replace(/[,.?!]/g, '')));
-    const blanks = to.map((t, i) => (fromSet.has(t.toLowerCase().replace(/[,.?!]/g, '')) ? -1 : i)).filter(i => i >= 0);
+    const strip = t => t.toLowerCase().replace(/[,.?!"]/g, '');
+    const fromSet = new Set(from.map(strip));
+    let blanks = to.map((t, i) => (fromSet.has(strip(t)) ? -1 : i)).filter(i => i >= 0);
+    // 疑問詞 + to の文は「what to do」のまとまりを空所にする
+    const tl = to.map(strip);
+    const wk = /^g2program(5-whto|7-howto)/.test(stage.key) ? tl.findIndex((t, i) => WHTO_WH.includes(t) && (tl[i + 1] === 'to' || tl[i + 2] === 'to')) : -1;
+    if (wk > 0 && !tl.includes('should')) blanks = [wk, wk + 1, wk + 2, ...(tl[wk + 2] === 'to' ? [wk + 3] : [])];
     if (!blanks.length || blanks.length > 4) return buildQuestion(stage, q, 'rewrite');
-    const answer = blanks.map(i => to[i].replace(/[,.?!]/g, '')).join(' / ');
+    const answer = blanks.map(i => to[i].replace(/[,.?!"]/g, '')).join(' / ');
     // bigger ⇔ larger・colder ⇔ cooler のように、ほかにも正しい語
     const PARA_SYN = { bigger: 'larger', larger: 'bigger', colder: 'cooler', smaller: 'littler' };
     const alt = answer.split(' / ').map(w => (PARA_SYN[w] && PARA_SYN[w] !== 'littler' ? PARA_SYN[w] : w)).join(' / ');
@@ -7165,8 +7345,70 @@ function isThirdSingular(words) {
 const PARAPHRASE_UNITS = {
   must: /^g2program4-(must|haveto)/, will: /^g2program1-(will|begoingto)/, passive: /^g2program8-/,
   svoo: /^g2program5-svoo/, liketo: /^g2program(1-likegerund|3-noun)/, itis: /^g2program(1-subjgerund|3-itisto)/,
-  compare: /^g2program6-(comp|asas)/,
+  compare: /^g2program6-(comp|asas)/, asktell: /^g3program1-asktell/, itisfor: /^g3program1-itisfor/, whto: /^g2program(5-whto|7-howto)/,
 };
+// 中3 ask / tell / want 人 to ⇔ said to 人, "Please 〜." / said to 人, "〜." / hope that 人 will 〜
+// 動詞の原形らしい語(辞書にない動詞も、限定詞・代名詞・前置詞でなければ動詞とみなす)
+const looksBase = w => !!w && (VERB_BASE_OF[w] === w || /^[a-z]+$/.test(w) && !DETERMINERS.has(w) && !SUBJECT_PRONOUNS.has(w) && !['to', 'in', 'on', 'at', 'for', 'with', 'the', 'a', 'an', 'not'].includes(w) && !VERB_BASE_OF[w]);
+const PARA_PRONOUNS = ['me', 'my', 'him', 'his', 'her', 'us', 'our', 'them', 'their', 'you', 'your', 'myself', 'mine', 'it', 'its'];
+function asktellParaphrase(tokens, lw) {
+  const v = lw.findIndex(t => ['asked', 'told', 'want', 'wants'].includes(t));
+  if (v < 1 || ['do', 'does', 'did', "don't", "doesn't"].includes(lw[v - 1]) || lw.slice(0, v).some(t => ['what', 'when', 'where'].includes(t))) return null;
+  const t = lw.indexOf('to', v + 2);
+  if (t < 0 || t - v - 1 > 2 || !looksBase(lw[t + 1]) && lw[t + 1] !== 'be') return null;
+  const subj = tokens.slice(0, v), obj = tokens.slice(v + 1, t), inf = tokens.slice(t + 1);
+  if (!inf.length) return null;
+  if (['want', 'wants'].includes(lw[v])) {
+    const o = obj.length === 1 && OBJ_TO_SUBJ[lw[v + 1]] ? [OBJ_TO_SUBJ[lw[v + 1]] === 'i' ? 'I' : OBJ_TO_SUBJ[lw[v + 1]]] : obj;
+    return [...subj, lw[v] === 'want' ? 'hope' : 'hopes', 'that', ...o, 'will', ...inf];
+  }
+  // 引用符の中の代名詞は話し手から見た形になるので、ずれない文だけ(主語が I なら me / my はそのまま)
+  const allowed = lw[0] === 'i' && v === 1 ? ['me', 'my'] : [];
+  if (lw.slice(t + 1).some(x => PARA_PRONOUNS.includes(x) && !allowed.includes(x))) return null;
+  const objC = [...obj.slice(0, -1), obj[obj.length - 1] + ','];
+  const body = lw[v] === 'asked' ? ['"Please', ...inf] : ['"' + capitalize(inf[0]), ...inf.slice(1)];
+  body[body.length - 1] += '."';
+  return [...subj, 'said', 'to', ...objC, ...body];
+}
+// 中3 It is 〜 for 人 to … ⇔ 〜ing … is 〜 for 人(To 〜 … is 〜 for 人)
+function itisforParaphrase(tokens, lw, end) {
+  if (end === '?' || lw[0] !== 'it' || !['is', 'was'].includes(lw[1]) || lw.includes('not')) return null;
+  const f = lw.indexOf('for'), t = lw.indexOf('to', f + 1);
+  if (f < 3 || t < f + 2 || !looksBase(lw[t + 1])) return null;
+  const head = rand() < 0.6 ? [capitalize(verbIng(lw[t + 1]))] : ['To', lw[t + 1]];
+  return [...head, ...tokens.slice(t + 2), lw[1], ...tokens.slice(2, f), ...tokens.slice(f, t)];
+}
+// 中2 疑問詞 + to ⇔ 「What should I do? I don't know.」(教科書準拠ワークの形)
+const WHTO_WH = ['what', 'where', 'when', 'which', 'how'];
+function whtoParaphrase(tokens, lw, end) {
+  const k = lw.findIndex((t, i) => i > 0 && WHTO_WH.includes(t) && (lw[i + 1] === 'to' || lw[i + 2] === 'to' && NOUN_BASE_OF[lw[i + 1]]));
+  if (k < 0) return null;
+  const w = lw[k + 1] === 'to' ? 1 : 2, to = k + w;
+  if (!looksBase(lw[to + 1])) return null;
+  const main = tokens.slice(0, k), ml = lw.slice(0, k);
+  const tellIdx = ml.findIndex(t => ['tell', 'told', 'taught', 'teach', 'showed', 'show', 'asked'].includes(t));
+  let doer;
+  if (tellIdx >= 0 && ml[tellIdx] !== 'asked') {
+    const obj = ml.slice(tellIdx + 1);
+    if (!obj.length || obj.length > 2) return null;
+    doer = obj.length === 1 && OBJ_TO_SUBJ[obj[0]] ? [OBJ_TO_SUBJ[obj[0]] === 'i' ? 'I' : OBJ_TO_SUBJ[obj[0]]] : tokens.slice(tellIdx + 1, k);
+  } else if (['do', 'can', 'could'].includes(ml[0])) doer = ['I'];
+  else if (ml[0] === 'please') return null;
+  else {
+    const vi = ml.findIndex(t => ['know', 'knows', "don't", "doesn't", "didn't", 'asked', "couldn't", "can't", 'learned', 'decide'].includes(t));
+    if (vi < 1) return null;
+    doer = tokens.slice(0, vi).map((t, i) => (i === 0 ? lowerSubjectHead(t) : t));
+  }
+  if (lw[k] === 'how' && !(tellIdx >= 0)) return null;
+  const rest = tokens.slice(to + 1);
+  if (rest.slice(1).some(t => ['you', 'your'].includes(t.toLowerCase()))) return null;
+  const whw = [capitalize(lw[k]), ...tokens.slice(k + 1, to)];
+  const q = [...whw, 'should', ...doer, ...rest];
+  q[q.length - 1] += '?';
+  const m = [...main];
+  m[m.length - 1] += end === '?' ? '?' : '.';
+  return [...q, ...m.map((t, i) => (i === 0 ? capitalize(t) : t))];
+}
 // 比較の同意文: A is taller than B ⇔ B is shorter than A ⇔ B is not as tall as A
 const COMPARE_OPPOSITE = { taller: 'shorter', longer: 'shorter', older: 'younger', younger: 'older', bigger: 'smaller', larger: 'smaller',
   smaller: 'bigger', higher: 'lower', heavier: 'lighter', hotter: 'colder', warmer: 'colder', colder: 'warmer' };
@@ -7203,6 +7445,9 @@ function paraphraseOf(tokens, end, stageKey = '') {
   const allow = kind => !stageKey || PARAPHRASE_UNITS[kind].test(stageKey);
   const lw = tokens.map(t => t.toLowerCase().replace(/[,.?!]/g, ''));
   if (allow('compare') && lw.some(t => t === 'than' || t === 'as')) return compareParaphrase(tokens, lw, end);
+  if (stageKey && allow('asktell')) return end === '?' || lw.includes('not') ? null : asktellParaphrase(tokens, lw);
+  if (stageKey && allow('itisfor')) return itisforParaphrase(tokens, lw, end);
+  if (stageKey && allow('whto')) return lw.includes('not') ? null : whtoParaphrase(tokens, lw, end);
   if (end === '?' || lw.some(t => ['not', 'never', "don't", "doesn't", "didn't", 'cannot'].includes(t) || /n't$/.test(t))) return null;
   if (tokens.some(t => /,$/.test(t))) return null;
   // 節をふくむ文(I think ~ / which ~ / when ~)や命令文は、主語と動詞の関係がずれるので作らない
@@ -7421,6 +7666,7 @@ function fullSentence(item) {
 }
 // 「the U.S.」のように . で終わる文には . を重ねない(? は付ける)
 function endWith(text, end) {
+  if (/[.?!]"$/.test(text)) return text;
   if (end === '?') return /\?$/.test(text) ? text : text + '?';
   return /[.?!]$/.test(text) ? text : text + end;
 }
@@ -9124,7 +9370,7 @@ function itemBodyHtml(item) {
       return `<div class="ws-sentence">${endWith(item.tokens.map((t, i) => (i === item.usageFrom ? '<u>' : '') + t + (i === item.usageTo ? '</u>' : '')).join(' '), item.end)}</div>${optionsHtml(item)}`;
     case 'paraphrase':
       return `<div class="ws-sentence">${endWith(item.fromTokens.join(' '), item.end)}</div>
-        <div class="ws-sentence">${endWith(item.toTokens.map((t, i) => (item.blanks.includes(i) ? '<span class="ws-blank">（　　　　）</span>' : t)).join(' '), item.end)}</div>
+        <div class="ws-sentence">${endWith(item.toTokens.map((t, i) => (item.blanks.includes(i) ? t.replace(/^("?)(.*?)([,.?!"]*)$/, '$1<span class="ws-blank">（　　　　）</span>$3') : t)).join(' '), item.end)}</div>
         ${answerLineHtml('（　）に入る語を順に', 'short')}`;
     case 'entoja':
       return answerLineHtml('日本語で書こう');
