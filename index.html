@@ -6509,6 +6509,8 @@ function completionToPast(tokens) {
 }
 function rewriteSentence(tokens, jp, kind) {
   const lower = tokens.map(t => t.toLowerCase());
+  // It's / He's などの短縮形で始まる文は、is と has の区別がつかないので作らない
+  if (/'(s|re|m)$/.test(lower[0])) return null;
   if (sentenceEnd(jp) !== '.' || rewriteUnsafe(tokens)) return null;
   // all / both / really の否定は「全部が〜というわけではない」になるので作らない。should keep 〜 clean の否定も不自然
   if (kind === 'neg' && lower.some(t => ['all', 'both', 'really', 'every', 'each', 'two', 'three', 'four', 'five', 'many'].includes(t))) return null;
@@ -6955,6 +6957,7 @@ const QUESTION_TYPES = {
   choice:    { label: '適語選択', instr: '日本語に合うように、（　）に入る最も適切な語を選びなさい。' },
   fillin:    { label: '適語補充', instr: '日本語に合うように、（　）に入る適切な英語を1語書きなさい。' },
   form:      { label: '語形変化', instr: '日本語に合うように、[　]の語を適切な形にして（　）に書きなさい。' },
+  rewritefill: { label: '書きかえ（空所）', instr: '（　）内の指示にしたがって英文を書きかえるとき、下の文の（　）に適する語を1語ずつ書きなさい。' },
   rewrite:   { label: '書きかえ', instr: '（　）内の指示にしたがって、英文を書きかえなさい。疑問文にするときは、I・my・me は you・your・you にすること。' },
   translate: { label: '和文英訳', instr: '日本語を英語にしなさい。' },
   entoja:    { label: '英文和訳', instr: '次の英文を日本語にしなさい。' },
@@ -7085,6 +7088,27 @@ function buildQuestion(stage, q, type) {
   }
   // 英文和訳は修飾語なしの文で出す(模範解答の日本語が文と一致するように)
   if (type === 'entoja') return { ...item, type: 'entoja', answer: q.jp };
+  if (type === 'rewritefill') {
+    // 空所型の書きかえ(問題集の確認問題の形): 書きかえた文で、もとの文から変わった語だけを空所にする
+    const r = buildQuestion(stage, q, 'rewrite');
+    if (r.type !== 'rewrite') return r;
+    const to = r.answerSentence.replace(/[.?!]$/, '').split(' ');
+    const from = r.tokens.map(t => t.toLowerCase().replace(/[,.?!]/g, ''));
+    const tl = to.map(t => t.toLowerCase().replace(/[,.?!]/g, ''));
+    // 最長共通部分列で、そのまま残る語を見つける
+    const L = Array.from({ length: from.length + 1 }, () => new Array(tl.length + 1).fill(0));
+    for (let i = from.length - 1; i >= 0; i--) for (let j = tl.length - 1; j >= 0; j--) L[i][j] = from[i] === tl[j] ? L[i + 1][j + 1] + 1 : Math.max(L[i + 1][j], L[i][j + 1]);
+    const keep = new Set();
+    for (let i = 0, j = 0; i < from.length && j < tl.length;) { if (from[i] === tl[j]) { keep.add(j); i++; j++; } else if (L[i + 1][j] >= L[i][j + 1]) i++; else j++; }
+    let blanks = tl.map((_, j) => j).filter(j => !keep.has(j));
+    // 疑問文は、文頭の語(be動詞・do・疑問詞)と主語の入れかえ部分も空所に(問題集と同じ)
+    if (['q', 'qa', 'wh'].includes(r.rewriteKind) && !blanks.includes(0)) blanks.unshift(0);
+    blanks = [...new Set(blanks)].filter(j => /[a-z0-9]/i.test(to[j])).sort((a, b) => a - b);
+    if (!blanks.length || blanks.length > 5 || blanks.length >= to.length - 1) return r;
+    const answer = blanks.map(i => to[i].replace(/[,.?!]/g, '')).join(' / ');
+    const end = /[?]$/.test(r.answerSentence) ? '?' : '.';
+    return { ...r, type: 'rewritefill', toTokens: to, toEnd: end, blanks, answer, altAnswers: [] };
+  }
   if (type === 'rewrite') {
     // 否定文・疑問文のどちらかをランダムに。どちらも作れない文(疑問文・否定文・命令文など)は適語選択にする
     // 中1 Program 5(3人称単数)からは「主語を He に」、Program 9(過去形)からは「過去の文に」も出す
@@ -7633,7 +7657,7 @@ function makeUnitQuestion(stage, type, st, maxTier = 1) {
   let item;
   for (let tries = 0; tries < 6; tries++) {
     // 並べ替えは修飾語を足さない(場所と時の語句の順番が2通りになることがあるため)
-    const tier = ['entoja', 'reorder', 'extra', 'lack', 'myself', 'trace', 'chunkorder', 'frame', 'svo', 'slash', 'pattern', 'rewrite', 'paraphrase'].includes(type) ? 1 : maxTier;
+    const tier = ['entoja', 'reorder', 'extra', 'lack', 'myself', 'trace', 'chunkorder', 'frame', 'svo', 'slash', 'pattern', 'rewrite', 'rewritefill', 'paraphrase'].includes(type) ? 1 : maxTier;
     const q = getSessionQuestion(stage, st.n++, st.order, tier);
     item = buildQuestion(stage, q, type);
     if (item.type === type && !isExcluded(item)) return item;
@@ -9211,7 +9235,7 @@ function answerText(item) {
   if (item.type === 'svo' || item.type === 'slash') return segmentsHtml(item.segs, item.type === 'slash') + (item.altAnswer ? `<span class="ans-why">${item.altAnswer} と分けても正解</span>` : '');
   if (item.type === 'rewrite') return item.answerSentence;
   if (item.type === 'error') return `${item.wrongWord} → ${item.answer}`;
-  if (item.type === 'paraphrase') return item.answer;
+  if (item.type === 'paraphrase' || item.type === 'rewritefill') return item.answer;
   if (item.type === 'extra') return `${fullSentence(item)}（不要：${item.wrongWord}）`;
   if (item.type === 'lack') return `${fullSentence(item)}（不足：${item.lackWord}）`;
   if ((item.type === 'reorder' || item.type === 'translate') && !item.custom && timeFrontAlt(item)) {
@@ -9242,7 +9266,7 @@ function isCorrect(item) {
     const n = t => normalize(t.replace(/[—–-]/g, ' '));
     return n(answer) !== '' && item.answers.some(a => n(a) === n(answer));
   }
-  if (item.type === 'paraphrase') return normalize(answer.replace(/[／/・]/g, ' ')) !== '' && [item.answer, ...(item.altAnswers || [])].some(a => normalize(answer.replace(/[／/・]/g, ' ')) === normalize(a.replace(/ \/ /g, ' ')));
+  if (item.type === 'paraphrase' || item.type === 'rewritefill') return normalize(answer.replace(/[／/・]/g, ' ')) !== '' && [item.answer, ...(item.altAnswers || [])].some(a => normalize(answer.replace(/[／/・]/g, ' ')) === normalize(a.replace(/ \/ /g, ' ')));
   // 誤文訂正: 「正しい語」だけ、または「誤っている語 → 正しい語」を正解にする
   if (item.type === 'error') {
     const words = answer.toLowerCase().replace(/[’]/g, "'").split(/[^a-z']+/).filter(Boolean);
@@ -9342,7 +9366,7 @@ function itemPromptHtml(item) {
   if (item.type === 'wtable') return '次の日本語に合う英単語を書こう';
   // 否定文・疑問文・下線部・主語の書きかえは、答えの文と日本語が合わないので、もとの文の意味として小さく出す(主語をかえる問題は出さない)
   if (item.type === 'insert') return '';
-  if (item.type === 'rewrite' && ['neg', 'q', 'wh', 'he', 'qa', 'plural'].includes(item.rewriteKind)) return ['he', 'plural'].includes(item.rewriteKind) || item.rewriteRev ? '' : `<span class="ws-cmean">もとの文の意味：${item.jp}</span>`;
+  if (['rewrite', 'rewritefill'].includes(item.type) && ['neg', 'q', 'wh', 'he', 'qa', 'plural'].includes(item.rewriteKind)) return ['he', 'plural'].includes(item.rewriteKind) || item.rewriteRev ? '' : `<span class="ws-cmean">もとの文の意味：${item.jp}</span>`;
   const tags = item.jpTags.map(t => `<span class="ws-tag">＋${t}</span>`).join('');
   return `${item.jp}${tags}`;
 }
@@ -9376,9 +9400,9 @@ function itemBodyHtml(item) {
         ${answerLineHtml('（　）に入る語を順に', 'short')}`;
     case 'entoja':
       return answerLineHtml('日本語で書こう');
-    case 'rewrite':
+    case 'rewrite': case 'rewritefill':
       return `<div class="ws-sentence">${item.ul ? endWith(item.tokens.map((t, i) => (i === item.ul[0] ? '<u>' : '') + escHtml(t) + (i === item.ul[1] - 1 ? '</u>' : '')).join(' '), item.end) : fullSentence(item)}<span class="ws-hint">（${rewriteKindLabel(item)}）</span></div>
-        ${answerLineHtml('書きかえた英文を書こう')}`;
+        ${item.type === 'rewritefill' ? `<div class="ws-sentence">${endWith(item.toTokens.map((t, i) => (item.blanks.includes(i) ? '<span class="ws-blank">（　　　　）</span>' + (t.match(/[,.?!]+$/) || [''])[0] : escHtml(t))).join(' '), item.toEnd)}</div>${answerLineHtml('（　）に入る語を順に', 'short')}` : answerLineHtml('書きかえた英文を書こう')}`;
     case 'ccheck':
       return `<div class="ws-clist"><div class="ws-red ws-ex-en">${escHtml(item.en).replace(/\*([^*]+)\*/g, '<u>$1</u>')}</div></div>`;
     case 'clist':
@@ -9959,7 +9983,7 @@ function renderGuideWorksheet() {
 // 配点: 形式ごとの重み(書く問題・長い問題ほど高く)を、合計がちょうど100点になるように整数にする。同じ形式は同じ点
 const POINT_WEIGHTS = {
   vmeaning: 1, vjp: 2, vword: 2, vblank: 2, vidiom: 2,
-  choice: 2, usage: 2, lack: 3, myself: 3, svo: 3, slash: 3, pattern: 2, tone: 2, insert: 2, fillin: 2, form: 2, error: 3, extra: 3, reorder: 3, rewrite: 3, paraphrase: 3, translate: 4, entoja: 4,
+  choice: 2, usage: 2, lack: 3, myself: 3, svo: 3, slash: 3, pattern: 2, tone: 2, insert: 2, fillin: 2, form: 2, error: 3, extra: 3, reorder: 3, rewrite: 3, rewritefill: 2, paraphrase: 3, translate: 4, entoja: 4,
   rchoice: 3, rtf: 2, rfill: 3, rja: 4, rea: 4, cdialog: 3, cphrase: 3, cform: 2, cfree: 3, cwtrans: 4, cwcond: 5, cwfree: 10, cetoj: 4, xchoice: 2, xdialog: 3, xfill: 3, xorder: 3, xpara: 3, xask: 4, xsame: 3, clist: 1, ccheck: 1, kform: 3, korder: 3, kscene: 6, kl1: 3, kl2: 3, kl3: 3, kl4: 3,
 };
 function assignPoints(items) {
