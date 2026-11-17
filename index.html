@@ -1251,6 +1251,7 @@
 <script src="exam_grammar_2.js"></script>
 <script src="exam_grammar_3.js"></script>
 <script src="exam_grammar_basic.js"></script>
+<script src="exam_grammar_dialogs.js"></script>
 <script src="exam_reading_1.js"></script>
 <script src="exam_reading_2.js"></script>
 <script src="exam_chiba.js"></script>
@@ -9180,7 +9181,7 @@ function shuffledPieces(item) {
   return item.shuffled[printChunkLevel];
 }
 
-const SELECT_TYPES = new Set(['kl1', 'kl2', 'kl3', 'kl4', 'choice', 'usage', 'pattern', 'tone', 'insert', 'vmeaning', 'rchoice', 'rtf', 'cdialog', 'xchoice']);
+const SELECT_TYPES = new Set(['kl1', 'kl2', 'kl3', 'kl4', 'choice', 'usage', 'pattern', 'tone', 'insert', 'vmeaning', 'rchoice', 'rtf', 'cdialog', 'xchoice', 'xdialog']);
 // 日本語で答える問題は、模範解答を見て自分で採点する
 const SELF_GRADED_TYPES = new Set(['myself', 'ccheck', 'clist', 'frame', 'rule', 'wtable', 'kscene', 'rja', 'rea', 'entoja', 'vjp', 'cwtrans', 'cwcond', 'cwfree', 'cetoj']);
 
@@ -9315,7 +9316,7 @@ function itemPromptHtml(item) {
     const [head, ...rest] = String(item.q).split('\n');
     return rest.length ? `${head}<div class="ws-letter">${rest.join('<br>')}</div>` : head;
   }
-  if (item.type === 'cdialog') return '';
+  if (item.type === 'cdialog' || item.type === 'xdialog') return '';
   if (item.type === 'cphrase' || item.type === 'cfree') return item.jp.replace(/\s*(B[:：])\s*/, '<br>$1 ');
   if (item.type === 'cwtrans') return item.jp;
   if (['xchoice', 'xfill', 'xorder'].includes(item.type)) return item.jp || '';
@@ -9430,7 +9431,7 @@ function itemBodyHtml(item) {
       return answerLineHtml('日本語で書こう');
     case 'rea':
       return answerLineHtml('英語で答えよう');
-    case 'cdialog':
+    case 'cdialog': case 'xdialog':
       return `<div class="ws-dialog">${item.lines.map(([who, text]) => `<b>${who}:</b><span>${text === null ? '<span class="ws-blank">（　　　　　　　　）</span>' : text}</span>`).join('')}</div>${optionsHtml(item)}`;
     case 'cwtrans':
       return answerLineHtml('英文を書こう');
@@ -9956,7 +9957,7 @@ function renderGuideWorksheet() {
 const POINT_WEIGHTS = {
   vmeaning: 1, vjp: 2, vword: 2, vblank: 2, vidiom: 2,
   choice: 2, usage: 2, lack: 3, myself: 3, svo: 3, slash: 3, pattern: 2, tone: 2, insert: 2, fillin: 2, form: 2, error: 3, extra: 3, reorder: 3, rewrite: 3, paraphrase: 3, translate: 4, entoja: 4,
-  rchoice: 3, rtf: 2, rfill: 3, rja: 4, rea: 4, cdialog: 3, cphrase: 3, cform: 2, cfree: 3, cwtrans: 4, cwcond: 5, cwfree: 10, cetoj: 4, xchoice: 2, xfill: 3, xorder: 3, xpara: 3, xask: 4, clist: 1, ccheck: 1, kform: 3, korder: 3, kscene: 6, kl1: 3, kl2: 3, kl3: 3, kl4: 3,
+  rchoice: 3, rtf: 2, rfill: 3, rja: 4, rea: 4, cdialog: 3, cphrase: 3, cform: 2, cfree: 3, cwtrans: 4, cwcond: 5, cwfree: 10, cetoj: 4, xchoice: 2, xdialog: 3, xfill: 3, xorder: 3, xpara: 3, xask: 4, clist: 1, ccheck: 1, kform: 3, korder: 3, kscene: 6, kl1: 3, kl2: 3, kl3: 3, kl4: 3,
 };
 function assignPoints(items) {
   items.forEach(it => { delete it.points; });
@@ -10669,6 +10670,7 @@ const EXAM_TYPES = {
   korder: { label: '対話文完成（並べかえ）', instr: '対話文が成り立つように、（　）の中のア〜オを正しい語順に並べかえ、その順序を符号で示しなさい。' },
   kscene: { label: '場面英作文', instr: '場面に合うように、（　）に入る英語を書きなさい。ただし、,.?! などの符号は語数に含めない。' },
   xchoice: { label: '適語選択', instr: '（　）に入る最も適切なものをア〜エから選びなさい。' },
+  xdialog: { label: '問答文', instr: '対話が成り立つように、（　）に入る最も適切なものをア〜エから選びなさい。' },
   xfill: { label: '適語補充', instr: '日本語に合うように、（　）に適切な語を1語ずつ入れなさい。' },
   xorder: { label: '並べかえ', instr: '日本語に合うように、（　）内の語句を並べかえて英文を書きなさい。' },
   xpara: { label: '同意文', instr: '2つの文がほぼ同じ意味になるように、（　）に適切な語を1語ずつ入れなさい。' },
@@ -10842,6 +10844,7 @@ function examBlanks(text) {
 function examGrammarItem(chapter, q) {
   const base = { section: 'exam', type: 'x' + q.type, key: `${chapter}${q.i}`, jp: q.jp, why: q.point };
   if (q.type === 'choice') return { ...base, en: q.en, options: q.options, answer: q.options[q.answer] };
+  if (q.type === 'dialog') return { ...base, lines: q.lines, options: shuffle([...q.options]), answer: q.options[q.answer] }; // 正解の位置がかたよらないように並べかえる
   if (q.type === 'fill') return { ...base, en: q.en, answers: q.answers };
   if (q.type === 'order') return { ...base, words: shuffle([...q.words]), answer: q.answer };
   if (q.type === 'ask') return { ...base, en: q.en, answer: q.answer, answers: [q.answer, ...(q.alts || [])] };
