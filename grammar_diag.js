@@ -124,5 +124,7 @@ const STAGE_RECIPES = [
 ];
 function recipeOf(st) {
   const hit = STAGE_RECIPES.find(([re]) => re.test(st.key));
-  return hit ? hit[1] : ['reorder', 'choice', 'translate'];
+  const list = hit ? hit[1] : ['reorder', 'choice', 'translate'];
+  // 中1は、書きかえを空所型(変わった語だけを書く)にする(問題集の確認問題の形)
+  return st.grade === 1 ? list.map(t => (t === 'rewrite' ? 'rewritefill' : t)) : list;
 }
