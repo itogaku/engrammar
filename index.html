@@ -612,6 +612,12 @@
   .ws-add-box select { font-family: inherit; font-size: 11.5px; padding: 1px 4px; border-radius: 4px; border: 1px solid var(--teal); color: var(--teal); background: var(--panel); }
   .ws-edit button.danger { border-color: var(--amber); background: var(--panel); color: var(--amber); }
   .ws-add { display: inline-block; margin: 4px 0 10px; background: var(--panel); }
+  .ws-editpanel { border: 1.5px dashed var(--teal); border-radius: 8px; padding: 8px 12px; margin: 0 0 14px; font-size: 12.5px; background: var(--teal-tint); }
+  .ws-ep-head { font-weight: 700; margin-bottom: 4px; } .ws-ep-head span { font-weight: 400; margin-left: 6px; }
+  .ws-ep-units { display: flex; flex-wrap: wrap; gap: 4px 12px; margin-bottom: 6px; }
+  .ws-ep-unit b { margin-left: 4px; color: var(--teal); } .ws-ep-unit.zero b { color: #c0392b; }
+  .ws-ep-ctrl select { font: inherit; font-size: 12px; margin: 0 4px; }
+  .sheet.teacher .ws-editpanel { display: none; }
   .ws-passage-change { float: right; margin: 0 0 6px 8px; }
   .sheet.teacher .ws-edit, .sheet.teacher .ws-add { display: none; }
 
@@ -10158,6 +10164,7 @@ function renderWorksheet() {
   applyPartControls();
   if (printExampleCheck.checked) applyExamples();
   addEditControls();
+  addTestEditPanel();
 }
 // 基礎文法: プリントの先頭の「ルール」(はじめはこれを見ながら解く)と、問題ごとの「→ ルール◯ を見よう」
 function basicRulesEl(list) {
@@ -10580,6 +10587,7 @@ function addItemOfType(section, type) {
   const list = section === 'vocab' ? vocabItems : section === 'exam' ? examItems : printItems;
   const next = section === 'vocab' ? newVocabItem(type) : section === 'exam' ? newExamItem({ type }) : newGrammarItem(type);
   if (!next) { alert('この範囲では、ほかに出せる問題がありません。'); return; }
+  if (section === 'grammar' && ['auto', 'check'].includes((printSource.config || {}).mode)) { const st = stages.find(x => x.key === next.stageKey); if (st) next.diag = { title: st.label }; }
   let at = -1;
   list.forEach((it, i) => { if (it.type === type) at = i; });
   list.splice(at + 1, 0, next);
@@ -10661,6 +10669,85 @@ function guideAddItem(L, type) {
 }
 
 // 画面のプリントに編集ボタンをつける(単元プリント・定期テスト。印刷には出ない)
+// 作ったあとの編集パネル(印刷しない): 単元ごとの問題数と、まだない形式・長文の追加
+function addTestEditPanel() {
+  if (!['test', 'stage'].includes(printSource.kind)) return;
+  const list = sourceStages().filter(Boolean);
+  const cfg = printSource.config || {};
+  const panel = document.createElement('div');
+  panel.className = 'ws-editpanel no-print';
+  // 1. 単元ごとの問題数
+  const count = new Map();
+  printItems.forEach(it => { if (it.stageKey) count.set(it.stageKey, (count.get(it.stageKey) || 0) + 1); });
+  const unitRows = list.map(st => {
+    const n = count.get(st.key) || 0;
+    const label = st.label.replace(/^([1-3])年 /, '中$1 ');
+    return `<span class="ws-ep-unit${n ? '' : ' zero'}">${escHtml(label)}<b>${n}問</b></span>`;
+  }).join('');
+  const nReading = readingItems.length, nVocab = vocabItems.length, nExam = examItems.length;
+  const totals = [`文法 ${printItems.length}問`, nVocab ? `単語 ${nVocab}問` : '', nReading ? `長文 ${nReading}題` : '', nExam ? `入試 ${nExam}問` : ''].filter(Boolean).join('・');
+  panel.innerHTML = `<div class="ws-ep-head">単元ごとの問題数<span>（${totals}）</span></div>${list.length ? `<div class="ws-ep-units">${unitRows}</div>` : ''}`;
+  // 2. まだない形式を追加
+  const ctrl = document.createElement('div');
+  ctrl.className = 'ws-ep-ctrl';
+  if (list.length) {
+    const present = new Set(printItems.map(it => it.type));
+    const types = Object.entries(visibleTypes(QUESTION_TYPES)).filter(([t]) => !present.has(t) && list.some(st => canMakeType(st, t)));
+    if (types.length) {
+      const sel = document.createElement('select');
+      sel.innerHTML = types.map(([t, d]) => `<option value="${t}">${d.label}</option>`).join('');
+      const b = document.createElement('button');
+      b.className = 'ws-add';
+      b.textContent = '＋ この形式を追加（1問）';
+      b.onclick = () => addNewTypeItem(sel.value);
+      ctrl.append('まだない形式：', sel, b);
+    }
+    if (printSource.kind === 'test') {
+      const vPresent = new Set(vocabItems.map(it => it.type));
+      const textList = textStages(list, cfg.noText);
+      const vTypes = Object.entries(VOCAB_TYPES).filter(([t]) => !vPresent.has(t) && vocabTypePool(textList, t, false).length);
+      if (vTypes.length) {
+        const sel = document.createElement('select');
+        sel.innerHTML = vTypes.map(([t, d]) => `<option value="${t}">${d.label}</option>`).join('');
+        const b = document.createElement('button');
+        b.className = 'ws-add';
+        b.textContent = '＋ 単語問題を追加（1問）';
+        b.onclick = () => { const it = newVocabItem(sel.value); if (!it) { alert('この範囲では、ほかに出せる問題がありません。'); return; } vocabItems.push(it); vocabItems.splice(0, vocabItems.length, ...groupByType(vocabItems, VOCAB_TYPES)); editedRender(); };
+        ctrl.append(document.createElement('br'), '単語：', sel, b);
+      }
+    }
+    // 3. 長文を追加
+    if (!cfg.examReadingPlan && !cfg.examReadingLevels) {
+      const textList = textStages(list, cfg.noText);
+      const current = new Set(readingItems.map(r => r.passage));
+      const left = readingPassagesFor(textList, cfg.readingLevel || 'both').filter(p => !current.has(p));
+      if (left.length) {
+        const b = document.createElement('button');
+        b.className = 'ws-add';
+        b.textContent = `＋ 長文を1題追加（あと${left.length}題）`;
+        b.onclick = () => {
+          const [next] = generateReadingItems(textList, { ...cfg, readingCount: 1, readingLevel: cfg.readingLevel || 'both' }, new Set(current));
+          if (!next || current.has(next.passage)) { alert('この範囲では、ほかに出せる長文がありません。'); return; }
+          readingItems.push(next);
+          editedRender();
+        };
+        ctrl.append(document.createElement('br'), b);
+      }
+    }
+  }
+  if (ctrl.childNodes.length) panel.appendChild(ctrl);
+  sheetItems.prepend(panel);
+}
+// まだない形式の問題を足す(形式の順に並べなおす)。おまかせ・チェックテストの単元別の結果にも出るように単元名をつける
+function addNewTypeItem(type) {
+  const it = newGrammarItem(type);
+  if (!it) { alert('この範囲では、この形式の問題を作れません。'); return; }
+  const cfg = printSource.config || {};
+  if (['auto', 'check'].includes(cfg.mode)) { const st = stages.find(x => x.key === it.stageKey); if (st) it.diag = { title: st.label }; }
+  printItems.push(it);
+  printItems.splice(0, printItems.length, ...groupByType(printItems, QUESTION_TYPES));
+  editedRender();
+}
 function addEditControls() {
   const guide = printSource.kind === 'guide';
   const rows = [...sheetItems.querySelectorAll('.ws-item')].filter(r => r._item);
