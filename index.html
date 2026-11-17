@@ -10692,7 +10692,9 @@ function addTestEditPanel() {
   ctrl.className = 'ws-ep-ctrl';
   if (list.length) {
     const present = new Set(printItems.map(it => it.type));
-    const types = Object.entries(visibleTypes(QUESTION_TYPES)).filter(([t]) => !present.has(t) && list.some(st => canMakeType(st, t)));
+    // 練習向けの形式(文型・区切り・文の要素・文の読み方)はテストに足す一覧に出さない
+    const PRACTICE_ONLY = new Set(['pattern', 'slash', 'svo', 'tone']);
+    const types = Object.entries(visibleTypes(QUESTION_TYPES)).filter(([t]) => !PRACTICE_ONLY.has(t) && !present.has(t) && list.some(st => canMakeType(st, t)));
     if (types.length) {
       const sel = document.createElement('select');
       sel.innerHTML = types.map(([t, d]) => `<option value="${t}">${d.label}</option>`).join('');
