@@ -1252,6 +1252,7 @@
 <script src="exam_grammar_3.js"></script>
 <script src="exam_grammar_basic.js"></script>
 <script src="exam_grammar_dialogs.js"></script>
+<script src="exam_grammar_same.js"></script>
 <script src="exam_reading_1.js"></script>
 <script src="exam_reading_2.js"></script>
 <script src="exam_chiba.js"></script>
@@ -9201,7 +9202,7 @@ function answerText(item) {
   if (item.type === 'cetoj') return `${item.answer}${item.point ? `<span class="ans-why">ポイント：${item.point}</span>` : ''}`;
   if (item.type === 'cform') return item.answers.join('　');
   if (item.type === 'xfill' || item.type === 'xpara') return item.answers.join(' / ');
-  if (item.type === 'xask') return `${item.answers[0]}${item.answers.slice(1).map(a => `<span class="ans-why">別解：${a}</span>`).join('')}`;
+  if (item.type === 'xask' || item.type === 'xsame') return `${item.answers[0]}${item.answers.slice(1).map(a => `<span class="ans-why">別解：${a}</span>`).join('')}`;
   if (item.type === 'xorder') return item.answer;
   if (item.type === 'kform') return item.answer;
   if (item.type === 'korder') return `${item.order.map(k => CHOICE_LABELS5[k]).join('→')}<span class="ans-why">${item.sentence}</span>`;
@@ -9254,7 +9255,7 @@ function isCorrect(item) {
     return parts(answer) !== '' && (parts(answer) === parts(item.answer) || !!item.altAnswer && parts(answer) === parts(item.altAnswer));
   }
   if (item.type === 'svo') { const sv = x => x.toUpperCase().replace(/[^SVOCM仮真]/g, ''); return sv(answer) !== '' && sv(answer) === sv(item.answer); }
-  if (item.type === 'xask') return normalize(answer) !== '' && item.answers.some(a => normalize(a) === normalize(answer));
+  if (item.type === 'xask' || item.type === 'xsame') return normalize(answer) !== '' && item.answers.some(a => normalize(a) === normalize(answer));
   if (item.type === 'kform') return normalize(answer) !== '' && normalize(answer) === normalize(item.answer);
   if (item.type === 'korder') {
     const got = (answer.match(/[アイウエオ]/g) || []).join('');
@@ -9320,7 +9321,7 @@ function itemPromptHtml(item) {
   if (item.type === 'cphrase' || item.type === 'cfree') return item.jp.replace(/\s*(B[:：])\s*/, '<br>$1 ');
   if (item.type === 'cwtrans') return item.jp;
   if (['xchoice', 'xfill', 'xorder'].includes(item.type)) return item.jp || '';
-  if (item.type === 'xpara' || item.type === 'xask') return '';
+  if (item.type === 'xpara' || item.type === 'xask' || item.type === 'xsame') return '';
   if (item.type === 'kform' || item.type === 'korder') return '';
   if (/^kl[123]$/.test(item.type)) return '';
   if (item.type === 'kl4') return `<div class="ws-letter">${escHtml(item.memo).replace(item.blank === 0 ? '( ① )' : '( ② )', m => `<b class="ws-hl">${m}</b>`)}</div>`;
@@ -9455,6 +9456,8 @@ function itemBodyHtml(item) {
       return `<div class="ws-sentence">（ ${item.words.join(' / ')} ）</div>${answerLineHtml('並べかえた英文を書こう')}`;
     case 'xask':
       return `<div class="ws-sentence">${escHtml(item.en).replace(/\[([^\]]+)\]/g, '<u>$1</u>')}</div>${answerLineHtml('疑問文を書こう')}`;
+    case 'xsame':
+      return `<div class="ws-sentence">${escHtml(item.en).replace(/\[([^\]]+)\]/g, '<u>$1</u>')}<span class="ws-hint">（${item.answers[0].split(' ').length}語）</span></div>${answerLineHtml('下線部と同じ意味の語句')}`;
     case 'xpara':
       return `<div class="ws-sentence">${item.en1}</div><div class="ws-sentence">${examBlanks(item.en2)}</div>${answerLineHtml('（　）に入る語を順に', 'short')}`;
     case 'cwcond': case 'cwfree':
@@ -9957,7 +9960,7 @@ function renderGuideWorksheet() {
 const POINT_WEIGHTS = {
   vmeaning: 1, vjp: 2, vword: 2, vblank: 2, vidiom: 2,
   choice: 2, usage: 2, lack: 3, myself: 3, svo: 3, slash: 3, pattern: 2, tone: 2, insert: 2, fillin: 2, form: 2, error: 3, extra: 3, reorder: 3, rewrite: 3, paraphrase: 3, translate: 4, entoja: 4,
-  rchoice: 3, rtf: 2, rfill: 3, rja: 4, rea: 4, cdialog: 3, cphrase: 3, cform: 2, cfree: 3, cwtrans: 4, cwcond: 5, cwfree: 10, cetoj: 4, xchoice: 2, xdialog: 3, xfill: 3, xorder: 3, xpara: 3, xask: 4, clist: 1, ccheck: 1, kform: 3, korder: 3, kscene: 6, kl1: 3, kl2: 3, kl3: 3, kl4: 3,
+  rchoice: 3, rtf: 2, rfill: 3, rja: 4, rea: 4, cdialog: 3, cphrase: 3, cform: 2, cfree: 3, cwtrans: 4, cwcond: 5, cwfree: 10, cetoj: 4, xchoice: 2, xdialog: 3, xfill: 3, xorder: 3, xpara: 3, xask: 4, xsame: 3, clist: 1, ccheck: 1, kform: 3, korder: 3, kscene: 6, kl1: 3, kl2: 3, kl3: 3, kl4: 3,
 };
 function assignPoints(items) {
   items.forEach(it => { delete it.points; });
@@ -10676,6 +10679,7 @@ const EXAM_TYPES = {
   xpara: { label: '同意文', instr: '2つの文がほぼ同じ意味になるように、（　）に適切な語を1語ずつ入れなさい。' },
   ccheck: { label: '教科書の重要文', instr: '日本語を見て英文を言ってみよう。赤シートで英文をかくし、言えたら□にチェック。' },
   clist: { label: '表現の一覧', instr: '□にチェックしながら、例文を声に出して読もう。赤シートで意味をかくして、言えるか確かめよう。' },
+  xsame: { label: '同じ意味の語句', instr: '次の英文の下線部とほぼ同じ意味になる語句を、指定された語数で書きなさい。' },
   xask: { label: '下線部をたずねる疑問文', instr: '下線部が答えの中心となる疑問文を書きなさい。' },
   cfree: { label: '英作文の表現', instr: '日本語に合うように、（　）に適切な英語を1語ずつ入れなさい。' },
   cetoj: { label: '英文和訳', instr: '次の英文を日本語にしなさい。' },
@@ -10848,6 +10852,7 @@ function examGrammarItem(chapter, q) {
   if (q.type === 'fill') return { ...base, en: q.en, answers: q.answers };
   if (q.type === 'order') return { ...base, words: shuffle([...q.words]), answer: q.answer };
   if (q.type === 'ask') return { ...base, en: q.en, answer: q.answer, answers: [q.answer, ...(q.alts || [])] };
+  if (q.type === 'same') return { ...base, en: q.en, answer: q.answers[0], answers: q.answers };
   return { ...base, en1: q.en1, en2: q.en2, answers: q.answers };
 }
 // リスニング(大問1〜4)。解答ページに台本をのせる(端末で再生できないときは先生が読み上げる)
