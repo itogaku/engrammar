@@ -777,6 +777,8 @@
     .ws-ans-page.include { display: block !important; break-before: page; page-break-before: always; border: none; background: none; padding: 0; margin: 0; }
     .guide-paged .ws-ans-page + .ws-qpage { break-before: page; page-break-before: always; }
     .print-box { display: inline-block; }
+    body.print-2col #sheetItems, body.print-2col #answerList { column-count: 2; column-gap: 10mm; column-rule: 1px solid #ccc; }
+    body.print-2col .ws-section-title, body.print-2col .ws-type-group { break-after: avoid; }
     .ws-boxes.print-box { display: flex; }
     .has-boxes .ws-answer { display: none !important; }
     /* 4線: 印刷では入力欄のかわりに4線を出す */
@@ -1127,6 +1129,7 @@
           <label class="opt-check"><input type="checkbox" id="printIncludeAnswers" checked> 解答ページを入れる</label>
           <label class="opt-check" id="printGuideTestLabel"><input type="checkbox" id="printGuideTestCheck" checked> 確認テストをつける</label>
           <label class="opt-check" id="printPointsLabel"><input type="checkbox" id="printPointsCheck" checked> 配点（100点満点）</label>
+          <label class="opt-check" id="printLandscapeLabel"><input type="checkbox" id="printLandscapeCheck"> 横向き・2段（文字の大きさはそのままで枚数を減らす。入試対策の章ごとのプリントは縦のまま）</label>
           <label class="opt-check"><input type="checkbox" id="printTeacherCheck"> 先生用（答えを赤字で記入）</label>
           <label class="opt-check" id="printExampleLabel"><input type="checkbox" id="printExampleCheck"> 各形式の最初の1問を例題にする（答えと着眼点つき）</label>
           <label class="opt-check" id="printGridLabel"><input type="checkbox" id="printGridCheck"> 解答欄を最後にまとめる（確認テストの形。問題の中には書かず、下の表に答えを書く）</label>
@@ -4512,6 +4515,17 @@ const printChunkSwitch = document.getElementById('printChunkSwitch');
 const printGlossSwitch = document.getElementById('printGlossSwitch');
 const printIncludeAnswers = document.getElementById('printIncludeAnswers');
 const printPointsCheck = document.getElementById('printPointsCheck');
+const printLandscapeCheck = document.getElementById('printLandscapeCheck');
+try { printLandscapeCheck.checked = localStorage.getItem('printLandscape') === '1'; } catch (e) { /* 保存できない環境 */ }
+// 横向き・2段: 1問が短いテストは右側の空きが埋まって枚数が減る。まとめの表など横に広い入試対策の章ごとのプリントは縦のまま
+function applyLandscape() {
+  const cfg = printSource && printSource.config || {};
+  const on = printLandscapeCheck.checked && ['test', 'stage'].includes(printSource && printSource.kind) && !cfg.chapter;
+  document.body.classList.toggle('print-2col', on);
+  let st = document.getElementById('landscapePageStyle');
+  if (on && !st) { st = document.createElement('style'); st.id = 'landscapePageStyle'; st.textContent = '@page { size: A4 landscape; margin: 10mm 12mm; }'; document.head.appendChild(st); }
+  if (!on && st) st.remove();
+}
 const printPointsLabel = document.getElementById('printPointsLabel');
 const printGuideTestLabel = document.getElementById('printGuideTestLabel');
 const printGuideTestCheck = document.getElementById('printGuideTestCheck');
@@ -10069,7 +10083,7 @@ function renderWorksheet() {
   document.getElementById('sheet').classList.toggle('teacher', printTeacherCheck.checked);
   document.getElementById('sheet').classList.toggle('redsheet', redSheetOn());
   sheetNo.textContent = '';
-  if (printSource.kind === 'guide') { allWorksheetItems().forEach(it => { delete it.points; }); renderGuideWorksheet(); addEditControls(); return; }
+  if (printSource.kind === 'guide') { allWorksheetItems().forEach(it => { delete it.points; }); renderGuideWorksheet(); addEditControls(); applyLandscape(); return; }
   if (printSource.kind === 'howto') { renderHowtoWorksheet(); applyPartControls(); return; }
   renderRoundTabs();
   const roundLabel = roundCount() > 1 ? `（${activeRound + 1}周目）` : '';
@@ -10165,6 +10179,7 @@ function renderWorksheet() {
   if (printExampleCheck.checked) applyExamples();
   addEditControls();
   addTestEditPanel();
+  applyLandscape();
 }
 // 基礎文法: プリントの先頭の「ルール」(はじめはこれを見ながら解く)と、問題ごとの「→ ルール◯ を見よう」
 function basicRulesEl(list) {
@@ -10354,6 +10369,7 @@ window.addEventListener('beforeprint', () => { if (screenPrint.style.display !==
 window.addEventListener('afterprint', () => { roundsPrint.innerHTML = ''; document.body.classList.remove('multi-round'); });
 printNextRoundBtn.addEventListener('click', nextRound);
 printPointsCheck.addEventListener('change', renderWorksheet);
+printLandscapeCheck.addEventListener('change', () => { try { localStorage.setItem('printLandscape', printLandscapeCheck.checked ? '1' : '0'); } catch (e) { /* 保存できない環境 */ } applyLandscape(); });
 printGuideTestCheck.addEventListener('change', () => generateWorksheet(printSeed));
 printTeacherCheck.addEventListener('change', () => document.getElementById('sheet').classList.toggle('teacher', printTeacherCheck.checked));
 printRedCheck.addEventListener('change', renderWorksheet);
