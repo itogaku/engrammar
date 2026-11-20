@@ -921,6 +921,7 @@
     </div>
     <div class="card test-card exam-card" id="diagCard">
       <div class="exam-head">文法の理解度チェック<span>文法事項ごとに1問ずつ、その文法に合った形式（適語選択・語形変化・並べかえ・書きかえなど）で出題。形式は固定で、文は毎回ちがう（作り直すたび・何周でも別の問題）。解答ページに文法事項ごとの○×表つき</span></div>
+      <div class="opt-row"><span class="opt-label">難易度</span><div class="mode-switch" id="diagLevel"></div></div>
       <div class="exam-rounds" id="diagList"></div>
     </div>
     <div class="card test-card exam-card">
@@ -7299,7 +7300,7 @@ function buildQuestion(stage, q, type) {
     // 同意文書きかえ: 書きかえた文で、もとの文にない語を空所にする。作れない文なら書きかえ(否定文・疑問文)にする
     const r = paraphraseOf(tokens, sentenceEnd(q.jp), stage.key);
     if (!r) return buildQuestion(stage, q, 'rewrite');
-    const [from, to] = rand() < 0.5 ? [tokens, r] : [r, tokens];
+    const [from, to] = r.oneWay || rand() < 0.5 ? [r, tokens] : [tokens, r];
     const strip = t => t.toLowerCase().replace(/[,.?!"]/g, '');
     const fromSet = new Set(from.map(strip));
     let blanks = to.map((t, i) => (fromSet.has(strip(t)) ? -1 : i)).filter(i => i >= 0);
@@ -7429,6 +7430,7 @@ const PARAPHRASE_UNITS = {
   must: /^g2program4-(must|haveto)/, will: /^g2program1-(will|begoingto)/, passive: /^g2program8-/,
   svoo: /^g2program5-svoo/, liketo: /^g2program(1-likegerund|3-noun)/, itis: /^g2program(1-subjgerund|3-itisto)/,
   compare: /^g2program6-(comp|asas)/, asktell: /^g3program1-asktell/, itisfor: /^g3program1-itisfor/, whto: /^g2program(5-whto|7-howto)/,
+  imperative: /^(program2-imperative|g2program4-must)/, able: /^g1program3-aff/, continuation: /^g3program2-continuation/,
 };
 // 中3 ask / tell / want 人 to ⇔ said to 人, "Please 〜." / said to 人, "〜." / hope that 人 will 〜
 // 動詞の原形らしい語(辞書にない動詞も、限定詞・代名詞・前置詞でなければ動詞とみなす)
@@ -7531,6 +7533,37 @@ function paraphraseOf(tokens, end, stageKey = '') {
   if (stageKey && allow('asktell')) return end === '?' || lw.includes('not') ? null : asktellParaphrase(tokens, lw);
   if (stageKey && allow('itisfor')) return itisforParaphrase(tokens, lw, end);
   if (stageKey && allow('whto')) return lw.includes('not') ? null : whtoParaphrase(tokens, lw, end);
+  // 入試でよく出る書きかえ
+  if (stageKey && allow('imperative') && end !== '?' && !lw.includes('please')) {
+    // Don't 〜. ⇔ You must not 〜.
+    if (lw[0] === "don't" && VERB_BASE_OF[lw[1]] === lw[1]) return ['You', 'must', 'not', ...tokens.slice(1)];
+    if (lw[0] === 'you' && lw[1] === 'must' && lw[2] === 'not') return ["Don't", ...tokens.slice(3)];
+    // 〜.(命令文) ⇔ You must 〜.
+    if (lw[0] === 'you' && lw[1] === 'must' && VERB_BASE_OF[lw[2]] === lw[2]) return [capitalize(tokens[2]), ...tokens.slice(3)];
+    if (/^program2-imperative/.test(stageKey) && VERB_BASE_OF[lw[0]] === lw[0] && !["let's", 'be'].includes(lw[0])) return ['You', 'must', lowerFirst(tokens[0]), ...tokens.slice(1)];
+  }
+  if (stageKey && allow('able') && end !== '?') {
+    // can 〜 ⇔ be able to 〜
+    const i = lw.indexOf('can');
+    if (i > 0 && i <= 2 && VERB_BASE_OF[lw[i + 1]] === lw[i + 1]) {
+      const subj = lw.slice(0, i);
+      const be = subj.join(' ') === 'i' ? 'am' : isThirdSingular(subj) ? 'is' : 'are';
+      return [...tokens.slice(0, i), be, 'able', 'to', ...tokens.slice(i + 1)];
+    }
+  }
+  if (stageKey && allow('continuation') && end !== '?') {
+    // I have lived in Osaka for three years. ← I started living in Osaka three years ago. I still live there.(継続の文にする一方向)
+    const h = lw.findIndex(t => t === 'have' || t === 'has');
+    const f = lw.indexOf('for');
+    if (h >= 1 && h <= 2 && lw[h + 1] === 'lived' && lw[h + 2] === 'in' && f > h + 3 && lw.length - f <= 4 && /^(two|three|four|five|six|seven|eight|nine|ten)$/.test(lw[f + 1]) && /^years?$/.test(lw[f + 2])) {
+      const subj = tokens.slice(0, h);
+      const third = lw[h] === 'has';
+      const pron = third ? (isThirdSingular(lw.slice(0, h)) ? (/^(she|her)$/.test(lw[0]) || /mother|sister|grandmother|aunt/.test(lw.slice(0, h).join(' ')) ? 'She' : 'He') : 'They') : lw[0] === 'i' ? 'I' : capitalize(lw[0]);
+      const r = [...subj, 'started', 'living', ...tokens.slice(h + 2, f), lw[f + 1], 'years', 'ago.', pron, 'still', third && pron !== 'They' ? 'lives' : 'live', 'there'];
+      r.oneWay = true;
+      return r;
+    }
+  }
   if (end === '?' || lw.some(t => ['not', 'never', "don't", "doesn't", "didn't", 'cannot'].includes(t) || /n't$/.test(t))) return null;
   if (tokens.some(t => /,$/.test(t))) return null;
   // 節をふくむ文(I think ~ / which ~ / when ~)や命令文は、主語と動詞の関係がずれるので作らない
@@ -9175,7 +9208,7 @@ function generateWorksheet(seed) {
     readingItems = generateReadingItems(cfg.readingKeys ? stages.filter(st => cfg.readingKeys.includes(st.key)) : textList, cfg, usedPassages);
     examItems = generateExamItems(cfg, usedExam);
   }
-  if (diagCfg) printItems = diagItems(printSource.config.diag, stateOf);
+  if (diagCfg) printItems = diagItems(printSource.config.diag, stateOf, printSource.config.diagLevel);
   printItems = groupByType(printItems, QUESTION_TYPES);
   roundSets.push({ vocab: vocabItems, grammar: printItems, reading: readingItems, exam: examItems });
   }
@@ -11261,6 +11294,8 @@ function renderDiagList() {
   const list = document.getElementById('diagList');
   if (!list || typeof DIAG_POINTS === 'undefined') return;
   list.innerHTML = '';
+  const lv = document.getElementById('diagLevel');
+  if (lv) renderOptionSwitch(lv, [['basic', '基礎（選ぶ・空所をうめる）'], ['standard', '標準（文法に合った形式）'], ['advanced', '発展（入試でよく出る書きかえ・誤文訂正・英作文）']], examState.diagLevel || 'standard', v => { examState.diagLevel = v; renderDiagList(); });
   [[[1], '中1の文法'], [[2], '中2の文法'], [[3], '中3の文法'], [[1, 2, 3], '中1〜中3 すべて']].forEach(([gs, title]) => {
     const pts = DIAG_POINTS.filter(d => gs.includes(d.g));
     const b = document.createElement('button');
@@ -11273,14 +11308,17 @@ function renderDiagList() {
 function startDiagPrint(gs, title) {
   const pts = DIAG_POINTS.filter(d => gs.includes(d.g));
   const keys = stages.filter(st => typeof st.grade === 'number' && pts.some(d => d.re.test(st.key))).map(st => st.key);
-  startExamPrint(`文法の理解度チェック（${title}・${pts.length}問）`, examConfig(`入試対策 文法の理解度チェック（${title}）`, { keys, diag: gs, shuffle: false }));
+  const level = examState.diagLevel || 'standard';
+  const lvName = { basic: '基礎', standard: '標準', advanced: '発展' }[level];
+  startExamPrint(`文法の理解度チェック（${title}・${lvName}・${pts.length}問）`, examConfig(`入試対策 文法の理解度チェック（${title}・${lvName}）`, { keys, diag: gs, diagLevel: level, shuffle: false }));
 }
 // 文法事項ごとに1問。形式は固定、文はその文法の単元からその都度えらぶ
-function diagItems(gs, stateOf) {
+function diagItems(gs, stateOf, level = 'standard') {
   return DIAG_POINTS.filter(d => gs.includes(d.g)).map((d, i) => {
     const list = shuffle(stages.filter(st => typeof st.grade === 'number' && d.re.test(st.key)));
     let item = null;
-    for (const type of [d.type, d.alt || 'choice', 'reorder']) {
+    const types = typeof diagTypesFor === 'function' ? diagTypesFor(d, level) : [d.type, d.alt || 'choice', 'reorder'];
+    for (const type of types) {
       for (const st of list) {
         const it = makeUnitQuestion(st, type, stateOf(st));
         if (it.type === type) { item = it; break; }
