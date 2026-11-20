@@ -1266,6 +1266,7 @@
 <script src="exam_grammar_cond.js"></script>
 <script src="exam_reading_1.js"></script>
 <script src="exam_reading_2.js"></script>
+<script src="exam_reading_extra.js"></script>
 <script src="exam_chiba.js"></script>
 <script src="exam_chiba_reading.js"></script>
 <script src="exam_chiba_listening.js"></script>
@@ -8227,17 +8228,83 @@ function generateReadingItems(stageList, cfg, usedBefore = new Set()) {
     .sort((a, b) => a.grade - b.grade || a.program - b.program || (a.part || 9) - (b.part || 9));
   return picked.map(p => readingItemOf(p));
 }
+// 入試の長文に、県の入試によく出る形を足す(本文から自動で作る):
+//  文を入れる位置(【A】〜【C】)・本文中の並べかえ・本文の内容についての英作文(exam_reading_extra.js)
+const READ_CUE = /^(For example|However|So|But|Also|Then|After that|Because of this|That's why|Now|Of course|In fact|First|Second|Finally)\b/;
+function readingSentences(text) {
+  return text.split('\n').map(par => par.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|Mt)\.)(?<=[.!?]["”]?)\s+(?=["“]?[A-Z])/));
+}
+function readingExtras(p) {
+  if (typeof EXAM_READING === 'undefined' || !EXAM_READING.includes(p) || !['basic', 'standard', 'advanced'].includes(p.level)) return null;
+  const pars = readingSentences(p.text);
+  const plain = t => !/[①-⑨<>"“”:]/.test(t);
+  const subs = [];
+  let text = null;
+  // 1. 文を入れる位置: つなぎの語で始まる文を1つぬき、本文の3か所(本当の位置と、ほかの段落の文の切れ目)に【A】〜【C】
+  // すでに文を入れる位置の問題(〔ア〕〜)がある長文には作らない
+  if (p.genre !== 'dialogue' && !/〔/.test(p.text)) {
+    const cands = [];
+    pars.forEach((ss, pi) => ss.forEach((t, si) => { if (si > 0 && plain(t) && READ_CUE.test(t) && t.split(' ').length >= 5) cands.push({ pi, si, t }); }));
+    const pick = cands.length ? pickRandom(cands) : null;
+    if (pick) {
+      const slots = [];
+      pars.forEach((ss, pi) => { if (pi !== pick.pi) ss.forEach((t, si) => { if (si > 0 && plain(t) && plain(ss[si - 1])) slots.push({ pi, si }); }); });
+      if (slots.length >= 2) {
+        const decoys = shuffle(slots).slice(0, 2);
+        const all = [{ pi: pick.pi, si: pick.si, real: true }, ...decoys].sort((a, b) => a.pi - b.pi || a.si - b.si);
+        const labels = ['A', 'B', 'C'];
+        const mark = new Map(all.map((x, k) => [`${x.pi}|${x.si}`, labels[k]]));
+        const realLabel = labels[all.findIndex(x => x.real)];
+        text = pars.map((ss, pi) => ss.map((t, si) => {
+          const m = mark.get(`${pi}|${si}`);
+          if (pi === pick.pi && si === pick.si) return `【${m}】`;
+          return m ? `【${m}】 ${t}` : t;
+        }).join(' ')).join('\n');
+        subs.push({ section: 'reading', type: 'rinsert', q: `次の英文を本文中に入れるとき、最も適切な位置を【A】〜【C】から1つ選び、記号で答えなさい。\n${pick.t}`, answer: realLabel });
+      }
+    }
+  }
+  // 2. 本文中の並べかえ: 5〜8語の短い文を(　)内の語に分けて並べかえさせる
+  const base = text || p.text;
+  const ords = [];
+  // 抜き出し・英問英答の答えになる文は使わない
+  const used = p.questions.filter(q => ['fill', 'ea'].includes(q.type)).map(q => String(q.answer).toLowerCase().replace(/[.(),]/g, ''));
+  readingSentences(base).forEach((ss, pi) => ss.forEach((t, si) => {
+    const w = t.replace(/[.!?]$/, '').split(' ');
+    const lt = t.toLowerCase();
+    if ((pi || si) && /[.]$/.test(t) && plain(t) && !/[【〔]/.test(t) && !/,/.test(t) && w.length >= 5 && w.length <= 8 && !READ_CUE.test(t) && !used.some(a => a && lt.includes(a))) ords.push(t);
+  }));
+  if (ords.length) {
+    const t = pickRandom(ords);
+    const w = t.replace(/\.$/, '').split(' ');
+    let sh = shuffle(w.slice());
+    for (let k = 0; k < 5 && sh.join(' ') === w.join(' '); k++) sh = shuffle(w.slice());
+    // 文頭の語だけ小文字に(人名・地名など、本文中でいつも大文字の語はそのまま)
+    const first = w[0];
+    const proper = /^[A-Z]/.test(first) && base.split(/\s+/).some((x, k, arr) => k > 0 && x.replace(/[.,!?'"]+$/, '') === first && /[a-z,]$/.test(arr[k - 1]));
+    const lowFirst = !/^I('|$)/.test(first) && !proper;
+    const low = x => (x === first && lowFirst ? x.toLowerCase() : x);
+    const shown = `<u>( ${sh.map(low).join(' / ')} )</u>.`;
+    text = base.replace(t, shown);
+    subs.push({ section: 'reading', type: 'rorder', q: '本文中の下線部の（　）内の語を、意味が通るように並べかえて、英文を書きなさい。', answer: t });
+  }
+  // 3. 本文の内容についての英作文(あれば)
+  const ex = typeof READING_WRITE !== 'undefined' && READING_WRITE[p.id];
+  if (ex) subs.push({ section: 'reading', type: 'rwrite', q: ex.task, conditions: ex.conditions || [], answer: ex.answers[0], answers: ex.answers });
+  return { text, subs };
+}
 function readingItemOf(p) {
+  const ex = readingExtras(p);
   return ({
-    section: 'reading', passage: p,
-    subs: p.questions.map(q => {
+    section: 'reading', passage: p, text: ex && ex.text,
+    subs: [...p.questions.map(q => {
       const base = { section: 'reading', q: q.q };
       if (q.type === 'choice') return { ...base, type: 'rchoice', options: q.options, answer: q.options[q.answer], graphs: q.graphs, combo: q.combo };
       if (q.type === 'tf') return { ...base, type: 'rtf', options: ['○', '×'], answer: q.answer ? '○' : '×' };
       if (q.type === 'fill') return { ...base, type: 'rfill', answer: q.answer };
       if (q.type === 'ea') return { ...base, type: 'rea', answer: q.answer };
       return { ...base, type: 'rja', answer: q.answer };
-    }),
+    }), ...(ex ? ex.subs : [])],
   });
 }
 
@@ -9264,7 +9331,7 @@ function shuffledPieces(item) {
 
 const SELECT_TYPES = new Set(['kl1', 'kl2', 'kl3', 'kl4', 'choice', 'usage', 'pattern', 'tone', 'insert', 'vmeaning', 'rchoice', 'rtf', 'cdialog', 'xchoice', 'xdialog']);
 // 日本語で答える問題は、模範解答を見て自分で採点する
-const SELF_GRADED_TYPES = new Set(['xcond', 'myanswer', 'myself', 'ccheck', 'clist', 'frame', 'rule', 'wtable', 'kscene', 'rja', 'rea', 'entoja', 'vjp', 'cwtrans', 'cwcond', 'cwfree', 'cetoj']);
+const SELF_GRADED_TYPES = new Set(['rwrite', 'xcond', 'myanswer', 'myself', 'ccheck', 'clist', 'frame', 'rule', 'wtable', 'kscene', 'rja', 'rea', 'entoja', 'vjp', 'cwtrans', 'cwcond', 'cwfree', 'cetoj']);
 
 function answerText(item) {
   if (item.custom && item.custom.answer != null && !SELECT_TYPES.has(item.type)) return escHtml(item.custom.answer);
@@ -9276,7 +9343,7 @@ function answerText(item) {
   if (item.type === 'myanswer') return `（例）${item.answer}<span class="ans-why">自分のことなら正解。主語は I、質問の動詞（do / am / can など）を使って答える</span>`;
   if (['fillin', 'wordbox'].includes(item.type) && (item.altAnswers || []).length) return `${item.answer}（${item.altAnswers.join(' / ')} も可）`;
   if (item.type === 'cphrase' || item.type === 'cfree') return `${item.answers.join(' / ')}<span class="ans-why">${item.phrase}：${item.meaning}</span>`;
-  if (['cwtrans', 'cwcond', 'cwfree', 'xcond'].includes(item.type)) {
+  if (['cwtrans', 'cwcond', 'cwfree', 'xcond', 'rwrite'].includes(item.type)) {
     const more = item.answers.slice(1).map(a => `<span class="ans-why">別解：${a}</span>`).join('');
     return `${item.answers[0]}${more}${item.point ? `<span class="ans-why">ポイント：${item.point}</span>` : ''}`;
   }
@@ -9288,7 +9355,7 @@ function answerText(item) {
   if (item.type === 'kform') return item.answer;
   if (item.type === 'korder') return `${item.order.map(k => CHOICE_LABELS5[k]).join('→')}<span class="ans-why">${item.sentence}</span>`;
   if (item.type === 'kscene') return `${item.answers[0]}${item.answers.slice(1).map(a => `<span class="ans-why">別解：${a}</span>`).join('')}`;
-  if (['form', 'fillin', 'vword', 'vblank', 'vidiom', 'vjp', 'entoja', 'rfill', 'rja', 'rea', 'chunkorder', 'frame', 'rule', 'wtable', 'clist', 'ccheck'].includes(item.type)) return item.answer;
+  if (['form', 'fillin', 'vword', 'vblank', 'vidiom', 'vjp', 'entoja', 'rfill', 'rja', 'rea', 'rinsert', 'rorder', 'chunkorder', 'frame', 'rule', 'wtable', 'clist', 'ccheck'].includes(item.type)) return item.answer;
   if (item.type === 'svo' || item.type === 'slash') return segmentsHtml(item.segs, item.type === 'slash') + (item.altAnswer ? `<span class="ans-why">${item.altAnswer} と分けても正解</span>` : '');
   if (item.type === 'rewrite') return item.answerSentence;
   if (item.type === 'error') return `${item.wrongWord} → ${item.answer}`;
@@ -9365,7 +9432,7 @@ function isCorrect(item) {
     const tf = timeFrontAlt(item);
     if (tf && normalize(answer) === normalize(tf)) return true;
   }
-  const target = ['form', 'fillin', 'wordbox', 'vword', 'vblank', 'rfill', 'chunkorder'].includes(item.type) ? item.answer : fullSentence(item);
+  const target = ['form', 'fillin', 'wordbox', 'vword', 'vblank', 'rfill', 'rinsert', 'rorder', 'chunkorder'].includes(item.type) ? item.answer : fullSentence(item);
   return normalize(answer) !== '' && normalize(answer) === normalize(target);
 }
 
@@ -9515,6 +9582,12 @@ function itemBodyHtml(item) {
       return answerLineHtml('日本語で書こう');
     case 'rea':
       return answerLineHtml('英語で答えよう');
+    case 'rinsert':
+      return answerLineHtml('A〜C', 'short');
+    case 'rorder':
+      return answerLineHtml('並べかえた英文を書こう');
+    case 'rwrite':
+      return `${item.conditions.length ? `<div class="ws-conditions">【条件】${item.conditions.join('／')}</div>` : ''}<div class="ws-answer"><textarea class="ws-input ws-long" rows="3" placeholder="英語で書こう"></textarea><span class="ws-mark"></span></div>`;
     case 'cdialog': case 'xdialog':
       return `<div class="ws-dialog">${item.lines.map(([who, text]) => `<b>${who}:</b><span>${text === null ? '<span class="ws-blank">（　　　　　　　　）</span>' : text}</span>`).join('')}</div>${optionsHtml(item)}`;
     case 'cwtrans':
@@ -10053,7 +10126,7 @@ function renderGuideWorksheet() {
 const POINT_WEIGHTS = {
   vmeaning: 1, vjp: 2, vword: 2, vblank: 2, vidiom: 2,
   choice: 2, usage: 2, lack: 3, myself: 3, svo: 3, slash: 3, pattern: 2, tone: 2, insert: 2, fillin: 2, form: 2, error: 3, extra: 3, reorder: 3, rewrite: 3, rewritefill: 2, wordbox: 2, myanswer: 3, paraphrase: 3, translate: 4, entoja: 4,
-  rchoice: 3, rtf: 2, rfill: 3, rja: 4, rea: 4, cdialog: 3, cphrase: 3, cform: 2, cfree: 3, cwtrans: 4, cwcond: 5, cwfree: 10, cetoj: 4, xchoice: 2, xdialog: 3, xfill: 3, xorder: 3, xpara: 3, xask: 4, xsame: 3, xcond: 5, clist: 1, ccheck: 1, kform: 3, korder: 3, kscene: 6, kl1: 3, kl2: 3, kl3: 3, kl4: 3,
+  rchoice: 3, rtf: 2, rfill: 3, rinsert: 3, rorder: 4, rwrite: 6, rja: 4, rea: 4, cdialog: 3, cphrase: 3, cform: 2, cfree: 3, cwtrans: 4, cwcond: 5, cwfree: 10, cetoj: 4, xchoice: 2, xdialog: 3, xfill: 3, xorder: 3, xpara: 3, xask: 4, xsame: 3, xcond: 5, clist: 1, ccheck: 1, kform: 3, korder: 3, kscene: 6, kl1: 3, kl2: 3, kl3: 3, kl4: 3,
 };
 function assignPoints(items) {
   items.forEach(it => { delete it.points; });
@@ -10134,7 +10207,7 @@ function renderWorksheet() {
       readingItems.forEach((r, ri) => {
         const box = document.createElement('div');
         box.className = 'ws-passage';
-        const paragraphs = r.passage.text.split('\n').map(p => `<p>${p}</p>`).join('');
+        const paragraphs = (r.text || r.passage.text).split('\n').map(p => `<p>${p}</p>`).join('');
         const notes = (r.passage.notes || []).length ? `<div class="ws-notes">（注）${r.passage.notes.join('　')}</div>` : '';
         const table = r.passage.table ? `<table class="ws-ch-table ws-passage-table">${r.passage.table.map((row, k) => `<tr>${row.map(c => k === 0 ? `<th>${c}</th>` : `<td>${c}</td>`).join('')}</tr>`).join('')}</table>` : '';
         // 千葉県形式は本番と同じ大問番号で示す
