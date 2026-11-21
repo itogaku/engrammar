@@ -611,6 +611,18 @@
   .ws-add-box { display: flex; gap: 6px; align-items: center; justify-content: flex-end; margin: 2px 0 6px; }
   .ws-add-box select { font-family: inherit; font-size: 11.5px; padding: 1px 4px; border-radius: 4px; border: 1px solid var(--teal); color: var(--teal); background: var(--panel); }
   .ws-edit button.danger { border-color: var(--amber); background: var(--panel); color: var(--amber); }
+  .exam-nav { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 12px; }
+  .exam-nav button { border: 1.5px solid var(--line); background: var(--panel); border-radius: 999px; padding: 4px 12px; font: inherit; font-size: 13px; cursor: pointer; color: var(--ink); }
+  .exam-nav button:hover, .exam-nav button.active { border-color: var(--teal); background: var(--teal-tint); }
+  .exam-group { border: 1.5px solid var(--line); border-radius: 12px; margin: 0 0 12px; background: var(--panel); }
+  .exam-group > summary { cursor: pointer; padding: 12px 16px; list-style: none; display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; }
+  .exam-group > summary::-webkit-details-marker { display: none; }
+  .exam-group > summary::before { content: '▶'; font-size: 11px; color: var(--teal); }
+  .exam-group[open] > summary::before { content: '▼'; }
+  .exam-group > summary b { font-size: 16px; }
+  .exam-group > summary span { font-size: 12.5px; color: var(--ink-soft); }
+  .exam-group > summary em { font-style: normal; font-size: 12px; color: var(--teal); width: 100%; padding-left: 20px; }
+  .exam-group > .card { margin: 0 12px 12px; }
   .ws-add { display: inline-block; margin: 4px 0 10px; background: var(--panel); }
   .ws-editpanel { border: 1.5px dashed var(--teal); border-radius: 8px; padding: 8px 12px; margin: 0 0 14px; font-size: 12.5px; background: var(--teal-tint); }
   .ws-ep-head { font-weight: 700; margin-bottom: 4px; } .ws-ep-head span { font-weight: 400; margin-left: 6px; }
@@ -914,16 +926,24 @@
 
   <!-- 入試対策 -->
   <div id="screenExam" style="display:none;">
-    <p class="program-note">高校入試に向けて、3年間の内容をまとめて練習するプリントです。どれも「何周するか」や配点・解答ページは次の画面で選べ、できたプリントは問題ごとに直す・変える・消すができます。</p>
-    <div class="card test-card exam-card" id="howtoCard">
-      <div class="exam-head">解き方を学ぶ<span>問題の形式ごとに「例題と解き方（3つの手順）→ 手順にそって解くチェック問題 → 実践問題 → 解答・解説」</span></div>
-      <div class="exam-rounds" id="howtoList"></div>
-    </div>
+    <p class="program-note">高校入試に向けて、3年間の内容をまとめて練習するプリントです。目的ごとに分けてあり、見出しを押すと開きます。どれも「何周するか」や配点・解答ページは次の画面で選べ、できたプリントは問題ごとに直す・変える・消すができます。</p>
+    <div class="exam-nav" id="examNav"><button data-g="check">まず実力をたしかめる</button><button data-g="grammar">文法</button><button data-g="words">単語・表現</button><button data-g="reading">読解</button><button data-g="writing">英作文</button><button data-g="howto">解き方</button><button data-g="real">本番形式</button></div>
+    <details class="exam-group" id="examGroup-check">
+      <summary><b>まず実力をたしかめる</b><span>苦手な文法・覚えていない重要文を見つける</span><em>文法の理解度チェック・教科書の重要文 最終チェック</em></summary>
     <div class="card test-card exam-card" id="diagCard">
       <div class="exam-head">文法の理解度チェック<span>文法事項ごとに1問ずつ、その文法に合った形式（適語選択・語形変化・並べかえ・書きかえなど）で出題。形式は固定で、文は毎回ちがう（作り直すたび・何周でも別の問題）。解答ページに文法事項ごとの○×表つき</span></div>
       <div class="opt-row"><span class="opt-label">難易度</span><div class="mode-switch" id="diagLevel"></div></div>
       <div class="exam-rounds" id="diagList"></div>
     </div>
+    <div class="card test-card exam-card">
+      <div class="exam-head">教科書の重要文 最終チェック<span>3年→2年→1年の順に、教科書の文法の重要文を□でチェック。英文は赤字（赤シートでかくして言えるか確かめる）</span></div>
+      <div class="opt-row"><span class="opt-label">範囲</span><div class="mode-switch" id="examCheckRange"></div></div>
+      <div class="opt-row"><span class="opt-label">文の数</span><div class="mode-switch" id="examCheckCount"></div></div>
+      <button class="btn btn-primary exam-make" id="examCheckBtn">最終チェックシートを作る</button>
+    </div>
+    </details>
+    <details class="exam-group" id="examGroup-grammar">
+      <summary><b>文法</b><span>章ごとのまとめと入試レベルの問題・動詞や比較の形</span><em>文法の総まとめ・語形変化・ことばの確認</em></summary>
     <div class="card test-card exam-card">
       <div class="exam-head">文法の総まとめ<span>章ごとに「まとめ（重要度★・例文・ポイント）→ 入試レベルの問題（適語選択・適語補充・並べかえ・同意文）」</span></div>
       <div class="exam-rounds" id="examRoundList"></div>
@@ -931,10 +951,20 @@
       <label class="opt-check" id="examTextbookRow"><input type="checkbox" id="examWithTextbook" checked> 教科書（SUNSHINE）の例文から作る問題もいっしょに出す</label>
     </div>
     <div class="card test-card exam-card">
-      <div class="exam-head">会話表現<span>対話の空所に入る応答を選ぶ</span></div>
-      <div class="opt-row"><span class="opt-label">場面</span><div class="chip-switch" id="examDialogCats"></div></div>
-      <div class="opt-row"><span class="opt-label">問題数</span><div class="mode-switch" id="examDialogCount"></div></div>
-      <button class="btn btn-primary exam-make" id="examDialogBtn">会話表現のプリントを作る</button>
+      <div class="exam-head">語形変化・ことばの確認<span>不規則動詞・複数形・3単現・比較級/最上級・月/曜日/季節・序数・反意語</span></div>
+      <div class="opt-row"><span class="opt-label">種類</span><div class="chip-switch" id="examTableKinds"></div></div>
+      <div class="opt-row"><span class="opt-label">問題数</span><div class="mode-switch" id="examTableCount"></div></div>
+      <div class="opt-row"><span class="opt-label">出し方</span><div class="mode-switch" id="examTableMix"></div></div>
+      <button class="btn btn-primary exam-make" id="examTableBtn">語形変化のプリントを作る</button>
+    </div>
+    </details>
+    <details class="exam-group" id="examGroup-words">
+      <summary><b>単語・表現</b><span>重要語・熟語・会話の決まり文句</span><em>入試単語・重要表現・会話表現</em></summary>
+    <div class="card test-card exam-card">
+      <div class="exam-head">入試単語（3年間の重要語）<span>教科書の太字の語から、意味・つづり・例文の穴埋め</span></div>
+      <div class="opt-row"><span class="opt-label">範囲</span><div class="mode-switch" id="examVocabRange"></div></div>
+      <div class="opt-row"><span class="opt-label">問題数</span><div class="mode-switch" id="examVocabCount"></div></div>
+      <button class="btn btn-primary exam-make" id="examVocabBtn">入試単語のプリントを作る</button>
     </div>
     <div class="card test-card exam-card">
       <div class="exam-head">重要表現（熟語・連語）<span>日本語に合うように英文の空所をうめる</span></div>
@@ -944,12 +974,28 @@
       <button class="btn btn-primary exam-make" id="examPhraseBtn">重要表現のプリントを作る</button>
     </div>
     <div class="card test-card exam-card">
-      <div class="exam-head">語形変化・ことばの確認<span>不規則動詞・複数形・3単現・比較級/最上級・月/曜日/季節・序数・反意語</span></div>
-      <div class="opt-row"><span class="opt-label">種類</span><div class="chip-switch" id="examTableKinds"></div></div>
-      <div class="opt-row"><span class="opt-label">問題数</span><div class="mode-switch" id="examTableCount"></div></div>
-      <div class="opt-row"><span class="opt-label">出し方</span><div class="mode-switch" id="examTableMix"></div></div>
-      <button class="btn btn-primary exam-make" id="examTableBtn">語形変化のプリントを作る</button>
+      <div class="exam-head">会話表現<span>対話の空所に入る応答を選ぶ</span></div>
+      <div class="opt-row"><span class="opt-label">場面</span><div class="chip-switch" id="examDialogCats"></div></div>
+      <div class="opt-row"><span class="opt-label">問題数</span><div class="mode-switch" id="examDialogCount"></div></div>
+      <button class="btn btn-primary exam-make" id="examDialogBtn">会話表現のプリントを作る</button>
     </div>
+    </details>
+    <details class="exam-group" id="examGroup-reading">
+      <summary><b>読解</b><span>入試長文・長めの英文の和訳</span><em>入試長文・英文和訳</em></summary>
+    <div class="card test-card exam-card">
+      <div class="exam-head">入試長文<span>物語・説明文・対話文・メール・スピーチ・資料の読み取り（内容一致・指示語・英問英答・文の挿入など）</span></div>
+      <div class="opt-row"><span class="opt-label">レベル</span><div class="chip-switch" id="examReadingLevels"></div></div>
+      <div class="opt-row"><span class="opt-label">題数</span><div class="mode-switch" id="examReadingCount"></div></div>
+      <button class="btn btn-primary exam-make" id="examReadingBtn">入試長文のプリントを作る</button>
+    </div>
+    <div class="card test-card exam-card">
+      <div class="exam-head">英文和訳<span>関係代名詞・分詞・間接疑問などをふくむ長めの英文を日本語に</span></div>
+      <div class="opt-row"><span class="opt-label">問題数</span><div class="mode-switch" id="examEtojCount"></div></div>
+      <button class="btn btn-primary exam-make" id="examEtojBtn">英文和訳のプリントを作る</button>
+    </div>
+    </details>
+    <details class="exam-group" id="examGroup-writing">
+      <summary><b>英作文</b><span>和文英訳・条件英作文・自由英作文と、そのための表現</span><em>英作文・自由英作文で使える表現</em></summary>
     <div class="card test-card exam-card">
       <div class="exam-head">英作文<span>和文英訳・条件英作文（場面に合う1〜2文）・自由英作文（自分の考えを理由とともに）</span></div>
       <div class="opt-row"><span class="opt-label">種類</span><div class="chip-switch" id="examWritingKinds"></div></div>
@@ -963,29 +1009,16 @@
       <div class="opt-row"><span class="opt-label">作り方</span><div class="mode-switch" id="examFreeList"></div></div>
       <button class="btn btn-primary exam-make" id="examFreeBtn">表現のプリントを作る</button>
     </div>
-    <div class="card test-card exam-card">
-      <div class="exam-head">英文和訳<span>関係代名詞・分詞・間接疑問などをふくむ長めの英文を日本語に</span></div>
-      <div class="opt-row"><span class="opt-label">問題数</span><div class="mode-switch" id="examEtojCount"></div></div>
-      <button class="btn btn-primary exam-make" id="examEtojBtn">英文和訳のプリントを作る</button>
+    </details>
+    <details class="exam-group" id="examGroup-howto">
+      <summary><b>解き方</b><span>問題の形式ごとの解き方（例題→手順→練習）</span><em>解き方を学ぶ</em></summary>
+    <div class="card test-card exam-card" id="howtoCard">
+      <div class="exam-head">解き方を学ぶ<span>問題の形式ごとに「例題と解き方（3つの手順）→ 手順にそって解くチェック問題 → 実践問題 → 解答・解説」</span></div>
+      <div class="exam-rounds" id="howtoList"></div>
     </div>
-    <div class="card test-card exam-card">
-      <div class="exam-head">入試長文<span>物語・説明文・対話文・メール・スピーチ・資料の読み取り（内容一致・指示語・英問英答・文の挿入など）</span></div>
-      <div class="opt-row"><span class="opt-label">レベル</span><div class="chip-switch" id="examReadingLevels"></div></div>
-      <div class="opt-row"><span class="opt-label">題数</span><div class="mode-switch" id="examReadingCount"></div></div>
-      <button class="btn btn-primary exam-make" id="examReadingBtn">入試長文のプリントを作る</button>
-    </div>
-    <div class="card test-card exam-card">
-      <div class="exam-head">入試単語（3年間の重要語）<span>教科書の太字の語から、意味・つづり・例文の穴埋め</span></div>
-      <div class="opt-row"><span class="opt-label">範囲</span><div class="mode-switch" id="examVocabRange"></div></div>
-      <div class="opt-row"><span class="opt-label">問題数</span><div class="mode-switch" id="examVocabCount"></div></div>
-      <button class="btn btn-primary exam-make" id="examVocabBtn">入試単語のプリントを作る</button>
-    </div>
-    <div class="card test-card exam-card">
-      <div class="exam-head">教科書の重要文 最終チェック<span>3年→2年→1年の順に、教科書の文法の重要文を□でチェック。英文は赤字（赤シートでかくして言えるか確かめる）</span></div>
-      <div class="opt-row"><span class="opt-label">範囲</span><div class="mode-switch" id="examCheckRange"></div></div>
-      <div class="opt-row"><span class="opt-label">文の数</span><div class="mode-switch" id="examCheckCount"></div></div>
-      <button class="btn btn-primary exam-make" id="examCheckBtn">最終チェックシートを作る</button>
-    </div>
+    </details>
+    <details class="exam-group" id="examGroup-real">
+      <summary><b>本番形式</b><span>千葉県の公立入試形式・入試形式の総合問題（100点）</span><em>千葉県公立入試形式・入試形式の総合問題</em></summary>
     <div class="card test-card exam-card chiba-card">
       <div class="exam-head">千葉県公立入試形式<span>本番と同じ大問の順番・形式（リスニングは画面で読み上げ）</span></div>
       <div class="exam-rounds" id="chibaParts"></div>
@@ -996,6 +1029,7 @@
       <div class="opt-row"><span class="opt-label">範囲</span><div class="mode-switch" id="examMockRange"></div></div>
       <button class="btn btn-primary exam-make" id="examMockBtn">総合問題を作る</button>
     </div>
+    </details>
   </div>
 
   <!-- 履歴(印刷したプリント・出さない問題) -->
@@ -12578,6 +12612,26 @@ typeInput.addEventListener('keydown', (e) => {
 });
 
 openTab(loadNav());
+
+// 入試対策の画面: 目的ごとのまとまり(開いているまとまりは次に開いたときも開いたまま)
+(function setupExamGroups() {
+  const groups = [...document.querySelectorAll('.exam-group')];
+  let saved = [];
+  try { saved = JSON.parse(localStorage.getItem('examGroupsOpen') || '[]'); } catch (e) { saved = []; }
+  groups.forEach(g => {
+    if (saved.includes(g.id)) g.open = true;
+    g.addEventListener('toggle', () => {
+      try { localStorage.setItem('examGroupsOpen', JSON.stringify(groups.filter(x => x.open).map(x => x.id))); } catch (e) { /* 保存できない環境 */ }
+    });
+  });
+  document.querySelectorAll('#examNav button').forEach(b => {
+    b.onclick = () => {
+      const g = document.getElementById('examGroup-' + b.dataset.g);
+      g.open = true;
+      g.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    };
+  });
+})();
 </script>
 </body>
 </html>
