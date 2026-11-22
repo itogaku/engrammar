@@ -12632,6 +12632,24 @@ openTab(loadNav());
     };
   });
 })();
+
+// 広い画面のプリント設定(左)は、画面の下端までで切って中だけスクロールする。
+// 画面の上の方にあるうちは、見えている高さに合わせる(ページをスクロールしなくても設定のいちばん下まで見られるように)
+(function fitPrintSide() {
+  const side = document.querySelector('.print-side');
+  if (!side) return;
+  const wide = window.matchMedia('(min-width: 1180px)');
+  const fit = () => {
+    if (!wide.matches) { side.style.maxHeight = ''; return; }
+    const top = Math.max(10, side.getBoundingClientRect().top);
+    side.style.maxHeight = `${Math.max(200, window.innerHeight - top - 10)}px`;
+  };
+  window.addEventListener('scroll', fit, { passive: true });
+  window.addEventListener('resize', fit);
+  new MutationObserver(fit).observe(document.body, { attributes: true, attributeFilter: ['data-screen'] });
+  setInterval(fit, 1000); // 設定の中身が変わったとき用
+  fit();
+})();
 </script>
 </body>
 </html>
