@@ -667,6 +667,7 @@
   .exam-make { align-self: flex-start; flex: none; padding: 9px 20px; font-size: 14px; }
   .ws-dialog { display: grid; grid-template-columns: max-content 1fr; column-gap: 10px; line-height: 1.85; margin: 2px 0 6px; }
   .ws-cform { display: flex; flex-wrap: wrap; gap: 4px 18px; }
+  .ws-speed { font-size: 12.5px; border: 1px dashed var(--ink-soft); border-radius: 6px; padding: 4px 8px; margin: 0 0 8px; text-indent: 0; }
   .ws-ready-judge { margin-top: 8px; font-size: 13px; line-height: 1.7; }
   .ws-wordbox { margin: 4px 0 2px; padding: 4px 10px; border: 1.5px solid var(--ink); display: inline-block; font-family: Georgia, serif; }
   .ws-cmean { font-size: 12px; color: var(--ink-soft); margin-left: 4px; }
@@ -937,7 +938,7 @@
       <div class="exam-rounds" id="diagList"></div>
     </div>
     <div class="card test-card exam-card">
-      <div class="exam-head">読解に進む前のチェック<span>入試はほとんどが長文読解。「単語（20問）・長い文の意味をつかむ（10問）・短い長文（1題）」で、長文の練習に入ってよいかを判定（解答ページに合格ラインと次にやること）。目安25分</span></div>
+      <div class="exam-head">読解に進む前のチェック<span>入試はほとんどが長文読解。「単語40問（長文によく出る語）・長い文の和訳12問（入試レベル）・長文2題（説明的な文章と物語的な文章、読む速さも測る）」で、長文の練習に入ってよいかを合格・ぎりぎり・不合格で判定（解答ページに判定表と次にやること）。目安45分</span></div>
       <button class="btn btn-primary exam-make" id="readyCheckBtn">読解準備チェックを作る</button>
     </div>
     <div class="card test-card exam-card">
@@ -8239,6 +8240,22 @@ function vocabTypePool(stageList, type, importantOnly) {
 
 // 形式ごとの問題数(cfg.vocabCounts)だけ単語問題を作る。同じ語は2回出さない。
 // 作れる語が少ない形式(熟語・例文の穴埋め)から先に語を選ぶ。
+// 長文によく出る語: 入試長文・教科書の長文に出てくる回数 + 何回の Program で習うか(読解準備チェックで使う)
+let VOCAB_FREQ = null;
+function vocabFreq(word) {
+  if (!VOCAB_FREQ) {
+    VOCAB_FREQ = new Map();
+    const texts = [...(typeof EXAM_READING !== 'undefined' ? EXAM_READING : []), ...(typeof READING_PASSAGES !== 'undefined' ? READING_PASSAGES : [])].map(x => x.text || '').join(' ');
+    texts.toLowerCase().split(/[^a-z']+/).forEach(w => { if (w) VOCAB_FREQ.set(w, (VOCAB_FREQ.get(w) || 0) + 1); });
+    VOCAB_FREQ.programs = new Map();
+    PROGRAM_VOCAB.forEach(v => { const k = v.word.toLowerCase(); VOCAB_FREQ.programs.set(k, (VOCAB_FREQ.programs.get(k) || new Set()).add(`${v.grade}|${v.program}`)); });
+  }
+  const w = word.toLowerCase();
+  if (/\s/.test(w)) return 0;
+  const forms = [w, w + 's', w + 'es', w + 'ed', w + 'd', w + 'ing', w.replace(/e$/, '') + 'ing', w.replace(/y$/, 'ies'), w.replace(/y$/, 'ied')];
+  const inText = [...new Set(forms)].reduce((a, f) => a + (VOCAB_FREQ.get(f) || 0), 0);
+  return inText + 2 * ((VOCAB_FREQ.programs.get(w) || new Set()).size);
+}
 function generateVocabItems(stageList, cfg, usedBefore = new Set()) {
   const pool = vocabPool(stageList, cfg.vocabImportant);
   const used = new Set();
@@ -8248,7 +8265,16 @@ function generateVocabItems(stageList, cfg, usedBefore = new Set()) {
     // 前の回で出した語はあとまわし(足りないときだけ使う)
     // 重要語(教科書の太字)を先に。前の回で出した語はあとまわし(足りないときだけ使う)
     const all = shuffle(vocabTypePool(stageList, type, cfg.vocabImportant));
-    const cands = [...all.filter(c => c.important), ...all.filter(c => !c.important)];
+    let cands = [...all.filter(c => c.important), ...all.filter(c => !c.important)];
+    // 長文によく出る語を優先(よく出る順に上位300語の中から選ぶ。1語だけの見出し語で、とても基本的な語は除く)
+    if (cfg.vocabFrequent) {
+      // 中1の最初(Get Ready〜Program 2)で習う語・機能語はやさしすぎるので除く。教科書の太字の語で、長文によく出る順に41〜300位
+      const basic = new Set(PROGRAM_VOCAB.filter(v => v.grade === 1 && Number(v.program) <= 2).map(v => v.word.toLowerCase()));
+      const STOP = new Set(['this', 'that', 'there', 'where', 'what', 'when', 'from', 'with', 'some', 'many', 'much', 'very', 'about', 'than', 'because', 'before', 'after', 'today', 'time', 'good', 'have', 'they', 'them', 'their', 'your', 'here', 'also', 'only', 'just', 'still', 'often', 'little', 'near', 'under', 'later', 'week']);
+      const ranked = all.filter(c => c.important && !/\s/.test(c.word) && c.word.length >= 4 && !basic.has(c.word.toLowerCase()) && !STOP.has(c.word.toLowerCase()))
+        .map(c => [c, vocabFreq(c.word)]).filter(([, f]) => f >= 2).sort((a, b) => b[1] - a[1]);
+      cands = shuffle(ranked.slice(40, 300).map(([c]) => c)); // いちばんよく出る40語はほぼ全員が知っているので除く
+    }
     for (const v of [...cands.filter(c => !usedBefore.has(c.word)), ...cands.filter(c => usedBefore.has(c.word))]) {
       if (want <= 0) break;
       if (used.has(v.word) || excludedSet.has(`v|${type}|${v.word}`)) continue;
@@ -8365,8 +8391,8 @@ function readingExtras(p) {
   if (ex) subs.push({ section: 'reading', type: 'rwrite', q: ex.task, conditions: ex.conditions || [], answer: ex.answers[0], answers: ex.answers });
   return { text, subs };
 }
-function readingItemOf(p) {
-  const ex = readingExtras(p);
+function readingItemOf(p, plain = false) {
+  const ex = plain ? null : readingExtras(p);
   return ({
     section: 'reading', passage: p, text: ex && ex.text,
     subs: [...p.questions.map(q => {
@@ -9245,11 +9271,11 @@ function generateWorksheet(seed) {
     // 単語・長文は、本文が出る Program からだけ
     const textList = textStages(stageList, cfg.noText);
     vocabItems = groupByType(generateVocabItems(textList, cfg, usedWords), VOCAB_TYPES);
-    readingItems = generateReadingItems(cfg.readingKeys ? stages.filter(st => cfg.readingKeys.includes(st.key)) : textList, cfg, usedPassages);
+    readingItems = cfg.readyCheck ? readyReadingItems(usedPassages) : generateReadingItems(cfg.readingKeys ? stages.filter(st => cfg.readingKeys.includes(st.key)) : textList, cfg, usedPassages);
     examItems = generateExamItems(cfg, usedExam);
   }
   if (diagCfg) printItems = diagItems(printSource.config.diag, stateOf, printSource.config.diagLevel);
-  if (readyCfg) printItems = readyItems(stateOf);
+  if (readyCfg) printItems = [];
   printItems = groupByType(printItems, QUESTION_TYPES);
   roundSets.push({ vocab: vocabItems, grammar: printItems, reading: readingItems, exam: examItems });
   }
@@ -10288,7 +10314,9 @@ function renderWorksheet() {
         const chibaNo = { chiba7p: '大問7(1)', chiba7n: '大問7(2)', chiba8: '大問8', chiba9: '大問9' }[r.passage.level]
           || (printSource.config && printSource.config.examReadingPlan && /^千葉/.test(printSource.config.name || '') ? '大問8' : '');
         const head = chibaNo ? `${chibaNo}　` : readingItems.length > 1 ? `[${ri + 1}] ` : '';
-        box.innerHTML = `<div class="ws-passage-title">${head}${r.passage.title}</div>${paragraphs}${table}${notes}`;
+        // 読解準備チェック: 読む速さを測る欄(本文を1回読み終えるまでの時間)
+        const speed = printSource.config && printSource.config.readyCheck ? `<div class="ws-speed">読み始め（　　分　　秒）→ 読み終わり（　　分　　秒）＝ かかった時間（　　分　　秒）　本文 ${passageWords(r.passage)}語 ÷ かかった分 ＝ 1分あたり（　　　）語</div>` : '';
+        box.innerHTML = `<div class="ws-passage-title">${head}${r.passage.title}</div>${speed}${paragraphs}${table}${notes}`;
         sheetItems.appendChild(box);
         r.subs.forEach((sub, i) => sheetItems.appendChild(makeItemEl(sub, i + 1)));
       });
@@ -10761,7 +10789,11 @@ function replacePassage(r) {
   const cfg = { ...printSource.config, readingCount: 1 };
   if (cfg.examReadingPlan) cfg.examReadingPlan = [r.passage.level];
   const current = readingItems.map(x => x.passage);
-  const [next] = generateReadingItems(sourceStages(), cfg, new Set(current));
+  // 読解準備チェック: 同じ種類(説明的な文章／物語的な文章)の入門の長文と入れかえる
+  const STORYISH = ['story', 'dialogue', 'email'];
+  const next = cfg.readyCheck
+    ? (shuffle(EXAM_READING.filter(p => p.level === 'basic' && !current.includes(p) && STORYISH.includes(p.genre) === STORYISH.includes(r.passage.genre))).map(p => readingItemOf(p, true))[0])
+    : generateReadingItems(sourceStages(), cfg, new Set(current))[0];
   if (!next || current.includes(next.passage)) { alert('この範囲では、ほかに出せる長文がありません。'); return; }
   readingItems[readingItems.indexOf(r)] = next;
   editedRender();
@@ -11101,7 +11133,15 @@ function generateExamItems(cfg, used) {
     take(pool, cfg.freePhraseCount, ph => `e|cfree|f${ph.i}`).sort((a, b) => (cfg.freeList ? a.i - b.i : 0)).forEach(ph => out.push(cfg.freeList ? examListItem(ph, 'f', EXAM_FREE_THEMES) : examPhraseItem(ph, 'f', 'cfree')));
   }
   if (cfg.etojCount && typeof EXAM_ETOJ !== 'undefined') {
-    take(EXAM_ETOJ.map((x, i) => ({ ...x, i })), cfg.etojCount, x => `e|cetoj|t${x.i}`).forEach(x => out.push(examEtojItem(x)));
+    if (cfg.etojSpread) {
+      // 文の形(point の最初の項目)がなるべく重ならないように選ぶ。ヒント(注)は出さない
+      const seen = new Set(), picked = [];
+      const pool = shuffle(EXAM_ETOJ.map((x, i) => ({ ...x, i })).filter(x => !excludedSet.has(`e|cetoj|t${x.i}`)));
+      const kind = x => String(x.point || '').split(/[・（(]/)[0].replace(/\s.*$/, '');
+      pool.forEach(x => { if (picked.length < cfg.etojCount && !seen.has(kind(x))) { seen.add(kind(x)); picked.push(x); } });
+      pool.forEach(x => { if (picked.length < cfg.etojCount && !picked.includes(x)) picked.push(x); });
+      picked.forEach(x => { used.add(`e|cetoj|t${x.i}`); out.push({ ...examEtojItem(x), hint: undefined }); });
+    } else take(EXAM_ETOJ.map((x, i) => ({ ...x, i })), cfg.etojCount, x => `e|cetoj|t${x.i}`).forEach(x => out.push(examEtojItem(x)));
   }
   if (cfg.writing && typeof EXAM_WRITING !== 'undefined') {
     Object.entries(cfg.writing).forEach(([kind, n]) => {
@@ -11290,6 +11330,7 @@ function newExamItem(item) {
 }
 function examSectionTitle() {
   const types = [...new Set(examItems.map(it => it.type))];
+  if (printSource.config && printSource.config.readyCheck) return '長い文の意味をつかむ（英文和訳）';
   if (types.length === 1) return EXAM_TYPES[types[0]].label;
   if (types.every(t => /^cw/.test(t))) return '英作文';
   if (types.every(t => /^x/.test(t))) return '入試レベルの問題';
@@ -11374,40 +11415,28 @@ function diagItems(gs, stateOf, level = 'standard') {
   }).filter(Boolean);
 }
 // ---------- 読解に進む前のチェック ----------
-// 長文でつまずく原因になる文の形(うしろから説明する語句・節・不定詞など)を1つずつ英文和訳で
-const READY_POINTS = [
-  ['名詞をうしろから説明する 〜ing・過去分詞', /^g3program4-(presentp|pastp)$/],
-  ['関係代名詞（who / which / that）', /^g3program5-/],
-  ['関係代名詞の目的格・省略', /^g3program6-/],
-  ['間接疑問（what / where など + 主語 + 動詞）', /^g3program4-indirect$/],
-  ['不定詞（〜するために・〜するための）', /^g2program3-(adverb|adj)$/],
-  ['It is 〜 (for 人) to …', /^(g2program3-itisto|g3program1-itisfor)$/],
-  ['接続詞 that / when / if / because', /^g2program2-/],
-  ['受け身', /^g2program8-/],
-  ['現在完了', /^(g3program1-experience|g3program2-(completion|continuation))$/],
-  ['tell 人 that 〜・want 人 to 〜・make 人 〜 など', /^(g3program1-asktell|g3program3-)/],
-];
-function readyItems(stateOf) {
-  return READY_POINTS.map(([title, re]) => {
-    for (const st of shuffle(stages.filter(s => typeof s.grade === 'number' && re.test(s.key)))) {
-      const it = makeUnitQuestion(st, 'entoja', stateOf(st));
-      if (it.type === 'entoja') { it.why = `文の形：${title}`; return it; }
-    }
-    return null;
-  }).filter(Boolean);
+// 読解準備チェックの長文: 入門レベルから、説明的な文章(説明文・スピーチ・資料)と物語的な文章(物語・対話・メール)を1題ずつ
+function readyReadingItems(used) {
+  if (typeof EXAM_READING === 'undefined') return [];
+  const pick = genres => { const pool = shuffle(EXAM_READING.filter(p => p.level === 'basic' && genres.includes(p.genre))); const p = pool.find(x => !used.has(x)) || pool[0]; if (p) used.add(p); return p; };
+  return [pick(['explanation', 'speech', 'data']), pick(['story', 'dialogue', 'email'])].filter(Boolean).map(p => readingItemOf(p, true)); // 読む速さを測るので、本文はそのまま(並べかえ・文を入れる位置は入れない)
 }
-// 解答ページの判定表: 3つの力ごとの合格ラインと、足りないときに次にやること
+const passageWords = p => (p.text || '').replace(/[①-⑨]|<[^>]+>/g, '').split(/\s+/).filter(w => /[A-Za-z]/.test(w)).length;
+// 解答ページの判定表: 力ごとの合格・ぎりぎり・不合格のラインと、足りないときに次にやること
 function readyTableHtml() {
-  const nV = vocabItems.length, nG = printItems.length, nR = readingItems.reduce((a, r) => a + r.subs.filter(x => x.type !== 'rwrite').length, 0);
-  const line = n => Math.ceil(n * 0.8);
+  const nV = vocabItems.length, nG = examItems.length, nR = readingItems.reduce((a, r) => a + r.subs.filter(x => x.type !== 'rwrite').length, 0);
+  const band = (n, hi, lo) => [Math.ceil(n * hi), Math.ceil(n * lo)];
   const rows = [
-    ['単語（入試によく出る語の意味）', nV, line(nV), '入試対策 ＞ 単語・表現 ＞ 入試単語（意味を選ぶ・書く）を、8割をこえるまでくり返す'],
-    ['長い文の意味をつかむ（英文和訳）', nG, Math.ceil(nG * 0.7), '入試対策 ＞ まず実力をたしかめる ＞ 文法の理解度チェック（基礎）→ 読解 ＞ 英文和訳。主語と動詞を先に見つけ、うしろから説明している部分にかっこをつけて読む'],
-    ['短い長文（内容の読み取り）', nR, Math.ceil(nR * 0.7), '入試対策 ＞ 読解 ＞ 入試長文（入門）を、時間を気にせず辞書なしで1題ずつ。わからなかった文は和訳して確認'],
+    ['単語（長文によく出る語の意味）', `${nV}問`, ...band(nV, 0.85, 0.7).map(x => `${x}問`), '入試対策 ＞ 単語・表現 ＞ 入試単語（意味を選ぶ・書く）を、8割5分をこえるまでくり返す'],
+    ['長い文の意味をつかむ（英文和訳）', `${nG}問`, ...band(nG, 0.75, 0.55).map(x => `${x}問`), '文法の理解度チェック（基礎・標準）→ 読解 ＞ 英文和訳。主語と動詞を先に見つけ、うしろから説明している部分をかっこでくくって読む'],
+    ['長文の内容の読み取り（2題）', `${nR}問`, ...band(nR, 0.75, 0.6).map(x => `${x}問`), '入試長文（入門）を、時間を気にせず1題ずつ。まちがえた問題は、答えの根拠になる文に線を引いて確認'],
+    ['読む速さ（1分あたりの語数）', '2題の平均', '80語以上', '60語以上', '音読（教科書・入門の長文を毎日1題）で、意味のまとまりごとに前から読むくせをつける'],
   ];
   return `<div class="ws-diag-table"${partAttr('ready-table', '読解準備の判定表（解答ページ）')}><h3>読解に進む前のチェック ― 判定</h3>
-<table><tr><th>力</th><th>問題数</th><th>合格ライン</th><th>正解した数</th><th>足りないときに次にやること</th></tr>${rows.map(([a, n, l, t]) => `<tr><td>${a}</td><td>${n}問</td><td>${l}問以上</td><td class="mark"></td><td>${t}</td></tr>`).join('')}</table>
-<div class="ws-ready-judge"><b>判定</b>　3つとも合格 → 入試長文（標準）の練習に進もう。／ 2つ合格 → 足りない力を復習しながら、入試長文（入門）から始めよう。／ 1つ以下 → 長文の前に、単語と文法の復習を先にしよう（2〜3週間後にもう一度このチェックを）。<br>英文和訳は、主語と動詞が正しく訳せていて、文の意味が大きくずれていなければ○。</div></div>`;
+<table><tr><th>力</th><th>問題数</th><th>合格</th><th>ぎりぎり</th><th>結果</th><th>足りないときに次にやること</th></tr>${rows.map(([a, n, hi, lo, t]) => `<tr><td>${a}</td><td>${n}</td><td>${hi}</td><td>${lo}〜</td><td class="mark"></td><td>${t}</td></tr>`).join('')}</table>
+<div class="ws-ready-judge"><b>結果の書き方</b>　各行に「合格・ぎりぎり・不合格」（ぎりぎりのラインに届かなければ不合格）。<br>
+<b>判定</b>　すべて合格 → 入試長文（標準）の練習に進もう。／ 不合格がなく、ぎりぎりがある → 入試長文（入門）を始めながら、ぎりぎりの力を復習。1〜2週間後に、もう一度このチェックで確かめよう。／ 不合格が1つ → その力の復習を中心に、入試長文（入門）は週1題から。／ 不合格が2つ以上 → 長文の前に、単語と文法の復習を先にしよう（2〜3週間後にもう一度）。<br>
+英文和訳は、主語と動詞が正しく訳せていて、文の意味が大きくずれていなければ○。読む速さ＝本文の語数 ÷ 読むのにかかった分（問題を解く前に、本文を1回読み終えるまでの時間）。</div></div>`;
 }
 // 解答ページの最後に、文法事項ごとの○×表(どの文法ができていないかがわかる)
 function diagTableHtml(items) {
@@ -11878,10 +11907,10 @@ examTableBtn.onclick = () => {
 document.getElementById('readyCheckBtn').onclick = () => {
   printRounds = 1;
   const keys = stages.filter(st => typeof st.grade === 'number').map(st => st.key);
-  startExamPrint('読解に進む前のチェック（単語・長い文の意味・短い長文）', examConfig('入試対策 読解に進む前のチェック', {
+  startExamPrint('読解に進む前のチェック（単語40問・長い文の和訳12問・長文2題）', examConfig('入試対策 読解に進む前のチェック', {
     keys, readyCheck: true, shuffle: false,
-    vocabCounts: { ...emptyCounts(VOCAB_TYPES), vmeaning: 20 }, vocabImportant: true,
-    examReadingLevels: typeof EXAM_READING !== 'undefined' ? ['basic'] : undefined, readingCount: 1,
+    vocabCounts: { ...emptyCounts(VOCAB_TYPES), vmeaning: 20, vjp: 20 }, vocabImportant: false, vocabFrequent: true,
+    etojCount: 12, etojSpread: true, readingCount: 2,
   }));
 };
 examMockBtn.onclick = () => {
