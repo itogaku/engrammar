@@ -667,6 +667,7 @@
   .exam-make { align-self: flex-start; flex: none; padding: 9px 20px; font-size: 14px; }
   .ws-dialog { display: grid; grid-template-columns: max-content 1fr; column-gap: 10px; line-height: 1.85; margin: 2px 0 6px; }
   .ws-cform { display: flex; flex-wrap: wrap; gap: 4px 18px; }
+  .ws-ready-judge { margin-top: 8px; font-size: 13px; line-height: 1.7; }
   .ws-wordbox { margin: 4px 0 2px; padding: 4px 10px; border: 1.5px solid var(--ink); display: inline-block; font-family: Georgia, serif; }
   .ws-cmean { font-size: 12px; color: var(--ink-soft); margin-left: 4px; }
   .ans-why { display: block; font-size: 12px; color: var(--ink-soft); line-height: 1.5; }
@@ -934,6 +935,10 @@
       <div class="exam-head">文法の理解度チェック<span>文法事項ごとに1問ずつ、その文法に合った形式（適語選択・語形変化・並べかえ・書きかえなど）で出題。形式は固定で、文は毎回ちがう（作り直すたび・何周でも別の問題）。解答ページに文法事項ごとの○×表つき</span></div>
       <div class="opt-row"><span class="opt-label">難易度</span><div class="mode-switch" id="diagLevel"></div></div>
       <div class="exam-rounds" id="diagList"></div>
+    </div>
+    <div class="card test-card exam-card">
+      <div class="exam-head">読解に進む前のチェック<span>入試はほとんどが長文読解。「単語（20問）・長い文の意味をつかむ（10問）・短い長文（1題）」で、長文の練習に入ってよいかを判定（解答ページに合格ラインと次にやること）。目安25分</span></div>
+      <button class="btn btn-primary exam-make" id="readyCheckBtn">読解準備チェックを作る</button>
     </div>
     <div class="card test-card exam-card">
       <div class="exam-head">教科書の重要文 最終チェック<span>3年→2年→1年の順に、教科書の文法の重要文を□でチェック。英文は赤字（赤シートでかくして言えるか確かめる）</span></div>
@@ -9198,7 +9203,8 @@ function generateWorksheet(seed) {
   const rounds = isTestRangePrint() ? 1 : printRounds;
   for (let r = 0; r < rounds; r++) {
   const diagCfg = isTest && printSource.config.diag;
-  const slots = diagCfg ? [] : grammarSlots();
+  const readyCfg = isTest && printSource.config.readyCheck;
+  const slots = diagCfg || readyCfg ? [] : grammarSlots();
   // 順番をランダムにしないときは単元順(同じ形式の中で)
   if (isTest && !printSource.config.shuffle) slots.sort((a, b) => stages.indexOf(a.stage) - stages.indexOf(b.stage));
   const perStage = new Map();
@@ -9243,6 +9249,7 @@ function generateWorksheet(seed) {
     examItems = generateExamItems(cfg, usedExam);
   }
   if (diagCfg) printItems = diagItems(printSource.config.diag, stateOf, printSource.config.diagLevel);
+  if (readyCfg) printItems = readyItems(stateOf);
   printItems = groupByType(printItems, QUESTION_TYPES);
   roundSets.push({ vocab: vocabItems, grammar: printItems, reading: readingItems, exam: examItems });
   }
@@ -10267,7 +10274,7 @@ function renderWorksheet() {
   sections.forEach((sec, si) => {
     const numeral = numbered ? SECTION_NUMERALS[si] : '';
     if (sec === 'vocab') instr = appendItemGroup(vocabItems, VOCAB_TYPES, numeral, titleWithPoints('単語', vocabItems));
-    if (sec === 'grammar') instr = appendItemGroup(printItems, QUESTION_TYPES, numeral, titleWithPoints('文法', printItems));
+    if (sec === 'grammar') instr = appendItemGroup(printItems, QUESTION_TYPES, numeral, titleWithPoints(printSource.config && printSource.config.readyCheck ? '長い文の意味をつかむ（英文和訳）' : '文法', printItems));
     if (sec === 'exam') instr = appendItemGroup(examItems, EXAM_TYPES, numeral, titleWithPoints(examTitle, examItems));
     if (sec === 'reading') {
       sheetItems.appendChild(sectionHead(numeral || '', titleWithPoints('長文', readingItems.flatMap(r => r.subs)), '次の英文を読んで、あとの問いに答えなさい。'));
@@ -10312,6 +10319,7 @@ function renderWorksheet() {
     }
   });
   if (printSource.kind === 'test' && (printSource.config.diag || ['auto', 'check'].includes(printSource.config.mode))) answersHtml += diagTableHtml(printItems);
+  if (printSource.kind === 'test' && printSource.config.readyCheck) answersHtml += readyTableHtml();
   answerList.innerHTML = answersHtml;
   answerSheet.classList.toggle('include', printIncludeAnswers.checked && !redSheetOn());
   if (basicSrc) applyBasicHints();
@@ -11365,6 +11373,42 @@ function diagItems(gs, stateOf, level = 'standard') {
     return item;
   }).filter(Boolean);
 }
+// ---------- 読解に進む前のチェック ----------
+// 長文でつまずく原因になる文の形(うしろから説明する語句・節・不定詞など)を1つずつ英文和訳で
+const READY_POINTS = [
+  ['名詞をうしろから説明する 〜ing・過去分詞', /^g3program4-(presentp|pastp)$/],
+  ['関係代名詞（who / which / that）', /^g3program5-/],
+  ['関係代名詞の目的格・省略', /^g3program6-/],
+  ['間接疑問（what / where など + 主語 + 動詞）', /^g3program4-indirect$/],
+  ['不定詞（〜するために・〜するための）', /^g2program3-(adverb|adj)$/],
+  ['It is 〜 (for 人) to …', /^(g2program3-itisto|g3program1-itisfor)$/],
+  ['接続詞 that / when / if / because', /^g2program2-/],
+  ['受け身', /^g2program8-/],
+  ['現在完了', /^(g3program1-experience|g3program2-(completion|continuation))$/],
+  ['tell 人 that 〜・want 人 to 〜・make 人 〜 など', /^(g3program1-asktell|g3program3-)/],
+];
+function readyItems(stateOf) {
+  return READY_POINTS.map(([title, re]) => {
+    for (const st of shuffle(stages.filter(s => typeof s.grade === 'number' && re.test(s.key)))) {
+      const it = makeUnitQuestion(st, 'entoja', stateOf(st));
+      if (it.type === 'entoja') { it.why = `文の形：${title}`; return it; }
+    }
+    return null;
+  }).filter(Boolean);
+}
+// 解答ページの判定表: 3つの力ごとの合格ラインと、足りないときに次にやること
+function readyTableHtml() {
+  const nV = vocabItems.length, nG = printItems.length, nR = readingItems.reduce((a, r) => a + r.subs.filter(x => x.type !== 'rwrite').length, 0);
+  const line = n => Math.ceil(n * 0.8);
+  const rows = [
+    ['単語（入試によく出る語の意味）', nV, line(nV), '入試対策 ＞ 単語・表現 ＞ 入試単語（意味を選ぶ・書く）を、8割をこえるまでくり返す'],
+    ['長い文の意味をつかむ（英文和訳）', nG, Math.ceil(nG * 0.7), '入試対策 ＞ まず実力をたしかめる ＞ 文法の理解度チェック（基礎）→ 読解 ＞ 英文和訳。主語と動詞を先に見つけ、うしろから説明している部分にかっこをつけて読む'],
+    ['短い長文（内容の読み取り）', nR, Math.ceil(nR * 0.7), '入試対策 ＞ 読解 ＞ 入試長文（入門）を、時間を気にせず辞書なしで1題ずつ。わからなかった文は和訳して確認'],
+  ];
+  return `<div class="ws-diag-table"${partAttr('ready-table', '読解準備の判定表（解答ページ）')}><h3>読解に進む前のチェック ― 判定</h3>
+<table><tr><th>力</th><th>問題数</th><th>合格ライン</th><th>正解した数</th><th>足りないときに次にやること</th></tr>${rows.map(([a, n, l, t]) => `<tr><td>${a}</td><td>${n}問</td><td>${l}問以上</td><td class="mark"></td><td>${t}</td></tr>`).join('')}</table>
+<div class="ws-ready-judge"><b>判定</b>　3つとも合格 → 入試長文（標準）の練習に進もう。／ 2つ合格 → 足りない力を復習しながら、入試長文（入門）から始めよう。／ 1つ以下 → 長文の前に、単語と文法の復習を先にしよう（2〜3週間後にもう一度このチェックを）。<br>英文和訳は、主語と動詞が正しく訳せていて、文の意味が大きくずれていなければ○。</div></div>`;
+}
 // 解答ページの最後に、文法事項ごとの○×表(どの文法ができていないかがわかる)
 function diagTableHtml(items) {
   // 同じ文法事項(単元)の問題は1行にまとめる。並びは、その文法事項の最初の問題の順番
@@ -11830,6 +11874,15 @@ examVocabBtn.onclick = () => {
 examTableBtn.onclick = () => {
   const kinds = [...examState.tableKinds];
   startExamPrint(`入試対策 語形変化（${kinds.map(k => EXAM_TABLES[k].label).join('・')}）`, examConfig('入試対策 語形変化', { tableCount: examState.tableCount, tableKinds: kinds, tableMix: examState.tableMix }));
+};
+document.getElementById('readyCheckBtn').onclick = () => {
+  printRounds = 1;
+  const keys = stages.filter(st => typeof st.grade === 'number').map(st => st.key);
+  startExamPrint('読解に進む前のチェック（単語・長い文の意味・短い長文）', examConfig('入試対策 読解に進む前のチェック', {
+    keys, readyCheck: true, shuffle: false,
+    vocabCounts: { ...emptyCounts(VOCAB_TYPES), vmeaning: 20 }, vocabImportant: true,
+    examReadingLevels: typeof EXAM_READING !== 'undefined' ? ['basic'] : undefined, readingCount: 1,
+  }));
 };
 examMockBtn.onclick = () => {
   const g = examState.mockRange;
