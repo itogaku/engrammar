@@ -4490,7 +4490,7 @@ let printSource = { kind: 'stage' };  // 出題元: 1つの単元(stage) / テ�
 const testState = {
   grade: 1, keys: new Set(), mode: 'auto', perUnit: {}, shuffle: true, bestType: true, name: '',
   noText: new Set(), // 本文(単語・長文)がテストに出ない Program("学年|Program")
-  grammarCounts: { reorder: 4, choice: 3, fillin: 0, form: 3, rewrite: 2, translate: 2, entoja: 0 },
+  grammarCounts: { reorder: 4, choice: 3, fillin: 2, form: 3, rewrite: 2, translate: 0, entoja: 0 },
   vocabCounts: { vmeaning: 4, vjp: 0, vword: 3, vblank: 3, vidiom: 0 },
   vocabImportant: false, readingCount: 1, readingLevel: 'both',
 };
@@ -9076,7 +9076,12 @@ function canMakeType(st, t) {
 // おまかせ(定期テスト)は各単元の上位2つ(多すぎるときは1つ)、チェックテストはすべて
 const AUTO_TEST_LIMIT = 30;
 function recipePlan(list, full) {
-  const forms = list.map(st => ({ st, types: (typeof recipeOf === 'function' ? recipeOf(st) : ['reorder']).filter(t => !HIDDEN_TYPES.has(t) && canMakeType(st, t)) }));
+  const forms = list.map(st => {
+    const types = (typeof recipeOf === 'function' ? recipeOf(st) : ['reorder']).filter(t => !HIDDEN_TYPES.has(t) && canMakeType(st, t));
+    // 和文英訳はむずかしいので、ほかに作れる形式が2つに満たない単元だけ
+    if (types.length < 2 && canMakeType(st, 'translate')) types.push('translate');
+    return { st, types };
+  });
   const take = n => forms.flatMap(({ st, types }) => types.slice(0, n).map(type => ({ stage: st, type, fixed: true })));
   if (full) return take(99);
   const two = take(2);
@@ -11059,7 +11064,7 @@ const EXAM_ROUNDS = [
   { title: '分詞・関係代名詞', sub: '名詞を修飾する分詞・who・which・that・接触節', match: /^(g3program4-(presentp|pastp)|g3program5-|g3program6-)/ },
   { title: '疑問詞・間接疑問・仮定法', sub: '疑問詞の疑問文・間接疑問・I wish・If I were', match: /^(program1-where|program2-when|g1program3-whatcan|g1program4-who|g1program6-why|g1program7-(how|howmeans|candoq)|g1powerup|g1program8-wh|g1program9-whprog|g3program4-indirect|g3program7-)/ },
 ];
-const EXAM_GRAMMAR_FORMAT = { form: 4, choice: 3, fillin: 2, rewrite: 2, paraphrase: 2, reorder: 2, extra: 2, error: 2, translate: 2, entoja: 1 };
+const EXAM_GRAMMAR_FORMAT = { form: 4, choice: 3, fillin: 2, rewrite: 2, paraphrase: 2, reorder: 3, extra: 2, error: 2, translate: 1, entoja: 1 };
 const examState = { readingLevels: new Set(['basic']), readingCount: 1, vocabRange: 3, vocabCount: 30, writingKinds: new Set(['translate']), writingCount: 10, freeThemes: new Set(), freeCount: 20, etojCount: 10, dialogCats: new Set(), dialogCount: 10, phraseThemes: new Set(), phraseCount: 20, tableKinds: new Set(['irregular']), tableCount: 20, tableMix: false, phraseList: false, freeList: false, checkRange: 3, checkCount: 60, mockRange: 3 };
 
 function examRoundKeys(r) { return stages.filter(st => r.match.test(st.key)).map(st => st.key); }
@@ -11378,7 +11383,7 @@ function renderDiagList() {
   if (!list || typeof DIAG_POINTS === 'undefined') return;
   list.innerHTML = '';
   const lv = document.getElementById('diagLevel');
-  if (lv) renderOptionSwitch(lv, [['basic', '基礎（選ぶ・空所をうめる）'], ['standard', '標準（文法に合った形式）'], ['advanced', '発展（入試でよく出る書きかえ・誤文訂正・英作文）']], examState.diagLevel || 'standard', v => { examState.diagLevel = v; renderDiagList(); });
+  if (lv) renderOptionSwitch(lv, [['basic', '基礎（選ぶ・空所をうめる）'], ['standard', '標準（文法に合った形式）'], ['advanced', '発展（入試でよく出る書きかえ・誤文訂正・1語不要の並べかえ）']], examState.diagLevel || 'standard', v => { examState.diagLevel = v; renderDiagList(); });
   [[[1], '中1の文法'], [[2], '中2の文法'], [[3], '中3の文法'], [[1, 2, 3], '中1〜中3 すべて']].forEach(([gs, title]) => {
     const pts = DIAG_POINTS.filter(d => gs.includes(d.g));
     const b = document.createElement('button');
@@ -11586,7 +11591,7 @@ function startChapterPrint(key) {
   const ch = EXAM_GRAMMAR[key];
   const re = EXAM_CHAPTER_UNITS[key];
   const keys = re ? stages.filter(st => re.test(st.key)).map(st => st.key) : [];
-  const textbook = examState.withTextbook && keys.length ? { form: 2, choice: 2, rewrite: 1, translate: 2 } : {};
+  const textbook = examState.withTextbook && keys.length ? { form: 2, choice: 2, rewrite: 1, fillin: 2 } : {};
   const lvLabel = { basic: '（基礎）', exam: '（入試）', both: '' }[examState.chapterLevel];
   startExamPrint(`入試対策 第${ch.no}章 ${ch.title}${lvLabel}`, examConfig(`入試対策 第${ch.no}章 ${ch.title}${lvLabel}`, {
     keys, chapter: key, examSummary: true, chapterLevel: examState.chapterLevel, grammarCounts: { ...emptyCounts(QUESTION_TYPES), ...textbook },
@@ -11921,7 +11926,7 @@ examMockBtn.onclick = () => {
   startExamPrint(`入試形式の総合問題（中${g}までの全範囲）`, examConfig(`入試形式 総合問題（中${g}まで）`, {
     keys, readingKeys: lastProgram, examReadingLevels: typeof EXAM_READING !== 'undefined' ? [g === 3 ? 'standard' : 'basic'] : undefined,
     vocabCounts: { ...emptyCounts(VOCAB_TYPES), vmeaning: 3, vword: 3 },
-    grammarCounts: { ...emptyCounts(QUESTION_TYPES), form: 3, choice: 2, paraphrase: 2, extra: 2, error: 1, translate: 2 },
+    grammarCounts: { ...emptyCounts(QUESTION_TYPES), form: 3, choice: 2, paraphrase: 2, extra: 2, error: 1, reorder: 2 },
     dialogCount: 4, phraseCount: 3, readingCount: 1, readingLevel: 'program', writing: { condition: 1, free: 1 },
   }));
 };

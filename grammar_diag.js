@@ -4,8 +4,8 @@
 const DIAG_POINTS = [
   // ---------- 中1 ----------
   { g: 1, title: 'be動詞（am / are / is）', re: /^(program1-aff|g1program4-aff)$/, type: 'choice' , adv: 'error' },
-  { g: 1, title: 'be動詞の否定文・疑問文', re: /^(program1-aff|g1program4-aff)$/, type: 'rewrite' , adv: 'translate' },
-  { g: 1, title: '一般動詞の否定文・疑問文（do）', re: /^program2-aff$/, type: 'rewrite' , adv: 'translate' },
+  { g: 1, title: 'be動詞の否定文・疑問文', re: /^(program1-aff|g1program4-aff)$/, type: 'rewrite' , adv: 'error' },
+  { g: 1, title: '一般動詞の否定文・疑問文（do）', re: /^program2-aff$/, type: 'rewrite' , adv: 'error' },
   { g: 1, title: '3人称単数（動詞の s）', re: /^g1program5-aff$/, type: 'form' , adv: 'error' },
   { g: 1, title: 'does の否定文・疑問文', re: /^g1program5-(neg|q)$/, type: 'choice' , adv: 'rewrite' },
   { g: 1, title: 'can', re: /^g1program3-(aff|neg|q)$/, type: 'reorder' , adv: 'paraphrase' },
@@ -13,7 +13,7 @@ const DIAG_POINTS = [
   { g: 1, title: '名詞の複数形', re: /^program2-plural$/, type: 'form', alt: 'choice' , adv: 'error' },
   { g: 1, title: '疑問詞（what / who / where など）', re: /^(program1-where|program2-when|g1program3-whatcan|g1program4-who|g1program6-why|g1program7-how|g1program8-wh)$/, type: 'choice' , adv: 'rewrite' },
   { g: 1, title: "命令文・Let's", re: /^program2-(imperative|lets)$/, type: 'reorder' , adv: 'paraphrase' },
-  { g: 1, title: 'There is / There are', re: /^g1program7-(aff|neg|q)$/, type: 'choice' , adv: 'translate' },
+  { g: 1, title: 'There is / There are', re: /^g1program7-(aff|neg|q)$/, type: 'choice' , adv: 'rewrite' },
   { g: 1, title: '現在進行形', re: /^g1program8-(aff|neg|q)$/, type: 'form' , adv: 'error' },
   { g: 1, title: '過去形（一般動詞）', re: /^g1program9-general$/, type: 'form' , adv: 'error' },
   { g: 1, title: 'was / were・過去進行形', re: /^g1program9-(be|prog|whprog)$/, type: 'choice' , adv: 'rewrite' },
@@ -29,19 +29,19 @@ const DIAG_POINTS = [
   { g: 2, title: 'SVC・SVOO（give 人 物 など）', re: /^g2program5-(svc|svoo)$/, type: 'reorder' , adv: 'paraphrase' },
   { g: 2, title: '比較級・最上級', re: /^g2program6-(comp|sup)$/, type: 'form' , adv: 'paraphrase' },
   { g: 2, title: 'as 〜 as', re: /^g2program6-asas$/, type: 'reorder' , adv: 'paraphrase' },
-  { g: 2, title: 'like 〜 better / the best', re: /^g2program7-(better|best)$/, type: 'choice' , adv: 'translate' },
+  { g: 2, title: 'like 〜 better / the best', re: /^g2program7-(better|best)$/, type: 'choice' , adv: 'extra' },
   { g: 2, title: '受け身', re: /^g2program8-/, type: 'form' , adv: 'paraphrase' },
   // ---------- 中3 ----------
   { g: 3, title: 'want / tell / ask 人 to 〜', re: /^g3program1-asktell$/, type: 'reorder' , adv: 'paraphrase' },
   { g: 3, title: 'It is 〜 for 人 to …', re: /^g3program1-itisfor$/, type: 'reorder' , adv: 'paraphrase' },
   { g: 3, title: '現在完了（経験・完了・継続の文）', re: /^(g3program1-experience|g3program2-(completion|continuation))$/, type: 'reorder' , adv: 'paraphrase' },
   { g: 3, title: '現在完了の形（have + 過去分詞）', re: /^(g3program1-experience|g3program2-(completion|continuation))$/, type: 'form' , adv: 'rewrite' },
-  { g: 3, title: '現在完了進行形', re: /^g3program2-progressive$/, type: 'rewrite', alt: 'form' , adv: 'translate' },
+  { g: 3, title: '現在完了進行形', re: /^g3program2-progressive$/, type: 'rewrite', alt: 'form' , adv: 'error' },
   { g: 3, title: 'SVOC・make / let / help 人 〜', re: /^g3program3-(svoc|callname|makeletlelp)$/, type: 'reorder' , adv: 'extra' },
   { g: 3, title: '名詞をうしろから説明する分詞', re: /^g3program4-(presentp|pastp)$/, type: 'form' , adv: 'rewrite' },
   { g: 3, title: '間接疑問', re: /^g3program4-indirect$/, type: 'reorder' , adv: 'rewrite' },
   { g: 3, title: '関係代名詞 who / which / that', re: /^g3program5-/, type: 'choice' , adv: 'rewrite' },
-  { g: 3, title: '関係代名詞（目的格）・省略', re: /^g3program6-/, type: 'reorder' , adv: 'translate' },
+  { g: 3, title: '関係代名詞（目的格）・省略', re: /^g3program6-/, type: 'reorder' , adv: 'insert' },
   { g: 3, title: '仮定法（I wish / If 〜）', re: /^g3program7-/, type: 'form', alt: 'choice' , adv: 'rewrite' },
 ];
 
@@ -124,7 +124,8 @@ const STAGE_RECIPES = [
 ];
 function recipeOf(st) {
   const hit = STAGE_RECIPES.find(([re]) => re.test(st.key));
-  const list = hit ? hit[1] : ['reorder', 'choice', 'translate'];
+  // 和文英訳はむずかしいので、ふだんは出さない(その単元で作れる形式が2つに満たないときだけ、recipePlan で足す)
+  const list = (hit ? hit[1] : ['reorder', 'choice']).filter(t => t !== 'translate');
   // 中1は、書きかえを空所型(変わった語だけを書く)にする(問題集の確認問題の形)
   return st.grade === 1 ? list.map(t => (t === 'rewrite' ? 'rewritefill' : t)) : list;
 }
@@ -135,6 +136,7 @@ function diagTypesFor(d, level) {
     const b = { rewrite: 'rewritefill', form: 'choice', paraphrase: 'choice', reorder: 'reorder' }[d.type] || 'choice';
     return [b, 'choice', 'fillin'];
   }
-  if (level === 'advanced') return [d.adv || 'translate', d.type, 'translate'];
+  // 和文英訳はむずかしいので、ほかの形式が作れないときだけ
+  if (level === 'advanced') return [d.adv || 'extra', 'extra', 'error', d.type, 'translate'];
   return [d.type, d.alt || 'choice', 'reorder'];
 }
